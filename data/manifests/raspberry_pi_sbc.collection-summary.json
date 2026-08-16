@@ -1,0 +1,12 @@
+{
+  "candidate_titles_after_keyword_filter": 186,
+  "class_name": "raspberry_pi_sbc",
+  "discovered_titles": 245,
+  "dry_run": true,
+  "existing_accepted": 0,
+  "finished_at": "2026-08-16T13:45:09+00:00",
+  "new_accepted": 0,
+  "rejected": {},
+  "requested_total": 20,
+  "started_at": "2026-08-16T13:45:09+00:00"
+}

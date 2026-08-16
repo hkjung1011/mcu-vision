@@ -1,0 +1,29 @@
+verified_at: 2026-08-16
+os: Windows
+python: 3.11.9
+gpu:
+  name: NVIDIA GeForce RTX 5060 Laptop GPU
+  driver: "610.88"
+  memory_mib: 8151
+
+collection_environment:
+  path: .venv-collect
+  tests: 4 passed
+
+yolo11_environment:
+  path: .venv-yolo11
+  torch: 2.12.1+cu130
+  torch_cuda: "13.0"
+  ultralytics: 8.4.120
+  cuda_available: true
+  smoke_test: PASS
+
+yolox_environment:
+  path: .venv-yolox
+  torch: 2.12.1+cu130
+  yolox: 0.3.0
+  yolox_commit: 6ddff4824372906469a7fae2dc3206c7aa4bbaee
+  numpy: 1.26.4
+  opencv: 4.11.0
+  cuda_forward_test: PASS
+  coco_dataset_validation: PASS

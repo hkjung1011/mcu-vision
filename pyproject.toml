@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcu-data-tools"
+version = "0.1.0"
+description = "Licensed image collection and dataset auditing tools for MCU vision experiments"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "requests>=2.32,<3",
+  "Pillow>=11,<13",
+  "ImageHash>=4.3,<5",
+  "PyYAML>=6,<7",
+  "tqdm>=4.67,<5",
+  "kagglehub>=1,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
+
+[project.scripts]
+mcu-collect-commons = "mcu_data.wikimedia:main"
+mcu-download-curated = "mcu_data.curated:main"
+mcu-audit = "mcu_data.audit:main"
+mcu-prepare-micropcb = "mcu_data.micropcb:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

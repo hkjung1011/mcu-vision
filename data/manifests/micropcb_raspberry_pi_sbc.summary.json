@@ -1,0 +1,18 @@
+{
+  "total_images": 1875,
+  "split_counts": {
+    "train": 1500,
+    "val": 375
+  },
+  "model_split_counts": {
+    "train:raspberry_pi_1_b_plus": 500,
+    "train:raspberry_pi_3_b_plus": 500,
+    "train:raspberry_pi_a_plus": 500,
+    "val:raspberry_pi_1_b_plus": 125,
+    "val:raspberry_pi_3_b_plus": 125,
+    "val:raspberry_pi_a_plus": 125
+  },
+  "storage": "NTFS hardlinks; images are not duplicated on disk",
+  "coco_output_root": "data/processed/micropcb_rpi_coco",
+  "validation_policy": "Source test specimens are used as val; final test must be captured on the target conveyor."
+}

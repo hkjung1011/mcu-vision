@@ -1,0 +1,55 @@
+revision: 1
+as_of: 2026-08-16
+counting_rule: Augmentations and adjacent video frames do not count as independent real images.
+
+classes:
+  raspberry_pi_sbc:
+    local_candidate_images: 1875
+    accepted_for_bootstrap: 1875
+    train: 1500
+    val: 375
+    exact_duplicates: 0
+    source: micro_pcb_images
+    license: CC BY 4.0
+    status: BOOTSTRAP_READY
+    limitation: Three models have only two physical specimens per model and highly repeated capture conditions.
+
+  raspberry_pi_pico:
+    local_candidate_images: 0
+    accepted_for_bootstrap: 0
+    target: 1000
+    status: SOURCE_GAP
+    limitation: No verified public source with 1,000 independent licensed real images was found.
+
+  stm32_dev_board:
+    local_candidate_images: 0
+    accepted_for_bootstrap: 0
+    target: 1000
+    status: SOURCE_GAP
+    limitation: Nucleo, Discovery, and third-party boards must remain separate or have an explicit merge rule.
+
+  stm32_bare_ic:
+    local_candidate_images: 0
+    accepted_for_bootstrap: 0
+    target: 1000
+    status: SOURCE_GAP
+    limitation: Package shape alone cannot verify STM32; a legible marking or trusted specimen metadata is required.
+
+  small_component_generic:
+    local_candidate_images: 0
+    accepted_for_bootstrap: 0
+    target: 1000
+    status: AUTH_AND_CLASS_DEFINITION_REQUIRED
+    candidate_source: https://universe.roboflow.com/dainius/smdcomponents/dataset/2
+    candidate_source_images: 2997
+    candidate_boxes:
+      capacitor: 3297
+      resistor: 4478
+      diode: 3404
+      transistor: 696
+    candidate_license: Public Domain
+    limitation: Download requires Roboflow sign-in, and these four generic classes are not yet verified as the parts in the user's conveyor photo.
+
+unreviewed_candidates:
+  wikimedia_raspberry_pi_sbc: 5
+  note: These files are locally downloaded candidates only and include irrelevant or multi-object images; they are not in the accepted count.

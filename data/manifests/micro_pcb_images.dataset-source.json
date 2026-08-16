@@ -1,0 +1,18 @@
+{
+  "completed_at": "2026-08-16T13:57:47+00:00",
+  "dataset_name": "micro_pcb_images",
+  "destination": "data/raw/curated/micro_pcb_images",
+  "license": "CC BY 4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "notes": [
+    "Contains 8,125 images across 13 micro-PCB models, 625 images per model.",
+    "Raspberry Pi 1 B+, Raspberry Pi 3 B+, and Raspberry Pi A+ provide 1,875 images in total.",
+    "Images are repeated views of very few physical boards; split by specimen, never random image."
+  ],
+  "provider": "kaggle",
+  "purpose": "Raspberry Pi SBC classification bootstrap",
+  "requested_at": "2026-08-16T13:51:03+00:00",
+  "resolved_path": "data/raw/curated/micro_pcb_images",
+  "source_url": "https://www.kaggle.com/datasets/frettapper/micropcb-images",
+  "status": "DOWNLOADED"
+}

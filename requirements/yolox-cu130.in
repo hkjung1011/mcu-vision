@@ -1,0 +1,13 @@
+# Install torch/torchvision from the official CUDA 13.0 index first.
+numpy==1.26.4
+opencv-python==4.11.0.86
+loguru>=0.7,<1
+tqdm>=4.67,<5
+thop>=0.1.1
+ninja>=1.11
+tabulate>=0.9
+psutil>=6
+tensorboard>=2.18
+pycocotools>=2.0.10
+onnx>=1.17,<2
+onnxsim>=0.4.36,<0.5

@@ -1,0 +1,23 @@
+.venv*/
+.deps/
+__pycache__/
+*.egg-info/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+.env
+
+# Downloaded/source imagery stays local. Track manifests and reports instead.
+data/raw/*
+!data/raw/.gitkeep
+data/processed/
+data/staging/
+data/quarantine/
+data/cache/
+
+# Training outputs are curated before being added to weights/.
+runs/
+outputs/
+yolo26n.pt
+*.engine

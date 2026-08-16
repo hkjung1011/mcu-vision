@@ -1,0 +1,24 @@
+schema_version: 1
+datasets:
+  micro_pcb_images:
+    provider: kaggle
+    handle: frettapper/micropcb-images
+    source_url: https://www.kaggle.com/datasets/frettapper/micropcb-images
+    license: CC BY 4.0
+    license_url: https://creativecommons.org/licenses/by/4.0/
+    purpose: Raspberry Pi SBC classification bootstrap
+    notes:
+      - Contains 8,125 images across 13 micro-PCB models, 625 images per model.
+      - Raspberry Pi 1 B+, Raspberry Pi 3 B+, and Raspberry Pi A+ provide 1,875 images in total.
+      - Images are repeated views of very few physical boards; split by specimen, never random image.
+
+  smd_components_raw:
+    provider: manual_roboflow
+    source_url: https://universe.roboflow.com/dainius/smdcomponents/dataset/2
+    license: Public Domain
+    license_url: https://creativecommons.org/publicdomain/mark/1.0/
+    purpose: Conveyor-borne loose SMD detector bootstrap
+    notes:
+      - Download raw-images version 2, not augmented versions.
+      - Roboflow sign-in/API authorization may be required.
+      - Capacitor, resistor, diode, and transistor bounding boxes are included.

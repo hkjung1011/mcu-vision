@@ -1,0 +1,46 @@
+schema_version: 1
+status: PROVISIONAL
+notes:
+  - Raspberry Pi SBC, Raspberry Pi Pico, STM32 development boards, and bare STM32 ICs are kept separate.
+  - The small parts in the conveyor overview image cannot be assigned reliable part IDs without close-up images or a BOM.
+  - These classes may be merged only after the user's recognition target is confirmed.
+
+classes:
+  raspberry_pi_sbc:
+    id: 0
+    definition: Complete Raspberry Pi single-board computers such as Pi 1-5 and Pi Zero.
+    excludes:
+      - Raspberry Pi Pico and other RP2040 microcontroller boards
+      - logos, diagrams, cases without a visible board
+    status: PROVISIONAL
+
+  raspberry_pi_pico:
+    id: 1
+    definition: Raspberry Pi Pico-family RP2040 or RP2350 microcontroller development boards.
+    excludes:
+      - full-size Raspberry Pi SBC products
+      - bare RP2040 or RP2350 IC packages
+    status: PROVISIONAL
+
+  stm32_dev_board:
+    id: 2
+    definition: Development boards carrying an STM32 MCU, including Nucleo, Discovery, and clearly identified compatible boards.
+    excludes:
+      - bare STM32 IC packages
+      - development boards whose MCU family cannot be verified
+    status: PROVISIONAL
+
+  stm32_bare_ic:
+    id: 3
+    definition: Bare integrated-circuit packages with a legible STM32 marking or verified source metadata.
+    excludes:
+      - development boards
+      - visually similar unverified IC packages
+    status: PROVISIONAL
+
+  small_component_generic:
+    id: 4
+    definition: Generic small conveyor-borne electronic component for detector-only bootstrapping.
+    excludes:
+      - assignment of a specific part number from the overview image alone
+    status: TO_VERIFY
