@@ -10,6 +10,10 @@ def _environment_int(name: str, default: int) -> int:
     return int(os.environ.get(name, default))
 
 
+def _environment_path(name: str, default: Path) -> str:
+    return str(Path(os.environ.get(name, str(default))).resolve())
+
+
 class Exp(YOLOXBaseExp):
     def __init__(self) -> None:
         super().__init__()
@@ -17,10 +21,13 @@ class Exp(YOLOXBaseExp):
         self.depth = 0.33
         self.width = 0.50
         self.exp_name = Path(__file__).stem
-        self.data_dir = str(project_root / "data" / "processed" / "micropcb_rpi_coco")
+        self.data_dir = _environment_path(
+            "MCU_COCO_DATA_DIR",
+            project_root / "data" / "processed" / "micropcb_rpi_phash_v2_coco",
+        )
         self.train_ann = "instances_train2017.json"
         self.val_ann = "instances_val2017.json"
-        self.num_classes = 1
+        self.num_classes = _environment_int("MCU_NUM_CLASSES", 1)
         image_size = _environment_int("MCU_IMAGE_SIZE", 640)
         self.input_size = (image_size, image_size)
         self.test_size = (image_size, image_size)
@@ -31,7 +38,7 @@ class Exp(YOLOXBaseExp):
         # Fixed 640 makes accuracy/latency comparison with YOLO11 reproducible.
         self.multiscale_range = _environment_int("MCU_MULTISCALE_RANGE", 0)
         self.max_epoch = _environment_int("MCU_EPOCHS", 100)
-        self.data_num_workers = _environment_int("MCU_WORKERS", 2)
+        self.data_num_workers = _environment_int("MCU_WORKERS", 0)
         self.eval_interval = _environment_int("MCU_EVAL_INTERVAL", 1)
         self.print_interval = _environment_int("MCU_PRINT_INTERVAL", 10)
         self.no_aug_epochs = min(_environment_int("MCU_NO_AUG_EPOCHS", 10), self.max_epoch)

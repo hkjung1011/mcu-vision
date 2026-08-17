@@ -76,7 +76,7 @@ def test_baseline_rationale_has_decision_and_verification_fields() -> None:
         )
     )
     rationale = protocol["rationale"]
-    assert len(rationale) == 12
+    assert len(rationale) == 14
     assert len({item["id"] for item in rationale}) == len(rationale)
     required = {
         "label",

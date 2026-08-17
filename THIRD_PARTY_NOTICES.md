@@ -11,6 +11,9 @@ third-party software, pretrained weights, dataset의 라이선스 조건을 변�
 | [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX) | 학습 source와 pretrained YOLOX-S | Apache-2.0 | 고정 commit과 upstream weight hash 보존 |
 | [Ultralytics](https://github.com/ultralytics/ultralytics) | YOLO11 학습·현재 autolabel backend | AGPL-3.0 또는 Enterprise | private/상용/embedded 이용은 적용 조건 별도 검토 |
 | [PyTorch](https://github.com/pytorch/pytorch) | CUDA 학습 runtime | upstream license 참조 | binary wheel의 bundled component notice 포함 |
+| [ONNX](https://github.com/onnx/onnx) | portable model graph와 구조 검증 | Apache-2.0 | fixed batch-1 FP32 graph로 export |
+| [ONNX Runtime](https://github.com/microsoft/onnxruntime) | export 수치 검증과 Ubuntu camera inference | MIT | 목표 장치 provider/CUDA 호환성 별도 검증 |
+| [OpenCV](https://github.com/opencv/opencv-python) | COCO image 전처리와 camera capture/UI | Apache-2.0 | RGB/BGR·letterbox 규약을 release metadata에 고정 |
 | [pycocotools 2.0.11](https://pypi.org/project/pycocotools/2.0.11/) | 공통 COCO AP/AR | package metadata/license 참조 | exact version 고정 |
 | [CVAT Community](https://github.com/cvat-ai/cvat) | 권장 검수 UI, 아직 미통합 | MIT | SDK/import round-trip NOT VERIFIED |
 | [Grounding DINO](https://github.com/IDEA-Research/GroundingDINO) | 초기 bbox 제안 후보, 미구현 | Apache-2.0 | 현재 환경/weight 미포함 |

@@ -1,0 +1,8 @@
+# Python 3.11 CPU-only ONNX camera runtime for Windows/Ubuntu.
+flatbuffers==25.12.19
+numpy==1.26.4
+onnxruntime==1.28.0
+opencv-python==4.11.0.86
+packaging==26.3
+protobuf==7.35.1
+PyYAML==6.0.3

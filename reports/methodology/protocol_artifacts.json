@@ -1,50 +1,50 @@
 {
   "artifacts": [
     {
-      "bytes": 13564,
+      "bytes": 17488,
       "kind": "evidence",
       "path": "reports/methodology/protocol_snapshot.yaml",
-      "sha256": "500ecb6186e9da371669eefe785b6201bed8d0de8eee6fb208c453b8f9468141"
+      "sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
     },
     {
-      "bytes": 6627,
+      "bytes": 8143,
       "kind": "evidence",
       "path": "reports/methodology/protocol_rationale.csv",
-      "sha256": "7c2787899b4d364ee0fed97f78bc89c9a2c32b9493d335cdbe44a66cb2c0f158"
+      "sha256": "471c967b8d5339cda2392ed16bb4a95f8ca1ffaab75de8d4ffa8dac7ae25f420"
     },
     {
-      "bytes": 2921,
+      "bytes": 3332,
       "kind": "evidence",
       "path": "reports/methodology/protocol_references.json",
-      "sha256": "36045fde3c88125adf869b3d70681624bd35d08eca3fadecc7ba7a46d32c757a"
+      "sha256": "2aa53f9615224df85415de82789f1510a226ddb33070a372a93d7652aef408e0"
     },
     {
-      "bytes": 13838,
+      "bytes": 15819,
       "kind": "evidence",
       "path": "reports/methodology/experiment_methodology.md",
-      "sha256": "818877b22320befcd48e2f525edbff5ea23a21b249615306d06f984679051a10"
+      "sha256": "5941676fb217271da320ace7d6b96d1de733451d8a4c5b89a7df72b79ff6e77f"
     },
     {
-      "bytes": 7291,
+      "bytes": 8761,
       "kind": "evidence",
       "path": "reports/methodology/parameter_rationale.md",
-      "sha256": "e8e6d6af9281a9b6b1b39a0045e8204287fab97d6e79e4df5d890b62e61128d7"
+      "sha256": "78c55a677febf0442967426311eb1afc32175afee7e38857e69bb82f2a75281d"
     },
     {
-      "bytes": 653515,
+      "bytes": 763160,
       "kind": "derived_visual",
       "path": "reports/methodology/protocol_rationale.png",
-      "sha256": "275530de693e2c2b8507a79c459bed1d01ec86b0d12ab72b0ccdc89d14731bae"
+      "sha256": "d3dff5ddc57f9452574c2506094da4132d862fddcd40b9885c92a8065db87872"
     }
   ],
   "generative_ai_used_for_images": false,
   "output_dir": "reports/methodology",
   "policy": "Judgments use YAML/CSV/JSON numeric evidence; PNG files are visualization derivatives.",
-  "protocol_id": "micropcb_detector_baseline_v1",
-  "rationale_items": 12,
-  "references": 15,
+  "protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+  "rationale_items": 14,
+  "references": 17,
   "renderer": "matplotlib 3.11.1",
   "schema_version": 1,
   "source": "configs/experiments/baseline_v1.yaml",
-  "source_sha256": "500ecb6186e9da371669eefe785b6201bed8d0de8eee6fb208c453b8f9468141"
+  "source_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
 }

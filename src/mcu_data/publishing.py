@@ -175,11 +175,25 @@ def validate_comparison_for_run(
     if source_rows[0].get("source_original_sha256") != current_manifest_sha256:
         raise ValueError("Run manifest changed after the comparison was generated")
 
+    metrics_suffix = f"sources/{run_id}/final_metrics.json"
+    metric_rows = [
+        row
+        for row in sources_manifest.get("files", [])
+        if str(row.get("run_id")) == run_id
+        and str(row.get("path", "")).replace("\\", "/").endswith(metrics_suffix)
+    ]
+    if len(metric_rows) != 1:
+        raise ValueError(f"Comparison source bundle must contain this run's final metrics: {run_id}")
+    native_final_metrics_sha256 = str(metric_rows[0].get("source_original_sha256", "")).lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", native_final_metrics_sha256):
+        raise ValueError(f"Comparison final_metrics source SHA-256 is invalid: {run_id}")
+
     return {
         "comparison_id": comparison_dir.name,
         "protocol_compatibility_sha256": sha256_file(compatibility_path),
         "comparison_sha256": sha256_file(comparison_path),
         "sources_manifest_sha256": sha256_file(sources_manifest_path),
         "run_manifest_sha256": current_manifest_sha256,
+        "native_final_metrics_sha256": native_final_metrics_sha256,
         "run_id": run_id,
     }

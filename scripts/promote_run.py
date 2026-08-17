@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -84,7 +85,12 @@ def main() -> int:
         )
     except (FileNotFoundError, ValueError) as exc:
         parser.error(str(exc))
-    release_name = args.release_name or manifest["run_id"]
+    release_name = str(args.release_name or manifest["run_id"])
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", release_name):
+        parser.error(
+            "--release-name must be a plain 1-128 character identifier using only letters, "
+            "numbers, dot, underscore, or hyphen"
+        )
     weight_root = PROJECT_ROOT / "weights" / "trained" / release_name
     report_root = PROJECT_ROOT / "reports" / "runs" / release_name
     if weight_root.exists() or report_root.exists():

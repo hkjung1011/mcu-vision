@@ -77,10 +77,14 @@ def test_formal_release_gate_requires_full_seed_matrix_and_dataset_evidence() ->
         "canonical_val_records_sha256",
     ]
     expected = {
+        "dataset": {
+            "evidence": {field: f"shared-{field}" for field in evidence_fields},
+        },
         "common": {
             "epochs": 100,
             "batch_size": 8,
             "image_size": 640,
+            "workers": 0,
             "amp": True,
             "seeds": [42, 43, 44],
             "prediction_floor": 0.001,
@@ -115,6 +119,7 @@ def test_formal_release_gate_requires_full_seed_matrix_and_dataset_evidence() ->
                     "epochs": 100,
                     "batch": 8,
                     "imgsz": 640,
+                    "workers": 0,
                     "amp": True,
                     "fraction": 1.0,
                     "multiscale_range": 0,
@@ -179,6 +184,13 @@ def test_formal_release_gate_requires_full_seed_matrix_and_dataset_evidence() ->
     )
     expected.pop("_loaded_source_sha256")
 
+    runs[0]["metadata"]["protocol"]["workers"] = 1
+    worker_mismatch = _protocol_compatibility(runs, expected)
+    assert worker_mismatch["comparable"] is False
+    assert worker_mismatch["release_ready"] is False
+    assert any(item["field"] == "workers" for item in worker_mismatch["critical_mismatches"])
+    runs[0]["metadata"]["protocol"]["workers"] = 0
+
     runs[0]["metadata"]["dataset"].pop("class_map_sha256")
     blocked = _protocol_compatibility(runs, expected)
     assert blocked["comparable"] is False
@@ -189,3 +201,13 @@ def test_formal_release_gate_requires_full_seed_matrix_and_dataset_evidence() ->
     mismatched = _protocol_compatibility(runs, expected)
     assert mismatched["comparable"] is False
     assert any(item["field"] == "class_map_sha256" for item in mismatched["critical_mismatches"])
+
+    for candidate in runs:
+        candidate["metadata"]["dataset"]["class_map_sha256"] = "same-but-not-protocol"
+    wrong_declared_dataset = _protocol_compatibility(runs, expected)
+    assert wrong_declared_dataset["comparable"] is True
+    assert wrong_declared_dataset["release_ready"] is False
+    assert any(
+        item["field"] == "expected_dataset_evidence:class_map_sha256"
+        for item in wrong_declared_dataset["release_blockers"]
+    )

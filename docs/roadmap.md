@@ -13,11 +13,11 @@ pipeline 검증용이며, 최종 제품군 성능으로 해석하지 않습니�
 | 1. Windows/GPU 환경 | RTX 5060 Laptop, PyTorch CUDA, YOLO11/YOLOX smoke 확인 | PASS | 환경 lock·GPU smoke 재현 |
 | 2. Class ontology | 5개 class가 모두 provisional | PARTIAL | ID·포함/제외·unknown·OCR 정책 동결, ontology hash 생성 |
 | 3. Class별 데이터 | RPi 1,875장만 반입; Pico/STM32/SMD 승인본 0장 | NOT VERIFIED | class별 provenance·중복 감사된 실사 목표 충족 |
-| 4. Split 독립성 | RPi val 375/375가 train과 동일 model/rotation/x/y condition 보유 | FAIL FOR FORMAL AP | physical item/session 단위 70/15/15, leakage 감사 PASS |
+| 4. Split 독립성 | condition/pHash component 기준 1,500/195/180, cross-split 후보 0 | PASS (BOOTSTRAP) | 새 physical item/session 독립 test |
 | 5. 수동 seed/gold | 미시작 | NOT VERIFIED | 대표 200장 전체 instance 라벨, locked val/test 생성 |
 | 6. CVAT 검수 경로 | 아직 구현·round-trip 검증 안 됨 | NOT VERIFIED | YOLO/COCO 왕복 시 box/class 손실 0, reviewer 기록 |
 | 7. Autolabel bootstrap | YOLO11 `.pt` tiled pending proposal만 구현 | PARTIAL | domain teacher·locked gold calibration·전량 사람 승인 |
-| 8. Multi-class 학습 경로 | RPi dataset과 YOLOX `num_classes=1` 기준 | NOT VERIFIED | 임의 canonical class map을 두 framework가 동일하게 사용 |
+| 8. Multi-class 학습 경로 | dataset CLI·dynamic class 수·canonical equivalence 구현 | PARTIAL | 승인 multi-class data로 양쪽 smoke |
 | 9. 정식 비교 | 조건이 다른 smoke만 존재 | NOT VERIFIED | 2 models × 3 seeds × 100 epochs, protocol PASS |
 | 10. Git release | promotion·LFS 기반만 준비 | PARTIAL | trained checkpoint·report·SHA-256 승격 및 private push |
 | 11. Ubuntu 시험 | 인계 문서만 존재 | NOT VERIFIED | ONNX 동등성, 카메라 E2E 정확도·p50/p95·FPS 측정 |
@@ -26,26 +26,24 @@ pipeline 검증용이며, 최종 제품군 성능으로 해석하지 않습니�
 
 | 대상 | 승인 수량 | 현재 근거 | 잔여 위험·조치 |
 |---|---:|---|---|
-| `raspberry_pi_sbc` | 1,875장 | micro-PCB 3개 RPi 모델의 반복 관측 | pHash 후보 3,511쌍 중 train↔val 641쌍; physical item 독립성 확인·재분할·독립 test 필요 |
+| `raspberry_pi_sbc` | 1,875장 | micro-PCB 3개 RPi 모델의 반복 관측 | v2 cross-split pHash 후보 0; physical item 독립 test는 여전히 필요 |
 | `raspberry_pi_pico` | 0장 | 공개 후보만 조사 | 자체 촬영과 provenance manifest 필요 |
 | `stm32_dev_board` | 0장 | 공개 독립 실사 1,000장 미확인 | Nucleo/Discovery 등 포함 범위부터 동결 |
 | `stm32_bare_ic` | 0장 | 정확한 대규모 공개 원출처 미확인 | package 검출과 top-mark OCR을 분리하고 자체 촬영 |
 | `small_component_generic` | 0장 | Roboflow raw 후보만 기록 | 인증 후 원본 반입·license·hash 감사, 실제 컨베이어 촬영 병행 |
 
-`near-duplicate 3,511쌍`은 자동 삭제 대상이 아니라 pHash 기반 **검토 후보**입니다. 이 중 641쌍은
-train↔val cross-split 후보이며, 현재 val 375장 모두 train과 같은 model/rotation/x/y condition을
-공유합니다. 원본의 1–4번째 capture를 train, 5번째를 test로 둔 source partition일 뿐 physical specimen
-split이라는 근거는 없습니다. 재분할 전 run은 안정성 dry-run으로만 사용하고 AP를 해석·승격하지 않습니다.
+`near-duplicate 3,511쌍`은 삭제 대상이 아니라 pHash 기반 **검토 후보**입니다. v2는 후보 연결요소와
+condition group을 원자적으로 배정해 cross-split pair를 0으로 만들었습니다. 다만 원본에 physical
+specimen ID가 없으므로 이 분할은 새 보드·새 카메라 일반화를 입증하지 않습니다.
 
 ## 두 개의 병행 Track
 
 ### Track A — 기존 RPi로 실험 pipeline 검증
 
-1. Cross-split pHash 641쌍과 condition overlap을 검수하고 독립 validation을 다시 구성합니다.
-2. 현재 1-class dataset의 manifest·class map·image list·YOLO/COCO label 동등성을 검증합니다.
-3. 그 전 seed 42 run은 짧은 안정성 dry-run으로만 사용하며 AP 해석·Git 승격을 금지합니다.
-4. Split/equivalence Gate가 PASS한 뒤 full seed 42, 이어서 seed 43/44를 실행합니다.
-5. 이 결과는 RPi bootstrap 시스템 비교로만 표기하고 SMD 성능으로 확장 해석하지 않습니다.
+1. v2 manifest·class map·image list·YOLO/COCO label 동등성 hash를 run마다 fail-fast 재검증합니다.
+2. full seed 42를 먼저 완료해 장시간 안정성을 확인하고, 이어서 seed 43/44를 실행합니다.
+3. 6-run release gate가 PASS한 비교만 Git에 승격합니다.
+4. 이 결과는 RPi bootstrap 시스템 비교로만 표기하고 SMD 성능으로 확장 해석하지 않습니다.
 
 ### Track B — 실제 목표 MCU/SMD dataset 구축
 
@@ -59,10 +57,10 @@ split이라는 근거는 없습니다. 재분할 전 run은 안정성 dry-run으
 
 ### P0 — 정식 multi-class 학습 전 필수
 
-- RPi 전용 path와 `num_classes=1` 하드코딩 제거
-- canonical COCO/YOLO dataset과 class map을 config/CLI로 주입
-- dataset manifest·class map·image list hash와 YOLO↔COCO box/class 동등성 validator
-- source split을 physical specimen split으로 잘못 표시하는 metadata 제거와 condition-group leakage 감사
+- RPi 전용 path와 `num_classes=1` 하드코딩 제거 — **구현 완료, multi-class data smoke 대기**
+- canonical COCO/YOLO dataset과 class map을 config/CLI로 주입 — **구현 완료**
+- dataset manifest·class map·image list hash와 YOLO↔COCO box/class 동등성 validator — **PASS**
+- condition/pHash component leakage 감사 — **v2 PASS**, physical specimen ID는 미제공
 - 두 framework의 class-aware NMS(`class_agnostic_nms=false`)와 top-K 조건을 accuracy/latency에 동일 적용
 - CVAT import/export round-trip과 승인 label hash 기록
 - validation/test를 autolabel source로 선택하지 못하게 차단
@@ -90,9 +88,9 @@ split이라는 근거는 없습니다. 재분할 전 run은 안정성 dry-run으
 | REQ ID | 검증 근거 | 완료 기준 | 현재 |
 |---|---|---|---|
 | REQ-DATA-01 | provenance manifest·audit·split hash | class 규정과 승인 데이터가 동결됨 | NOT VERIFIED |
-| REQ-DATA-02 | canonical record hash·format round-trip report | YOLO와 COCO의 image/class/box가 동일함 | NOT VERIFIED |
+| REQ-DATA-02 | canonical record hash·format round-trip report | YOLO와 COCO의 image/class/box가 동일함 | RPi v2 PASS |
 | REQ-LABEL-01 | CVAT export·reviewer·label SHA-256 | gold와 reviewed train label의 출처 추적 가능 | NOT VERIFIED |
-| REQ-MC-01 | 두 run의 resolved config·dataset hash | 동일 canonical multi-class dataset 사용 | NOT VERIFIED |
+| REQ-MC-01 | 두 run의 resolved config·dataset hash | 동일 canonical multi-class dataset 사용 | 코드 PASS / data 대기 |
 | REQ-TR-01 | 6개 complete run manifest | seed 42/43/44, 2개 모델, 100 epochs | NOT VERIFIED |
 | REQ-EV-01 | common evaluator JSON/CSV | AP50-95/AP50/AP75/AP_small/AR100와 P/R/F1 생성 | 구현 PASS / full run 미실행 |
 | REQ-EV-02 | latency sample·GPU log | 같은 장치에서 batch 1 p50/p95·FPS·VRAM | 구현 PASS / full run 미실행 |

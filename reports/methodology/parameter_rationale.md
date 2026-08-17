@@ -1,8 +1,8 @@
 # 핵심 수치 선정 이유와 검증 상태
 
-- protocol: `micropcb_detector_baseline_v1`
+- protocol: `micropcb_rpi_phash_component_bootstrap_v2`
 - 현재 task: `one_class_raspberry_pi_sbc_detection`
-- config SHA256: `500ecb6186e9da371669eefe785b6201bed8d0de8eee6fb208c453b8f9468141`
+- config SHA256: `02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5`
 
 > 현재 protocol은 Raspberry Pi SBC 1-class bootstrap 전용이며 MCU/SMD multi-class 결과가 아닙니다.
 > 아래 값은 재현 가능한 1차 baseline이며 최적값이 아닙니다. 현재 결과는 validation 범위이고, 독립적인 실제 카메라 test는 아직 없습니다.
@@ -21,6 +21,8 @@
 | R10 YOLO11 recipe | pinned Ultralytics v8.4.120 defaults plus project optimizer=SGD override | upstream optimizer 기본값은 auto다. 이 프로젝트는 버전별 자동 선택을 피하도록 SGD로 override하고, 나머지 관련 기본값은 v8.4.120 source에 고정해 실제 적용값을 기록한다. | UPSTREAM_DEFAULT_WITH_PROJECT_OVERRIDE | 아니오 — pinned default와 project override | 모든 변경은 resolved config와 새 protocol ID로 기록한다. | Resolved config와 1-epoch smoke PASS, 100 epochs 미검증 |
 | R11 주 평가 기준 | COCO AP50-95 | IoU 0.50..0.95를 0.05 간격으로 평균해 단일 느슨한 IoU 기준보다 위치 정확도를 엄격히 본다. | STANDARD_METRIC | 해당 없음 — 표준 평가 metric | AP50, AP75, AP_small, AR100, P/R/F1, TP/FP/FN을 함께 보고한다. | 평가 경로/maxDets 100 확인, 정식 모델 결과 없음 |
 | R12 Thresholds | floor=0.001, report point=0.25, match IoU=0.50, NMS IoU=0.65, class-aware NMS | 낮은 prediction floor로 PR curve를 보존하고 두 framework에 같은 numeric threshold와 class-aware NMS를 적용한다. 서로 다른 class가 겹쳐도 상호 억제하지 않으며, COCO AP/AR와 운영점 greedy matcher 모두 이미지당 score 상위 100개로 제한한다. | ENGINEERING_BASELINE | 아니오 — 공통 보고점 | 배포 confidence와 pseudo-label threshold는 gold validation에서 목표 P/R로 산출한 뒤 test 전에 동결한다. | Top-100 matcher 구현 확인, 배포 threshold 미보정 |
+| R13 데이터 분할 | pHash-connected condition components; 1500/195/180 train/val/test | 동일 rotation/x/y의 5개 반복 capture와 pHash 거리 4 이하 후보를 연결요소 단위로 묶어 split 사이에 같은 조건 또는 현재 검출된 근접중복 후보가 넘어가지 않게 한다. 모델별 image 수는 train/val/test 500/65/60으로 유지한다. | DATA_AUDIT_DERIVED | 현재 공개 원본에서 가능한 보수적 bootstrap 분할이며 독립 specimen test는 아님 | 새 물리 보드와 새 촬영 session을 확보하면 physical_item/session 단위로 다시 분할한다. | condition overlap 0, cross-split pHash 후보 0/3511; physical item ID NOT VERIFIED |
+| R14 DataLoader workers | 0 (single-process loading) | 현재 Windows laptop의 총 RAM은 15.12 GiB이고 학습 시작 전 가용 RAM이 약 3 GiB다. PyTorch 문서상 multi-process worker는 parent process의 Python object memory를 추가로 소비할 수 있으므로 장시간 6-run의 paging·worker crash 위험을 줄이기 위해 main process에서 로드한다. 이 값은 optimizer나 정확도 정의가 아니라 데이터 공급 방식이며 두 모델에 동일하게 적용한다. | HARDWARE_DERIVED | 아니오 — 현재 16 GB Windows 장치의 안정성 우선값 | 전용 RAM이 충분한 장비에서는 workers 1/2 처리량 pilot 후 새 campaign ID로 조정한다. | workers 0 smoke PASS, 100-epoch 장시간 안정성 미검증 |
 
 ## 해석 원칙
 

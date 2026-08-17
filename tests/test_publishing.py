@@ -51,6 +51,8 @@ def test_validate_comparison_requires_exact_run_manifest(tmp_path: Path) -> None
     run_id = "full_seed42"
     run_manifest = tmp_path / "run_manifest.json"
     run_manifest.write_text(json.dumps({"run_id": run_id, "status": "complete"}), encoding="utf-8")
+    final_metrics = tmp_path / "final_metrics.json"
+    final_metrics.write_text(json.dumps({"metrics": {"ap50_95": 0.5}}), encoding="utf-8")
     comparison = tmp_path / "comparison"
     comparison.mkdir()
     (comparison / "protocol_compatibility.json").write_text(
@@ -67,6 +69,11 @@ def test_validate_comparison_requires_exact_run_manifest(tmp_path: Path) -> None
                         "run_id": run_id,
                         "path": f"sources/{run_id}/run_manifest.json",
                         "source_original_sha256": sha256_file(run_manifest),
+                    },
+                    {
+                        "run_id": run_id,
+                        "path": f"sources/{run_id}/final_metrics.json",
+                        "source_original_sha256": sha256_file(final_metrics),
                     }
                 ]
             }
@@ -83,6 +90,7 @@ def test_validate_comparison_requires_exact_run_manifest(tmp_path: Path) -> None
         comparison, run_id=run_id, run_manifest_path=run_manifest
     )
     assert evidence["run_id"] == run_id
+    assert evidence["native_final_metrics_sha256"] == sha256_file(final_metrics)
     run_manifest.write_text(json.dumps({"run_id": run_id, "status": "changed"}), encoding="utf-8")
     with pytest.raises(ValueError, match="changed after"):
         validate_comparison_for_run(comparison, run_id=run_id, run_manifest_path=run_manifest)

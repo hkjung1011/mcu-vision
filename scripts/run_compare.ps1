@@ -19,7 +19,7 @@ $CompareExecutable = Join-Path $ProjectRoot ".venv-collect\Scripts\mcu-compare-r
 $Yolo11Args = @(
     (Join-Path $PSScriptRoot "train_yolo11_logged.py"),
     "--run-id", $Yolo11Run,
-    "--model", "yolo11m.pt",
+    "--model", (Join-Path $ProjectRoot "weights\pretrained\yolo11m.pt"),
     "--epochs", $Epochs,
     "--batch", $Batch,
     "--imgsz", $ImageSize,

@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "policy": "phash_condition_component_model_balanced_sha256_v2",
+  "seed": 42,
+  "ratios": {
+    "train": 0.8,
+    "val": 0.1,
+    "test": 0.1
+  },
+  "input_manifest": "data/manifests/micropcb_raspberry_pi_sbc.csv",
+  "input_manifest_sha256": "f2f7c42e81fa38efea2cf35c61825a0498a9f5f31f507191ca10c0c0fdf5ac44",
+  "output_manifest": "data/manifests/micropcb_raspberry_pi_sbc.phash_v2.csv",
+  "output_manifest_sha256": "ed1040f459f0c35459e8d59eda3ce77ab878e84e25e80661c9cd5b6765f00859",
+  "assignment_sha256": "5a818e0fd1f264a1a364cfd0cfe2280e72ec52bfbaa35ff425224bbf4a0a4e33",
+  "total_images": 1875,
+  "total_condition_groups": 375,
+  "split_image_counts": {
+    "train": 1500,
+    "test": 180,
+    "val": 195
+  },
+  "split_condition_group_counts": {
+    "train": 300,
+    "val": 39,
+    "test": 36
+  },
+  "model_split_image_counts": {
+    "test:raspberry_pi_1_b_plus": 60,
+    "test:raspberry_pi_3_b_plus": 60,
+    "test:raspberry_pi_a_plus": 60,
+    "train:raspberry_pi_1_b_plus": 500,
+    "train:raspberry_pi_3_b_plus": 500,
+    "train:raspberry_pi_a_plus": 500,
+    "val:raspberry_pi_1_b_plus": 65,
+    "val:raspberry_pi_3_b_plus": 65,
+    "val:raspberry_pi_a_plus": 65
+  },
+  "model_split_condition_group_counts": {
+    "test:raspberry_pi_1_b_plus": 12,
+    "test:raspberry_pi_3_b_plus": 12,
+    "test:raspberry_pi_a_plus": 12,
+    "train:raspberry_pi_1_b_plus": 100,
+    "train:raspberry_pi_3_b_plus": 100,
+    "train:raspberry_pi_a_plus": 100,
+    "val:raspberry_pi_1_b_plus": 13,
+    "val:raspberry_pi_3_b_plus": 13,
+    "val:raspberry_pi_a_plus": 13
+  },
+  "condition_group_overlap": {
+    "train_val": 0,
+    "train_test": 0,
+    "val_test": 0
+  },
+  "condition_group_overlap_pass": true,
+  "physical_item_group_overlap": {
+    "train_val": 0,
+    "train_test": 0,
+    "val_test": 0
+  },
+  "physical_item_independence_verified": false,
+  "evaluation_scope": "Condition-group independence is verified. Physical-item independence remains NOT VERIFIED because the source dataset does not provide specimen identity.",
+  "original_files_deleted": false,
+  "phash_audit": {
+    "duplicates_report": "data/reports/micropcb_rpi_audit/duplicates.json",
+    "duplicates_report_sha256": "36c8e3d95917b2e42b4b91d9a212921229b95f1b053a05ea670e5421bd246f22",
+    "near_duplicate_pairs": 3511,
+    "near_duplicate_distance_counts": {
+      "0": 1114,
+      "2": 1191,
+      "4": 1206
+    },
+    "phash_condition_components": 219,
+    "largest_phash_component_condition_groups": 18,
+    "cross_model_phash_components": 2,
+    "cross_model_phash_components_forced_to_train": 2,
+    "model_target_condition_group_counts": {
+      "train:raspberry_pi_1_b_plus": 100,
+      "val:raspberry_pi_1_b_plus": 13,
+      "test:raspberry_pi_1_b_plus": 12,
+      "train:raspberry_pi_3_b_plus": 100,
+      "val:raspberry_pi_3_b_plus": 13,
+      "test:raspberry_pi_3_b_plus": 12,
+      "train:raspberry_pi_a_plus": 100,
+      "val:raspberry_pi_a_plus": 13,
+      "test:raspberry_pi_a_plus": 12
+    },
+    "near_duplicate_pair_split_counts": {
+      "test__test": 316,
+      "train__train": 2829,
+      "val__val": 366
+    },
+    "cross_split_near_duplicate_pairs": 0,
+    "cross_split_near_duplicate_pairs_pass": true,
+    "phash_component_count": 219,
+    "cross_split_phash_components": 0,
+    "cross_split_phash_components_pass": true,
+    "largest_phash_component_images": 90
+  }
+}

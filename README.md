@@ -3,9 +3,9 @@
 Windows에서 MCU·소형 전자부품 detector를 학습하고, 로그·수치·가중치를 private GitHub에 보존한 뒤
 Ubuntu 카메라 환경에서 검증하기 위한 저장소입니다.
 
-> **현재 판정:** Windows GPU 학습·로그·공통 평가 기반은 준비됐습니다. 그러나 현재 학습 경로는
-> Raspberry Pi **1-class bootstrap** 기준이며, MCU/SMD multi-class 데이터·정식 3-seed 비교·trained
-> weight·독립 컨베이어 test는 아직 없습니다. Smoke 수치로 모델 우열을 판단하지 않습니다.
+> **현재 판정:** Windows GPU 학습·로그·공통 평가와 condition/pHash leakage-control RPi 분할은 준비됐습니다. 현재
+> 실행 대상은 Raspberry Pi **1-class bootstrap**이며, MCU/SMD 승인 데이터와 독립 컨베이어 test는
+> 아직 없습니다. Smoke 수치로 모델 우열을 판단하지 않습니다.
 
 ## 진행상황 대시보드
 
@@ -13,13 +13,13 @@ Ubuntu 카메라 환경에서 검증하기 위한 저장소입니다.
 |---|---|---|---|
 | Windows 학습 환경 | RTX 5060 Laptop 8,151 MiB, PyTorch 2.12.1+cu130 | **PASS** | 환경 lock과 smoke 유지 |
 | YOLO11 / YOLOX 배선 | 두 framework CUDA smoke, 로그·공통 평가 구현 | **PASS** | full run에서 재확인 |
-| Raspberry Pi bootstrap | train 1,500 / val 375; val condition 375/375가 train과 겹침 | **PARTIAL** | cross-split pHash 641쌍 검수·재분할·독립 test |
+| Raspberry Pi bootstrap | train/val/test 1,500/195/180; condition overlap 0; cross-split pHash 후보 0/3,511 | **PASS (bootstrap)** | 새 실물·새 카메라 독립 test |
 | MCU/SMD class 정의 | 5개 provisional class | **PARTIAL** | detector/OCR 범위와 제외 규칙 동결 |
-| Multi-class 학습 경로 | 현재 RPi 경로와 YOLOX `num_classes=1` 기준 | **NOT VERIFIED** | canonical class map을 두 framework가 공통 사용 |
+| Multi-class 학습 경로 | dataset CLI·YOLOX dynamic class 수·YOLO↔COCO fail-fast 구현 | **PARTIAL** | 실제 multi-class 승인 데이터 smoke |
 | 소형 SMD 실제 데이터 | 승인된 canonical dataset 0장 | **NOT VERIFIED** | provenance·specimen ID가 있는 승인 실사 확보 |
 | 오토라벨 | YOLO11 tiled `pending` proposal까지 구현 | **PARTIAL** | CVAT round-trip·reviewer/hash 승인 gate |
 | 정식 모델 비교 | protocol 불일치 smoke만 존재 | **NOT VERIFIED** | 2 models × 3 seeds × 100 epochs, protocol PASS |
-| 배포용 가중치 | YOLOX-S upstream pretrained만 LFS에 존재 | **NOT VERIFIED** | 검증된 best weight와 SHA-256 승격 |
+| 배포용 가중치 | YOLO11m·YOLOX-S 공식 pretrained는 LFS에 고정, fine-tuned weight는 없음 | **NOT VERIFIED** | 검증된 best weight와 SHA-256 승격 |
 | Ubuntu 카메라 시험 | 문서만 준비 | **NOT VERIFIED** | 새 촬영 session에서 정확도·latency·FPS 측정 |
 
 상세 근거는 [현재 프로젝트 상태](docs/project_status.md)와 [전체 로드맵](docs/roadmap.md)에 있습니다.
@@ -38,7 +38,7 @@ flowchart LR
     H --> I["9. Ubuntu 카메라 독립 시험"]
 ```
 
-현재 핵심 병목은 **1–4단계**입니다. Raspberry Pi 1-class로 파이프라인을 검증하는 작업과 실제
+현재 multi-class 핵심 병목은 **1–4단계**입니다. Raspberry Pi 1-class로 파이프라인을 검증하는 작업과 실제
 STM32/SMD 데이터를 준비하는 작업은 병행할 수 있지만, 정식 multi-class 결과는 class·라벨·split을
 동결한 뒤에만 만듭니다.
 
@@ -47,7 +47,7 @@ STM32/SMD 데이터를 준비하는 작업은 병행할 수 있지만, 정식 mu
 | 순서 | 작업 | 종료 조건 |
 |---:|---|---|
 | 1 | 검출·인식 범위 확정 | 보드/패키지 검출과 marking OCR·SKU 분류를 구분한 class 규정 승인 |
-| 2 | RPi 전용 코드를 multi-class canonical 경로로 일반화 | dataset/class 수를 CLI·config로 주고 두 framework가 같은 COCO annotation 사용 |
+| 2 | RPi bootstrap 3-seed 학습 | v2 split에서 2 models × 3 seeds × 100 epochs 완료 |
 | 3 | STM32·Pico·소형 SMD 수집 및 자체 촬영 | source/license/specimen/session ID와 중복 감사 결과 확보 |
 | 4 | 대표 200장 완전 라벨링 | 각 이미지에 보이는 모든 target instance 승인, locked gold validation 별도 생성 |
 | 5 | CVAT round-trip과 pseudo-label 검수 | import/export 손실 0, `pending`을 사람이 전량 수정·승인 |
@@ -63,14 +63,16 @@ STM32/SMD 데이터를 준비하는 작업은 병행할 수 있지만, 정식 mu
 |---|---:|---|---|
 | 입력 크기 | `640×640` | 두 모델 공통 입력, 현재 8 GB GPU에서 batch 8 실행 | CUDA smoke PASS; 전처리 후 bbox pixel-size/bin recall 또는 `AP_small`이 낮으면 tiling·960/1280 비교 |
 | micro-batch | `8` | 두 framework에서 공통 실행 가능한 VRAM 기준값 | 장시간 peak VRAM·온도 미검증; effective batch는 framework별로 다름 |
+| DataLoader workers | `0` | 16 GB Windows 장치에서 subprocess RAM·paging 위험 최소화 | 전용 RAM이 충분하면 workers 1/2 처리량 pilot |
 | epochs | `100` | 같은 epoch/data-exposure의 첫 비교 | 동일 compute budget은 아님; AP plateau·overfit에 따라 새 protocol로 조정 |
 | seeds | `42, 43, 44` | 단일 운 좋은 run의 영향을 줄이는 최소 반복 | 차이가 sample SD와 비슷하면 5회 이상 |
 | precision | AMP | VRAM·시간 절감 | 두 smoke PASS; NaN/overflow 시 동일 조건 FP32 control |
 | 주 정확도 | `COCO AP50-95` | 여러 IoU에서 위치 정확도를 함께 보는 표준 지표 | AP50/AP75/AP_small/AR100도 병기 |
 | 보고 confidence | `0.25` | 같은 운영점의 P/R/F1 비교용 | 배포값 아님; gold validation에서 선택 후 test 전에 동결 |
 | NMS / match IoU | `0.65 / 0.50` | 두 exporter의 numeric 조건과 운영점 matcher 통일 | 실제 밀집 SMD에서 tile 경계·겹침 검증 필요 |
+| RPi split | `1500/195/180` | 동일 condition과 pHash-connected 후보를 split 밖으로 넘기지 않음 | physical item ID가 없어 Ubuntu 새 카메라 test 필요 |
 
-- [12개 수치의 선정 이유·최적값 여부·조정 조건](reports/methodology/parameter_rationale.md)
+- [14개 수치의 선정 이유·최적값 여부·조정 조건](reports/methodology/parameter_rationale.md)
 - [학습 알고리즘·논문·공식 source를 포함한 전체 방법론](reports/methodology/experiment_methodology.md)
 - [실행값의 단일 원본 YAML](configs/experiments/baseline_v1.yaml)
 
@@ -87,14 +89,14 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\setup_yolo11.ps1
 .\scripts\setup_yolox.ps1
 .\.venv-collect\Scripts\python.exe -m pytest
-.\scripts\run_compare.ps1 -Smoke
 ```
 
-Smoke는 배선 확인용입니다. 현재 RPi 1-class full baseline 1회를 실행할 때는 다음 명령을 사용하며,
-multi-class 정식 학습 명령으로 해석하면 안 됩니다.
+이후 [Windows 재현 절차](docs/reproducibility_windows.md)의 dataset 생성·동등성 검증을 먼저 완료합니다.
+Smoke는 그 다음의 배선 확인용입니다. 현재 RPi 1-class full 3-seed campaign을 실행할 때는 다음 명령을
+사용하며, multi-class 정식 학습 명령으로 해석하면 안 됩니다.
 
 ```powershell
-.\scripts\run_compare.ps1 -Epochs 100 -Batch 8 -ImageSize 640 -Seed 42
+.\scripts\run_compare_seeds.ps1 -Epochs 100 -Batch 8 -ImageSize 640
 ```
 
 Fresh clone부터 3-seed 실행·승격까지는 [Windows 재현 절차](docs/reproducibility_windows.md)를 따릅니다.
@@ -122,6 +124,7 @@ Fresh clone부터 3-seed 실행·승격까지는 [Windows 재현 절차](docs/re
 | Windows에서 어떻게 재현하는가? | [Windows 재현 절차](docs/reproducibility_windows.md) |
 | 왜 이 수치와 알고리즘을 썼는가? | [핵심 수치 근거](reports/methodology/parameter_rationale.md) · [전체 방법론](reports/methodology/experiment_methodology.md) |
 | 데이터와 라벨을 어떻게 관리하는가? | [데이터 계획](docs/data_plan.md) · [라벨링 규정](docs/annotation_protocol.md) |
+| RPi split과 YOLO/COCO 일치 근거는? | [누수 방지 split](docs/condition_split.md) · [형식 동등성 gate](docs/dataset_equivalence.md) |
 | 결과를 어떻게 증빙·Ubuntu로 넘기는가? | [증빙 정책](docs/evidence_and_results_policy.md) · [Ubuntu 인계](docs/ubuntu_handoff.md) |
 | 전체 문서는 어디에 있는가? | [문서 안내](docs/README.md) · [Reports](reports/README.md) |
 

@@ -22,7 +22,8 @@ from yolox.data import ValTransform
 from yolox.exp import get_exp
 from yolox.utils import get_model_info, postprocess
 
-from mcu_data.common import sha256_file, write_json
+from mcu_data.common import portable_path, sha256_file, write_json
+from mcu_data.dataset_evidence import verify_dataset_against_evidence
 from mcu_data.methodology import write_protocol_artifacts
 from mcu_data.reporting import compare_runs, evaluate_predictions
 from mcu_data.runlog import (
@@ -67,11 +68,37 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--pretrained", type=Path, default=PROJECT_ROOT / "weights" / "pretrained" / "yolox_s.pth"
     )
+    parser.add_argument(
+        "--coco-root",
+        type=Path,
+        default=PROJECT_ROOT / "data" / "processed" / "micropcb_rpi_phash_v2_coco",
+        help="COCO dataset root containing annotations/, train2017/, and val2017/",
+    )
+    parser.add_argument(
+        "--yolo-data",
+        type=Path,
+        default=PROJECT_ROOT
+        / "data"
+        / "processed"
+        / "micropcb_rpi_phash_v2"
+        / "dataset.yaml",
+        help="Matching YOLO dataset used only for the live equivalence preflight",
+    )
+    parser.add_argument(
+        "--dataset-evidence",
+        type=Path,
+        default=PROJECT_ROOT
+        / "data"
+        / "evidence"
+        / "micropcb_rpi_phash_v2"
+        / "dataset_evidence.json",
+        help="PASS evidence whose hashes must be reproduced by the live YOLO/COCO inputs",
+    )
     parser.add_argument("--output-root", type=Path, default=PROJECT_ROOT / "runs" / "benchmarks")
     parser.add_argument("--epochs", type=int, default=common["epochs"])
     parser.add_argument("--batch", type=int, default=common["batch_size"])
     parser.add_argument("--imgsz", type=int, default=common["image_size"])
-    parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--workers", type=int, default=common.get("workers", 0))
     parser.add_argument("--seed", type=int, default=common["seeds"][0])
     parser.add_argument("--no-aug-epochs", type=int, default=recipe["no_augmentation_epochs"])
     parser.add_argument("--print-interval", type=int, default=10)
@@ -104,6 +131,28 @@ def main() -> int:
         raise FileExistsError(f"Run directory is not empty: {run_dir}. Use --exist-ok to continue.")
     run_dir.mkdir(parents=True, exist_ok=True)
 
+    coco_root = args.coco_root.resolve()
+    train_annotation = coco_root / "annotations" / "instances_train2017.json"
+    val_annotation = coco_root / "annotations" / "instances_val2017.json"
+    for required_path in (train_annotation, val_annotation):
+        if not required_path.exists():
+            raise FileNotFoundError(required_path)
+    dataset_evidence = verify_dataset_against_evidence(
+        evidence_path=args.dataset_evidence.resolve(),
+        yolo_dataset_yaml=args.yolo_data.resolve(),
+        coco_train_annotations=train_annotation,
+        coco_val_annotations=val_annotation,
+    )
+    train_document = _read_json(train_annotation)
+    categories = train_document.get("categories", [])
+    category_ids = sorted(int(category["id"]) for category in categories)
+    if not category_ids or category_ids != list(range(1, len(category_ids) + 1)):
+        raise ValueError(
+            "YOLOX requires consecutive COCO category IDs beginning at 1; "
+            f"found {category_ids}"
+        )
+    num_classes = len(category_ids)
+
     environment = os.environ.copy()
     environment.update(
         {
@@ -114,9 +163,11 @@ def main() -> int:
             "MCU_SEED": str(args.seed),
             "MCU_NO_AUG_EPOCHS": str(args.no_aug_epochs),
             "MCU_PRINT_INTERVAL": str(args.print_interval),
-        "MCU_EVAL_INTERVAL": "1",
+            "MCU_EVAL_INTERVAL": "1",
             "MCU_PREDICTION_FLOOR": "0.001",
             "MCU_NMS_IOU": "0.65",
+            "MCU_COCO_DATA_DIR": str(coco_root),
+            "MCU_NUM_CLASSES": str(num_classes),
             "PYTHONIOENCODING": "utf-8",
             "PYTHONUNBUFFERED": "1",
             "PYTHONPATH": str(PROJECT_ROOT / "src")
@@ -156,8 +207,6 @@ def main() -> int:
     }
     pretrained_record = checkpoint_file_record(args.pretrained.resolve())
     initial_stats = state_dict_statistics(pretrained_state, run_dir / "pretrained_weights_summary.csv")
-    train_annotation = PROJECT_ROOT / "data" / "processed" / "micropcb_rpi_coco" / "annotations" / "instances_train2017.json"
-    val_annotation = PROJECT_ROOT / "data" / "processed" / "micropcb_rpi_coco" / "annotations" / "instances_val2017.json"
     command = [
         sys.executable,
         "-m",
@@ -225,10 +274,16 @@ def main() -> int:
         "pretrained_checkpoint": pretrained_record,
         "pretrained_weight_statistics": initial_stats,
         "dataset": {
-            "split": "source capture partition; physical specimen independence NOT VERIFIED",
+            "yolo_dataset_yaml": str(args.yolo_data.resolve()),
+            "coco_root": str(coco_root),
+            "classes": [category["name"] for category in categories],
+            "num_classes": num_classes,
+            "equivalence_evidence_path": portable_path(args.dataset_evidence.resolve()),
+            "equivalence_evidence_sha256": sha256_file(args.dataset_evidence.resolve()),
             "train_annotation_sha256": sha256_file(train_annotation),
             "val_annotation_sha256": sha256_file(val_annotation),
             "independent_test_available": False,
+            **dataset_evidence,
         },
         "protocol_config": {
             "path": str(args.protocol_config.resolve()),
@@ -253,6 +308,7 @@ def main() -> int:
         print_section("CUDA", manifest["environment"])
         print_section("MODEL", model_details)
         print_section("PRETRAINED CHECKPOINT", pretrained_record)
+        print_section("LIVE YOLO/COCO DATASET EQUIVALENCE", {"status": "PASS", **dataset_evidence})
         print_section("FINE-TUNING PROTOCOL", manifest["protocol"])
         write_protocol_artifacts(args.protocol_config.resolve(), run_dir)
         print("\nCOMMAND (notice: -o/--occupy is intentionally absent)")
@@ -301,14 +357,7 @@ def main() -> int:
             if predictions.exists():
                 evaluate_predictions(val_annotation, predictions, run_dir)
             val_document = _read_json(val_annotation)
-            benchmark_image = (
-                PROJECT_ROOT
-                / "data"
-                / "processed"
-                / "micropcb_rpi_coco"
-                / "val2017"
-                / val_document["images"][0]["file_name"]
-            )
+            benchmark_image = coco_root / "val2017" / val_document["images"][0]["file_name"]
             _benchmark_yolox(best_model, benchmark_image, exp, args, run_dir)
         if (run_dir / "epoch_metrics.csv").exists():
             compare_runs([run_dir], run_dir / "plots" / "summary")

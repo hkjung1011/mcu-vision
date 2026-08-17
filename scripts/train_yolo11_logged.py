@@ -24,7 +24,8 @@ import ultralytics
 import yaml
 from ultralytics import YOLO
 
-from mcu_data.common import append_jsonl, sha256_file, write_json
+from mcu_data.common import append_jsonl, portable_path, sha256_file, write_json
+from mcu_data.dataset_evidence import verify_dataset_against_evidence
 from mcu_data.methodology import write_protocol_artifacts
 from mcu_data.reporting import (
     EPOCH_COLUMNS,
@@ -70,15 +71,36 @@ def parse_args() -> argparse.Namespace:
         description="Logged and reproducible YOLO11 fine-tuning", parents=[pre_parser]
     )
     parser.add_argument("--run-id")
-    parser.add_argument("--model", default="yolo11m.pt")
     parser.add_argument(
-        "--data", type=Path, default=PROJECT_ROOT / "data" / "processed" / "micropcb_rpi" / "dataset.yaml"
+        "--model",
+        default=str(PROJECT_ROOT / "weights" / "pretrained" / "yolo11m.pt"),
+    )
+    parser.add_argument(
+        "--data",
+        type=Path,
+        default=PROJECT_ROOT / "data" / "processed" / "micropcb_rpi_phash_v2" / "dataset.yaml",
+    )
+    parser.add_argument(
+        "--coco-root",
+        type=Path,
+        default=PROJECT_ROOT / "data" / "processed" / "micropcb_rpi_phash_v2_coco",
+        help="Matching COCO export used by the common evaluator and evidence hashes",
+    )
+    parser.add_argument(
+        "--dataset-evidence",
+        type=Path,
+        default=PROJECT_ROOT
+        / "data"
+        / "evidence"
+        / "micropcb_rpi_phash_v2"
+        / "dataset_evidence.json",
+        help="PASS evidence whose hashes must be reproduced by the live YOLO/COCO inputs",
     )
     parser.add_argument("--output-root", type=Path, default=PROJECT_ROOT / "runs" / "benchmarks")
     parser.add_argument("--epochs", type=int, default=common["epochs"])
     parser.add_argument("--batch", type=int, default=common["batch_size"])
     parser.add_argument("--imgsz", type=int, default=common["image_size"])
-    parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--workers", type=int, default=common.get("workers", 0))
     parser.add_argument("--seed", type=int, default=common["seeds"][0])
     parser.add_argument("--optimizer", default=recipe["optimizer"])
     parser.add_argument("--nominal-batch-size", type=int, default=recipe["nominal_batch_size"])
@@ -354,8 +376,18 @@ def main() -> int:
     }
     initial_stats = state_dict_statistics(model.model.state_dict(), run_dir / "pretrained_weights_summary.csv")
     pretrained_record = checkpoint_file_record(pretrained_path) if pretrained_path else None
-    train_annotation = PROJECT_ROOT / "data" / "processed" / "micropcb_rpi_coco" / "annotations" / "instances_train2017.json"
-    val_annotation = PROJECT_ROOT / "data" / "processed" / "micropcb_rpi_coco" / "annotations" / "instances_val2017.json"
+    coco_root = args.coco_root.resolve()
+    train_annotation = coco_root / "annotations" / "instances_train2017.json"
+    val_annotation = coco_root / "annotations" / "instances_val2017.json"
+    for required_path in (args.data.resolve(), train_annotation, val_annotation):
+        if not required_path.exists():
+            raise FileNotFoundError(required_path)
+    dataset_evidence = verify_dataset_against_evidence(
+        evidence_path=args.dataset_evidence.resolve(),
+        yolo_dataset_yaml=args.data.resolve(),
+        coco_train_annotations=train_annotation,
+        coco_val_annotations=val_annotation,
+    )
     protocol = {
         "method": "pretrained checkpoint -> full detector fine-tuning",
         "comparison_kind": "framework_native_recipe_system_benchmark",
@@ -415,9 +447,14 @@ def main() -> int:
         "pretrained_checkpoint": pretrained_record,
         "pretrained_weight_statistics": initial_stats,
         "dataset": {
+            "yolo_dataset_yaml": str(args.data.resolve()),
+            "coco_root": str(coco_root),
+            "equivalence_evidence_path": portable_path(args.dataset_evidence.resolve()),
+            "equivalence_evidence_sha256": sha256_file(args.dataset_evidence.resolve()),
             "train_annotation_sha256": sha256_file(train_annotation),
             "val_annotation_sha256": sha256_file(val_annotation),
             "independent_test_available": False,
+            **dataset_evidence,
         },
         "protocol_config": {
             "path": str(args.protocol_config.resolve()),
@@ -529,6 +566,7 @@ def main() -> int:
         print_section("MODEL", model_details)
         print_section("PRETRAINED CHECKPOINT", pretrained_record or {"path": args.model})
         print_section("PRETRAINED WEIGHT STATISTICS", initial_stats)
+        print_section("LIVE YOLO/COCO DATASET EQUIVALENCE", {"status": "PASS", **dataset_evidence})
         print_section("FINE-TUNING PROTOCOL", protocol)
         write_protocol_artifacts(args.protocol_config.resolve(), run_dir)
         gpu_sampler.start()
@@ -610,7 +648,7 @@ def main() -> int:
             )
             print_section("FINAL CHECKPOINT", best_record)
             print_section("FINAL WEIGHT STATISTICS", current_manifest["best_weight_statistics"])
-            val_root = PROJECT_ROOT / "data" / "processed" / "micropcb_rpi_coco" / "val2017"
+            val_root = coco_root / "val2017"
             _export_predictions(
                 best_model, val_annotation, val_root, args, run_dir / "predictions.coco.json"
             )

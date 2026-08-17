@@ -132,9 +132,11 @@ def build_status(root: Path) -> dict[str, Any]:
             [str(root / ".venv-yolox" / "Scripts" / "python.exe"), "-c", yolox_code], root
         ),
     }
-    annotation_root = root / "data" / "processed" / "micropcb_rpi_coco" / "annotations"
+    annotation_root = (
+        root / "data" / "processed" / "micropcb_rpi_phash_v2_coco" / "annotations"
+    )
     dataset: dict[str, Any] = {}
-    for split in ("train", "val"):
+    for split in ("train", "val", "test"):
         annotation_path = annotation_root / f"instances_{split}2017.json"
         value = _json(annotation_path, {})
         if value:
@@ -203,7 +205,7 @@ def print_status(status: dict[str, Any]) -> None:
     for split, value in status["dataset"].items():
         dataset_rows[f"{split} images/boxes"] = f"{value['images']} / {value['annotations']}"
         dataset_rows[f"{split} sha256"] = value["sha256"]
-    print_section("DATASET (VALIDATION, NOT FINAL TEST)", dataset_rows)
+    print_section("DATASET (PHASH/CONDITION BOOTSTRAP; NOT EXTERNAL CAMERA TEST)", dataset_rows)
     for name, value in status["pretrained_checkpoints"].items():
         print_section(
             f"PRETRAINED: {name}",
@@ -1173,6 +1175,7 @@ def _protocol_compatibility(
     required_dataset_evidence = [
         str(field) for field in rules.get("required_dataset_evidence", [])
     ]
+    expected_dataset_evidence = expected_protocol.get("dataset", {}).get("evidence", {})
 
     def value(run: dict[str, Any], field: str) -> Any:
         protocol = run["metadata"].get("protocol", {})
@@ -1193,6 +1196,7 @@ def _protocol_compatibility(
         "epochs",
         "batch",
         "imgsz",
+        "workers",
         "amp",
         "fraction",
         "multiscale_range",
@@ -1289,6 +1293,7 @@ def _protocol_compatibility(
         "epochs": common.get("epochs"),
         "batch": common.get("batch_size"),
         "imgsz": common.get("image_size"),
+        "workers": common.get("workers"),
         "amp": common.get("amp"),
         "fraction": 1.0,
         "prediction_floor": common.get("prediction_floor"),
@@ -1316,6 +1321,21 @@ def _protocol_compatibility(
         if missing:
             release_blockers.append(
                 {"field": f"dataset_evidence:{field}", "missing_runs": sorted(missing)}
+            )
+        expected = expected_dataset_evidence.get(field)
+        wrong = {
+            run["run_id"]: run["metadata"].get("dataset", {}).get(field)
+            for run in runs
+            if expected is not None
+            and run["metadata"].get("dataset", {}).get(field) != expected
+        }
+        if wrong:
+            release_blockers.append(
+                {
+                    "field": f"expected_dataset_evidence:{field}",
+                    "expected": expected,
+                    "actual": wrong,
+                }
             )
     expected_epoch_count = common.get("epochs")
     wrong_epoch_counts = {

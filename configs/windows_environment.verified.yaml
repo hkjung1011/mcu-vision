@@ -8,11 +8,12 @@ gpu:
 
 collection_environment:
   path: .venv-collect
-  tests: 4 passed
+  tests: 53 passed
 
 repository_validation:
   verified_at: 2026-08-17
-  unit_tests: 16 passed
+  unit_tests: 53 passed
+  unit_test_command: .venv-collect/Scripts/python.exe -m pytest -q
   python_compileall: PASS
   comparison_evidence_path_sanitization: PASS
 

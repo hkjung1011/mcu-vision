@@ -8,7 +8,7 @@ from ultralytics import YOLO
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATASET = PROJECT_ROOT / "data" / "processed" / "micropcb_rpi" / "dataset.yaml"
+DATASET = PROJECT_ROOT / "data" / "processed" / "micropcb_rpi_phash_v2" / "dataset.yaml"
 
 
 def main() -> None:

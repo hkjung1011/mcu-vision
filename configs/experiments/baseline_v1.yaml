@@ -1,17 +1,45 @@
-protocol_id: micropcb_detector_baseline_v1
-status: provisional_validation_protocol
+protocol_id: micropcb_rpi_phash_component_bootstrap_v2
+status: condition_group_bootstrap_protocol
 task: one_class_raspberry_pi_sbc_detection
 experiment_type: framework_native_recipe_system_benchmark
 claim_boundary: >-
   This is not a pure architecture ablation or a reproduction of either paper. It compares
   deployable framework recipes under a shared dataset, input size, evaluator, and GPU.
+  Condition groups and pHash-connected candidate duplicates are split atomically, but the
+  source has no physical specimen ID; Ubuntu camera testing remains the external validation.
+
+dataset:
+  yolo_dataset: data/processed/micropcb_rpi_phash_v2/dataset.yaml
+  coco_root: data/processed/micropcb_rpi_phash_v2_coco
+  split_manifest: data/manifests/micropcb_raspberry_pi_sbc.phash_v2.csv
+  split_summary: data/manifests/micropcb_raspberry_pi_sbc.phash_v2.summary.json
+  equivalence_evidence: data/evidence/micropcb_rpi_phash_v2/dataset_evidence.json
+  coco_annotation_sha256:
+    train: 7b6cccb07d3217646147052752fa58ad32a98687968cf5679f5ebf2a9e61f3f4
+    val: a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef
+    test: 61b9c88d8adf6c12757e350dda19be00dc1f2bdbff7bb40e1e27274f74663ab2
+  split_policy: phash_condition_component_model_balanced_sha256_v2
+  phash_threshold: 4
+  cross_split_condition_groups: 0
+  cross_split_phash_candidate_pairs: 0
+  physical_item_independence_verified: false
+  evidence:
+    canonical_dataset_manifest_sha256: 8039d57c23305b5b37c843abe358401d4ec3cafd2722833fa96acddb799b2e68
+    class_map_sha256: 6921d4723044145cfbb6e7092fcead81762cbf8cc23f975cf0a5523adc4bf693
+    train_image_list_sha256: af6126d8b3773083e6cf420cc9dd0e9444b42cb50aa19c5d83191aff0cda6698
+    val_image_list_sha256: f96e176c8f33a3bc330c4fc1bc078b97fb0f6ce61006c5c9f50e28574e35cbfd
+    canonical_train_records_sha256: 90c21061eb2facacb95e19757d3b828539a06a4dae05ee92e80adfdd6253ea32
+    canonical_val_records_sha256: 75f8bd6f535ca18a27ddb7441161e5424d974b86ab5f39cdabba93841e0ea1bd
 
 common:
   train_images: 1500
-  validation_images: 375
+  validation_images: 195
+  condition_held_out_test_images: 180
   independent_test_available: false
+  physical_item_independence_verified: false
   image_size: 640
   batch_size: 8
+  workers: 0
   epochs: 100
   seeds: [42, 43, 44]
   device: 0
@@ -248,7 +276,40 @@ rationale:
     verification_status: Top-100 matcher 구현 확인, 배포 threshold 미보정
     references: [COCO_API, YOLOX_SOURCE, ULTRALYTICS_PREDICT]
 
+  - id: R13
+    item: leakage_safe_split
+    label: 데이터 분할
+    selected_value: pHash-connected condition components; 1500/195/180 train/val/test
+    status: DATA_AUDIT_DERIVED
+    reason: >-
+      동일 rotation/x/y의 5개 반복 capture와 pHash 거리 4 이하 후보를 연결요소 단위로 묶어
+      split 사이에 같은 조건 또는 현재 검출된 근접중복 후보가 넘어가지 않게 한다. 모델별
+      image 수는 train/val/test 500/65/60으로 유지한다.
+    adjustment_rule: 새 물리 보드와 새 촬영 session을 확보하면 physical_item/session 단위로 다시 분할한다.
+    optimality: 현재 공개 원본에서 가능한 보수적 bootstrap 분할이며 독립 specimen test는 아님
+    verification_status: condition overlap 0, cross-split pHash 후보 0/3511; physical item ID NOT VERIFIED
+    references: [MICROPCB_SOURCE, PYTORCH_REPRO]
+
+  - id: R14
+    item: windows_data_workers
+    label: DataLoader workers
+    selected_value: 0 (single-process loading)
+    status: HARDWARE_DERIVED
+    reason: >-
+      현재 Windows laptop의 총 RAM은 15.12 GiB이고 학습 시작 전 가용 RAM이 약 3 GiB다.
+      PyTorch 문서상 multi-process worker는 parent process의 Python object memory를 추가로 소비할
+      수 있으므로 장시간 6-run의 paging·worker crash 위험을 줄이기 위해 main process에서 로드한다.
+      이 값은 optimizer나 정확도 정의가 아니라 데이터 공급 방식이며 두 모델에 동일하게 적용한다.
+    adjustment_rule: 전용 RAM이 충분한 장비에서는 workers 1/2 처리량 pilot 후 새 campaign ID로 조정한다.
+    optimality: 아니오 — 현재 16 GB Windows 장치의 안정성 우선값
+    verification_status: workers 0 smoke PASS, 100-epoch 장시간 안정성 미검증
+    references: [PYTORCH_DATA]
+
 references:
+  - id: MICROPCB_SOURCE
+    type: dataset_source
+    title: micro-PCB Images source dataset and filename coding README
+    url: https://www.kaggle.com/datasets/frettapper/micropcb-images
   - id: YOLOX_PAPER
     type: paper
     title: "YOLOX: Exceeding YOLO Series in 2021"
@@ -305,6 +366,10 @@ references:
     type: official_documentation
     title: PyTorch reproducibility notes
     url: https://docs.pytorch.org/docs/stable/notes/randomness.html
+  - id: PYTORCH_DATA
+    type: official_documentation
+    title: PyTorch single- and multi-process data loading
+    url: https://docs.pytorch.org/docs/stable/data.html
   - id: SAHI_PAPER
     type: paper
     title: "Slicing Aided Hyper Inference and Fine-tuning for Small Object Detection"

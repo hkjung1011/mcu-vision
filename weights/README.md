@@ -13,6 +13,7 @@ TensorRT `.engine` files are intentionally excluded because they should be built
 
 | artifact | status | purpose |
 |---|---|---|
+| `pretrained/yolo11m.pt` | CONFIRMED | Official Ultralytics COCO initialization for YOLO11m fine-tuning |
 | `pretrained/yolox_s.pth` | CONFIRMED | Upstream COCO initialization for YOLOX-S fine-tuning |
 | `trained/` | NOT AVAILABLE | No protocol-matched full training release has been promoted yet |
 
@@ -25,9 +26,18 @@ Binary checkpoints and ONNX files are stored through Git LFS. After cloning, ver
 git lfs pull
 git lfs ls-files
 Get-FileHash .\weights\pretrained\yolox_s.pth -Algorithm SHA256
+Get-FileHash .\weights\pretrained\yolo11m.pt -Algorithm SHA256
 ```
 
 ## Pretrained source
+
+`pretrained/yolo11m.pt`
+
+- source: https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11m.pt
+- upstream: Ultralytics Assets, YOLO11 detection COCO checkpoint
+- license embedded in checkpoint: AGPL-3.0 / Ultralytics licensing terms apply
+- bytes: `40,684,120`
+- SHA-256: `D5FFC1A674953A08E11A8D21E022781B1B23A19B730AFC309290BD9FB5305B95`
 
 `pretrained/yolox_s.pth`
 

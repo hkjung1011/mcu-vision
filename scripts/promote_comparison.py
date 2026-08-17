@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -22,6 +23,12 @@ def main() -> int:
     parser.add_argument("--allow-not-comparable", action="store_true")
     parser.add_argument("--allow-not-release-ready", action="store_true")
     args = parser.parse_args()
+
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", args.release_name):
+        parser.error(
+            "--release-name must be a plain 1-128 character identifier using only letters, "
+            "numbers, dot, underscore, or hyphen"
+        )
 
     source_root = args.comparison_dir.resolve()
     compatibility_path = source_root / "protocol_compatibility.json"
