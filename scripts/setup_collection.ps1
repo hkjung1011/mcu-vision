@@ -14,7 +14,8 @@ if (-not (Test-Path -Path $EnvironmentPath)) {
 
 $EnvironmentPython = Join-Path $EnvironmentPath "Scripts\python.exe"
 & $EnvironmentPython -m pip install --upgrade pip
-& $EnvironmentPython -m pip install --editable "$ProjectRoot[dev]"
+& $EnvironmentPython -m pip install -r (Join-Path $ProjectRoot "requirements\collection.lock.txt")
+& $EnvironmentPython -m pip install --no-deps --editable "$ProjectRoot[dev]"
 & $EnvironmentPython -m pytest $ProjectRoot
 
 Write-Host "Collection environment is ready: $EnvironmentPath"

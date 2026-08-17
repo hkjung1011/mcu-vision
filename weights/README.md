@@ -9,6 +9,24 @@ Store only curated artifacts here:
 
 TensorRT `.engine` files are intentionally excluded because they should be built on the target Ubuntu platform and GPU.
 
+## Current inventory
+
+| artifact | status | purpose |
+|---|---|---|
+| `pretrained/yolox_s.pth` | CONFIRMED | Upstream COCO initialization for YOLOX-S fine-tuning |
+| `trained/` | NOT AVAILABLE | No protocol-matched full training release has been promoted yet |
+
+The pretrained checkpoint is not a trained MCU/SMD detector. A checkpoint is added to `trained/<release>/`
+only after the run is complete, its SHA-256 matches the run manifest, and the comparison protocol passes.
+
+Binary checkpoints and ONNX files are stored through Git LFS. After cloning, verify them with:
+
+```powershell
+git lfs pull
+git lfs ls-files
+Get-FileHash .\weights\pretrained\yolox_s.pth -Algorithm SHA256
+```
+
 ## Pretrained source
 
 `pretrained/yolox_s.pth`

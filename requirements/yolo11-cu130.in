@@ -2,4 +2,4 @@
 # PyTorch wheels are installed from the official CUDA 13.0 index by the setup script.
 torch==2.12.1
 torchvision==0.27.1
-ultralytics>=8.4,<9
+ultralytics==8.4.120

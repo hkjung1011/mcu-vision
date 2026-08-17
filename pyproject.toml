@@ -14,6 +14,9 @@ dependencies = [
   "PyYAML>=6,<7",
   "tqdm>=4.67,<5",
   "kagglehub>=1,<2",
+  "matplotlib>=3.10,<4",
+  "tensorboard>=2.18,<3",
+  "pycocotools>=2.0.10,<3",
 ]
 
 [project.optional-dependencies]
@@ -24,6 +27,12 @@ mcu-collect-commons = "mcu_data.wikimedia:main"
 mcu-download-curated = "mcu_data.curated:main"
 mcu-audit = "mcu_data.audit:main"
 mcu-prepare-micropcb = "mcu_data.micropcb:main"
+mcu-show-status = "mcu_data.reporting:status_main"
+mcu-evaluate-predictions = "mcu_data.reporting:evaluate_main"
+mcu-compare-runs = "mcu_data.reporting:compare_main"
+mcu-show-weights = "mcu_data.reporting:weights_main"
+mcu-show-protocol = "mcu_data.methodology:main"
+mcu-autolabel-yolo = "mcu_data.autolabel:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

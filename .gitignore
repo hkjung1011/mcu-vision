@@ -6,7 +6,13 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .coverage
-.env
+.env*
+!.env.example
+kaggle.json
+credentials*.json
+*.pem
+*.key
+id_rsa*
 
 # Downloaded/source imagery stays local. Track manifests and reports instead.
 data/raw/*
@@ -17,7 +23,8 @@ data/quarantine/
 data/cache/
 
 # Training outputs are curated before being added to weights/.
-runs/
-outputs/
+/runs/
+/outputs/
 yolo26n.pt
+/yolo*.pt
 *.engine

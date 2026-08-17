@@ -1,0 +1,264 @@
+protocol_id: micropcb_detector_baseline_v1
+status: provisional_validation_protocol
+task: one_class_raspberry_pi_sbc_detection
+experiment_type: framework_native_recipe_system_benchmark
+claim_boundary: >-
+  This is not a pure architecture ablation or a reproduction of either paper. It compares
+  deployable framework recipes under a shared dataset, input size, evaluator, and GPU.
+
+common:
+  train_images: 1500
+  validation_images: 375
+  independent_test_available: false
+  image_size: 640
+  batch_size: 8
+  epochs: 100
+  seeds: [42, 43, 44]
+  device: 0
+  amp: true
+  fixed_training_scale: true
+  pretrained: true
+  full_fine_tune: true
+  validation_each_epoch: true
+  prediction_floor: 0.001
+  nms_iou: 0.65
+  max_detections_for_coco_ap: 100
+  operating_confidence: 0.25
+  operating_match_iou: 0.50
+
+yolo11m:
+  optimizer: SGD
+  nominal_batch_size: 64
+  lr0: 0.01
+  final_lr_ratio: 0.01
+  momentum: 0.937
+  weight_decay: 0.0005
+  warmup_epochs: 3.0
+  close_mosaic_epochs: 10
+  freeze_layers: 0
+  cos_lr: false
+  augmentations:
+    hsv_h: 0.015
+    hsv_s: 0.7
+    hsv_v: 0.4
+    degrees: 0.0
+    translate: 0.1
+    scale: 0.5
+    shear: 0.0
+    perspective: 0.0
+    flipud: 0.0
+    fliplr: 0.5
+    mosaic: 1.0
+    mixup: 0.0
+    cutmix: 0.0
+    copy_paste: 0.0
+
+yolox_s:
+  optimizer: SGD_Nesterov
+  base_lr_per_image: 0.00015625
+  base_lr_at_batch_8: 0.00125
+  min_lr_ratio: 0.05
+  minimum_lr_at_batch_8: 0.0000625
+  momentum: 0.9
+  weight_decay: 0.0005
+  warmup_epochs: 5
+  no_augmentation_epochs: 10
+  multiscale_range: 0
+  augmentations:
+    degrees: 10.0
+    translate: 0.1
+    mosaic_scale: [0.5, 1.5]
+    enable_mixup: false
+    shear: 2.0
+    flip_probability: 0.5
+    hsv_probability: 1.0
+
+comparison_rules:
+  coco_ap_ar_source: common_pycocotools_cocoeval_2_0_11
+  operating_metrics_source: common_score_sorted_class_aware_greedy_one_to_one_matcher
+  primary_metric: AP50_95
+  report_metrics: [AP50_95, AP50, AP75, AP_small, AR100, precision, recall, F1, TP, FP, FN]
+  latency: batch_1_fp16_preloaded_frame_preprocess_inference_nms
+  loss_note: YOLO11_and_YOLOX_native_losses_are_not_cross_framework_comparable
+  final_report: three_seed_mean_and_standard_deviation
+  validation_note: do_not_call_validation_accuracy_a_final_test_result
+
+rationale:
+  - id: R01
+    item: experiment_scope
+    selected_value: framework-native recipe system benchmark
+    status: ENGINEERING_BASELINE
+    reason: >-
+      데이터 split, 입력 크기, 공통 evaluator와 동일 GPU를 고정하되 optimizer와 loss는 각
+      framework의 native recipe를 유지한다. 따라서 실사용 후보 비교이며 architecture 자체의
+      통제 실험으로 해석하지 않는다.
+    adjustment_rule: architecture 우열을 주장하려면 유사 규모 모델과 동일 optimizer ablation을 별도로 수행한다.
+    references: [YOLOX_PAPER, YOLO11_MODEL, ULTRALYTICS_SOURCE]
+
+  - id: R02
+    item: transfer_learning
+    selected_value: COCO pretrained, no user-requested backbone freeze
+    status: ENGINEERING_BASELINE
+    reason: >-
+      현재 train 1,500장의 소규모 custom dataset에서 수렴 안정성과 시간을 확보하되, COCO와
+      전자부품 domain 차이에 대응하도록 framework가 trainable로 정의한 backbone/head weight를
+      학습한다. Ultralytics의 always-frozen DFL projection처럼 고정된 parameter는 manifest에 기록한다.
+    adjustment_rule: overfitting이 확인되면 frozen-backbone ablation을 추가한다.
+    references: [YOLOX_REPO, ULTRALYTICS_TRAIN]
+
+  - id: R03
+    item: image_size
+    selected_value: 640 x 640 fixed
+    status: ENGINEERING_BASELINE
+    reason: >-
+      두 모델의 입력 조건을 같게 하고 RTX 5060 Laptop 8 GB에서 batch 8을 유지하기 위한 1차
+      기준이다. YOLOX/YOLO11 공식 표에도 640 결과가 있으나 소형 칩 최적 해상도라는 뜻은 아니다.
+    adjustment_rule: resize 후 객체 크기 분포와 AP_small을 본 뒤 960/1280 또는 tiling을 비교한다.
+    references: [YOLOX_PAPER, YOLO11_MODEL, SAHI_PAPER]
+
+  - id: R04
+    item: batch_size
+    selected_value: micro-batch 8
+    status: HARDWARE_DERIVED
+    reason: >-
+      두 모델이 현재 8 GB GPU에서 공통으로 실행 가능한 micro-batch다. YOLO11은 nbs=64로
+      gradient accumulation을 사용하고 YOLOX는 batch 8마다 step하므로 effective batch는 같지 않다.
+    adjustment_rule: resolved accumulation과 optimizer group을 매 run 기록하며 순수 optimizer 비교로 해석하지 않는다.
+    references: [ULTRALYTICS_SOURCE, YOLOX_PAPER]
+
+  - id: R05
+    item: epochs
+    selected_value: 100
+    status: TO_TUNE
+    reason: >-
+      pretrained custom-data 1차 비교를 위한 동일 epoch/data-exposure budget이다. 두 모델의 FLOPs와
+      optimizer step 수가 달라 동일 compute budget은 아니다. YOLOX COCO scratch 논문의 300 epochs를
+      재현하는 값이 아니며 최적 epoch라는 보장도 없다.
+    adjustment_rule: validation AP plateau, overfitting gap과 loss curve를 보고 동일 규칙으로 연장한다.
+    references: [ULTRALYTICS_TRAIN, YOLOX_PAPER]
+
+  - id: R06
+    item: seeds
+    selected_value: 42, 43, 44
+    status: ENGINEERING_BASELINE
+    reason: 단일 운 좋은 run을 피하고 mean ± sample SD를 제시하기 위한 최소 반복이다.
+    adjustment_rule: 모델 차이가 run 간 표준편차와 비슷하면 5회 이상으로 늘린다.
+    references: [PYTORCH_REPRO]
+
+  - id: R07
+    item: mixed_precision
+    selected_value: AMP enabled
+    status: UPSTREAM_SUPPORTED
+    reason: 메모리와 시간을 줄여 동일 GPU에서 학습하며 NaN/overflow와 실제 precision mode를 기록한다.
+    adjustment_rule: 수치 불안정 또는 NaN 발생 시 동일 조건의 FP32 검증 run을 수행한다.
+    references: [MIXED_PRECISION_PAPER, PYTORCH_AMP]
+
+  - id: R08
+    item: yolox_optimizer
+    selected_value: SGD Nesterov, nominal_lr=0.01*batch/64, momentum=0.9, wd=0.0005
+    status: PAPER_AND_PINNED_SOURCE_DERIVED_WITH_PROJECT_EPOCH_CHANGE
+    reason: >-
+      YOLOX 원 논문의 SGD/momentum/weight decay와 linear LR scaling, 고정 source의 Nesterov 구현을
+      따른다. batch 8의 nominal/base LR은 0.00125이며 실제 warmup은 0에서 시작한다.
+    adjustment_rule: 본 baseline 후 optimizer/LR 변경은 별도 protocol ID로 분리한다.
+    references: [YOLOX_PAPER, YOLOX_SOURCE]
+
+  - id: R09
+    item: yolox_small_model_augmentation
+    selected_value: MixUp off, Mosaic scale 0.5..1.5; project no-aug final 10/100 epochs
+    status: PAPER_DERIVED_AUGMENTATION_WITH_PROJECT_NO_AUG_ADAPTATION
+    reason: >-
+      YOLOX 논문은 S/Tiny/Nano에서 MixUp 제거와 Mosaic scale 0.5..1.5를 보고했다. 논문의 300 epochs
+      중 final no-aug 15 epochs와 달리 현재 10 epochs는 100-epoch transfer baseline의 프로젝트 변경값이다.
+    adjustment_rule: 고정 카메라 SMD 데이터가 준비되면 weak/strong augmentation ablation을 수행한다.
+    references: [YOLOX_PAPER]
+
+  - id: R10
+    item: yolo11_optimizer_and_augmentation
+    selected_value: pinned Ultralytics v8.4.120 defaults plus project optimizer=SGD override
+    status: UPSTREAM_DEFAULT_WITH_PROJECT_OVERRIDE
+    reason: >-
+      upstream optimizer 기본값은 auto다. 이 프로젝트는 버전별 자동 선택을 피하도록 SGD로 override하고,
+      나머지 관련 기본값은 v8.4.120 source에 고정해 실제 적용값을 기록한다.
+    adjustment_rule: 모든 변경은 resolved config와 새 protocol ID로 기록한다.
+    references: [ULTRALYTICS_DEFAULTS, ULTRALYTICS_AUGMENT]
+
+  - id: R11
+    item: primary_accuracy_metric
+    selected_value: COCO AP50-95
+    status: STANDARD_METRIC
+    reason: IoU 0.50..0.95를 0.05 간격으로 평균해 단일 느슨한 IoU 기준보다 위치 정확도를 엄격히 본다.
+    adjustment_rule: AP50, AP75, AP_small, AR100, P/R/F1, TP/FP/FN을 함께 보고한다.
+    references: [COCO_PAPER, COCO_API]
+
+  - id: R12
+    item: prediction_and_operating_thresholds
+    selected_value: floor=0.001, report point=0.25, match IoU=0.50, NMS IoU=0.65
+    status: ENGINEERING_BASELINE
+    reason: >-
+      낮은 prediction floor로 PR curve를 보존하고 두 framework에 같은 numeric threshold와 공통 evaluator를
+      적용한다. COCO AP/AR와 운영점 greedy matcher 모두 이미지당 score 상위 100개로 제한한다.
+    adjustment_rule: 배포 confidence와 pseudo-label threshold는 gold validation에서 목표 P/R로 산출한 뒤 test 전에 동결한다.
+    references: [COCO_API, YOLOX_SOURCE, ULTRALYTICS_PREDICT]
+
+references:
+  - id: YOLOX_PAPER
+    type: paper
+    title: "YOLOX: Exceeding YOLO Series in 2021"
+    url: https://arxiv.org/abs/2107.08430
+  - id: YOLOX_REPO
+    type: official_repository
+    title: Megvii YOLOX custom data and pretrained checkpoints
+    url: https://github.com/Megvii-BaseDetection/YOLOX
+  - id: YOLOX_SOURCE
+    type: pinned_source
+    title: YOLOX base experiment at commit 6ddff482
+    url: https://github.com/Megvii-BaseDetection/YOLOX/blob/6ddff4824372906469a7fae2dc3206c7aa4bbaee/yolox/exp/yolox_base.py
+  - id: YOLO11_MODEL
+    type: official_documentation
+    title: Ultralytics YOLO11 model documentation (no separate research paper)
+    url: https://docs.ultralytics.com/models/yolo11/
+  - id: ULTRALYTICS_TRAIN
+    type: official_documentation
+    title: Ultralytics train mode settings
+    url: https://docs.ultralytics.com/modes/train/
+  - id: ULTRALYTICS_PREDICT
+    type: official_documentation
+    title: Ultralytics predict mode settings
+    url: https://docs.ultralytics.com/modes/predict/
+  - id: ULTRALYTICS_DEFAULTS
+    type: pinned_source
+    title: Ultralytics v8.4.120 default training configuration
+    url: https://github.com/ultralytics/ultralytics/blob/v8.4.120/ultralytics/cfg/default.yaml
+  - id: ULTRALYTICS_AUGMENT
+    type: official_documentation
+    title: Ultralytics data augmentation guide
+    url: https://docs.ultralytics.com/guides/yolo-data-augmentation/
+  - id: ULTRALYTICS_SOURCE
+    type: pinned_source
+    title: Ultralytics v8.4.120 trainer implementation
+    url: https://github.com/ultralytics/ultralytics/blob/v8.4.120/ultralytics/engine/trainer.py
+  - id: COCO_PAPER
+    type: paper
+    title: "Microsoft COCO: Common Objects in Context"
+    url: https://arxiv.org/abs/1405.0312
+  - id: COCO_API
+    type: official_source
+    title: pycocotools 2.0.11 package used by the common evaluator
+    url: https://pypi.org/project/pycocotools/2.0.11/
+  - id: MIXED_PRECISION_PAPER
+    type: paper
+    title: "Mixed Precision Training"
+    url: https://arxiv.org/abs/1710.03740
+  - id: PYTORCH_AMP
+    type: official_documentation
+    title: PyTorch Automatic Mixed Precision
+    url: https://docs.pytorch.org/docs/stable/amp.html
+  - id: PYTORCH_REPRO
+    type: official_documentation
+    title: PyTorch reproducibility notes
+    url: https://docs.pytorch.org/docs/stable/notes/randomness.html
+  - id: SAHI_PAPER
+    type: paper
+    title: "Slicing Aided Hyper Inference and Fine-tuning for Small Object Detection"
+    url: https://arxiv.org/abs/2202.06934

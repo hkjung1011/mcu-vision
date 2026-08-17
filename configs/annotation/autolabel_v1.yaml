@@ -1,0 +1,98 @@
+protocol_id: mcu_smd_human_in_the_loop_autolabel_v1
+status: PROVISIONAL_REFERENCE_CONFIG_NOT_RUNTIME_BOUND
+scope: object_detection_bbox_only
+
+implementation:
+  cli: mcu-autolabel-yolo
+  backend: ultralytics_YOLO11_pt_only
+  native_yolox_backend: NOT_IMPLEMENTED
+  cvat_sdk_or_import_zip: NOT_IMPLEMENTED
+  grounding_dino: REFERENCE_ONLY_NOT_IMPLEMENTED
+  sam2: REFERENCE_ONLY_NOT_IMPLEMENTED
+  sahi_package: NOT_USED_custom_tiling_and_class_aware_nms_only
+  config_loaded_by_cli: false
+  hard_human_approval_promotion_gate: NOT_IMPLEMENTED
+
+data_states:
+  manual_seed: human_created_training_seed
+  pending: model_proposals_never_used_for_training_directly
+  reviewed_train: model_proposals_human_corrected_and_approved_for_training
+  gold_validation_locked: human_created_without_model_proposals_and_independently_qa_checked
+  test_locked: independent_specimens_and_capture_sessions_never_used_for_tuning
+  rejected: retained_for_error_analysis
+
+seed:
+  initial_manual_images: 200
+  counting_rule: images_not_boxes
+  annotation_rule: label_every_visible_target_instance_in_each_selected_image
+  selection: stratified_by_capture_session_lighting_distance_rotation_density_blur_and_background
+  note: >-
+    200 images is a pilot starting budget, not a proof of sufficiency. Expand from false negatives,
+    false positives, novel conditions, and class imbalance after the first model.
+
+teacher_loop:
+  bootstrap_target: Grounding_DINO_bbox_proposals_or_manual_CVAT
+  bootstrap_current: manual_annotation_only
+  domain_teacher_current: trained_Ultralytics_YO11_checkpoint
+  domain_teacher_future: native_YOLOX_checkpoint_adapter_NOT_IMPLEMENTED
+  prediction_floor: 0.10
+  high_confidence_target_precision: 0.98
+  high_confidence_minimum_precision_wilson_lower_95: 0.95
+  high_confidence_source: manually_labeled_gold_validation_threshold_sweep
+  automatic_acceptance: false
+  empty_prediction_images_require_review: true
+  validation_and_test_autolabeling: forbidden
+
+small_object:
+  tiled_inference: true
+  implementation: custom_tiling_plus_class_aware_NMS_not_SAHI
+  tile_size: 640
+  overlap: 0.20
+  merge_nms_iou: 0.50
+  status: TO_TUNE
+  selection_rule: >-
+    Compare full-frame and tiled inference on manually labeled gold images using AP50-95,
+    AP_small, recall, FP/image, FN/image, and human correction time.
+
+recommended_tools:
+  review_ui:
+    name: CVAT Community
+    license: MIT
+    deployment: local_self_hosted
+    purpose: bbox_review_quality_assurance_and_YOLO_COCO_import_export
+    status: RECOMMENDED_NOT_INTEGRATED
+  initial_open_vocabulary_detector:
+    name: Grounding DINO
+    license: Apache-2.0
+    purpose: initial text-prompt bbox proposals only
+    limitation: exact_part_number_and_visually_similar_SMD_classes_require_domain_labels
+    status: REFERENCE_ONLY_NOT_IMPLEMENTED
+  mask_assistant_optional:
+    name: SAM2
+    license: Apache-2.0
+    purpose: boundary correction after a point_or_box_prompt
+    limitation: not_a_semantic_class_detector
+    status: REFERENCE_ONLY_NOT_IMPLEMENTED
+  small_object_reference:
+    name: SAHI
+    license: MIT
+    purpose: sliced_inference_to_preserve_small_object_pixels
+    status: REFERENCE_ONLY_CURRENT_CODE_IS_CUSTOM_TILING
+
+references:
+  - title: Grounding DINO open-set object detection paper
+    url: https://arxiv.org/abs/2303.05499
+  - title: Grounding DINO official repository
+    url: https://github.com/IDEA-Research/GroundingDINO
+  - title: SAM 2 paper
+    url: https://arxiv.org/abs/2408.00714
+  - title: SAM 2 official repository
+    url: https://github.com/facebookresearch/sam2
+  - title: SAHI paper
+    url: https://arxiv.org/abs/2202.06934
+  - title: SAHI official repository
+    url: https://github.com/obss/sahi
+  - title: CVAT Community official repository
+    url: https://github.com/cvat-ai/cvat
+  - title: Soft Teacher semi-supervised object detection
+    url: https://openaccess.thecvf.com/content/ICCV2021/html/Xu_End-to-End_Semi-Supervised_Object_Detection_With_Soft_Teacher_ICCV_2021_paper.html

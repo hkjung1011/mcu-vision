@@ -1,0 +1,44 @@
+{
+  "artifacts": [
+    {
+      "bytes": 11153,
+      "kind": "evidence",
+      "path": "reports/methodology/protocol_snapshot.yaml",
+      "sha256": "e322a95212e7f66402bc47517e823c39f12f9d46aa8a3545b3146dc2af577c31"
+    },
+    {
+      "bytes": 5121,
+      "kind": "evidence",
+      "path": "reports/methodology/protocol_rationale.csv",
+      "sha256": "11ebc535461aa36e612bc740711cb5c4cf1c6c3b17b766b1db5bcfa655139574"
+    },
+    {
+      "bytes": 2921,
+      "kind": "evidence",
+      "path": "reports/methodology/protocol_references.json",
+      "sha256": "36045fde3c88125adf869b3d70681624bd35d08eca3fadecc7ba7a46d32c757a"
+    },
+    {
+      "bytes": 11448,
+      "kind": "evidence",
+      "path": "reports/methodology/experiment_methodology.md",
+      "sha256": "40fe7813dfea94a18ebed463c88f36d667c3fceb1398a9f118b464b0ae806b82"
+    },
+    {
+      "bytes": 626323,
+      "kind": "derived_visual",
+      "path": "reports/methodology/protocol_rationale.png",
+      "sha256": "38dee7c2f5f2b8556be2c84442c7aab963249490625101cca9b84a5562f0a6f9"
+    }
+  ],
+  "generative_ai_used_for_images": false,
+  "output_dir": "reports/methodology",
+  "policy": "Judgments use YAML/CSV/JSON numeric evidence; PNG files are visualization derivatives.",
+  "protocol_id": "micropcb_detector_baseline_v1",
+  "rationale_items": 12,
+  "references": 15,
+  "renderer": "matplotlib 3.11.1",
+  "schema_version": 1,
+  "source": "configs/experiments/baseline_v1.yaml",
+  "source_sha256": "e322a95212e7f66402bc47517e823c39f12f9d46aa8a3545b3146dc2af577c31"
+}

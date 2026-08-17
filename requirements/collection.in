@@ -4,4 +4,7 @@ ImageHash>=4.3,<5
 PyYAML>=6,<7
 tqdm>=4.67,<5
 kagglehub>=1,<2
+matplotlib>=3.10,<4
+tensorboard>=2.18,<3
+pycocotools>=2.0.10,<3
 pytest>=8,<10
