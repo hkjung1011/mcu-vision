@@ -18,7 +18,7 @@
 
 ```powershell
 git lfs install
-git clone <PRIVATE_REPOSITORY_URL>
+git clone https://github.com/hkjung1011/mcu-vision.git
 Set-Location .\mcu-vision
 git lfs pull
 git lfs ls-files

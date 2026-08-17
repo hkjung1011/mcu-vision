@@ -19,7 +19,7 @@ Windows와 Ubuntu 사이의 공통 교환 형식으로 사용하지 않습니다
 
 ```bash
 git lfs install
-git clone <PRIVATE_REPOSITORY_URL>
+git clone https://github.com/hkjung1011/mcu-vision.git
 cd mcu-vision
 git lfs pull
 git lfs ls-files
