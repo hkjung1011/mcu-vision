@@ -127,3 +127,59 @@ def publish_evidence_file(
         "bytes": destination.stat().st_size,
         "sanitized_for_repository": changed,
     }
+
+
+def validate_comparison_for_run(
+    comparison_dir: Path,
+    *,
+    run_id: str,
+    run_manifest_path: Path,
+) -> dict[str, Any]:
+    """Require a comparable comparison that contains this exact run manifest."""
+    comparison_dir = comparison_dir.resolve()
+    compatibility_path = comparison_dir / "protocol_compatibility.json"
+    comparison_path = comparison_dir / "comparison.json"
+    sources_manifest_path = comparison_dir / "sources_manifest.json"
+    for path in (compatibility_path, comparison_path, sources_manifest_path):
+        if not path.exists():
+            raise FileNotFoundError(f"Comparison evidence is missing: {path}")
+
+    compatibility = json.loads(compatibility_path.read_text(encoding="utf-8"))
+    if not compatibility.get("release_ready", False):
+        blockers = ", ".join(
+            str(item.get("field")) for item in compatibility.get("release_blockers", [])
+        )
+        raise ValueError(
+            "Comparison is not formal-release ready"
+            + (f" ({blockers})" if blockers else "")
+        )
+
+    comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
+    rows = [row for row in comparison if str(row.get("run_id")) == run_id]
+    if len(rows) != 1:
+        raise ValueError(f"Comparison must contain run_id exactly once: {run_id}")
+    if rows[0].get("status") != "complete":
+        raise ValueError(f"Comparison row is not complete: {run_id}")
+
+    sources_manifest = json.loads(sources_manifest_path.read_text(encoding="utf-8"))
+    expected_suffix = f"sources/{run_id}/run_manifest.json"
+    source_rows = [
+        row
+        for row in sources_manifest.get("files", [])
+        if str(row.get("run_id")) == run_id
+        and str(row.get("path", "")).replace("\\", "/").endswith(expected_suffix)
+    ]
+    if len(source_rows) != 1:
+        raise ValueError(f"Comparison source bundle must contain this run manifest: {run_id}")
+    current_manifest_sha256 = sha256_file(run_manifest_path)
+    if source_rows[0].get("source_original_sha256") != current_manifest_sha256:
+        raise ValueError("Run manifest changed after the comparison was generated")
+
+    return {
+        "comparison_id": comparison_dir.name,
+        "protocol_compatibility_sha256": sha256_file(compatibility_path),
+        "comparison_sha256": sha256_file(comparison_path),
+        "sources_manifest_sha256": sha256_file(sources_manifest_path),
+        "run_manifest_sha256": current_manifest_sha256,
+        "run_id": run_id,
+    }

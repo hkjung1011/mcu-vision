@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .common import portable_path, safe_stem, sha256_file, write_json
-from .methodology import write_protocol_artifacts
+from .methodology import load_protocol, write_protocol_artifacts
 from .publishing import publish_evidence_file
 from .runlog import (
     checkpoint_file_record,
@@ -894,6 +894,17 @@ def _load_run(run_dir: Path) -> dict[str, Any]:
     if extra_rows:
         epoch_peak = epoch_peak or extra_rows[-1].get("epoch_peak_allocated_mib")
         train_peak = train_peak or extra_rows[-1].get("train_peak_allocated_mib")
+    checkpoint_record = metadata.get("best_checkpoint", {}) or {}
+    checkpoint_text = checkpoint_record.get("path")
+    checkpoint_path = Path(checkpoint_text) if checkpoint_text else None
+    if checkpoint_path is not None and not checkpoint_path.is_absolute():
+        checkpoint_path = run_dir / checkpoint_path
+    checkpoint_exists = bool(checkpoint_path and checkpoint_path.exists())
+    checkpoint_hash_matches = bool(
+        checkpoint_exists
+        and checkpoint_record.get("sha256")
+        and sha256_file(checkpoint_path) == checkpoint_record.get("sha256")
+    )
     return {
         "run_dir": run_dir,
         "run_id": metadata.get("run_id", run_dir.name),
@@ -904,6 +915,14 @@ def _load_run(run_dir: Path) -> dict[str, Any]:
         "gpu": gpu,
         "train_peak_allocated_mib": train_peak or epoch_peak,
         "epochs": epochs,
+        "evidence_status": {
+            "epoch_metrics_exists": (run_dir / "epoch_metrics.csv").exists(),
+            "final_metrics_exists": (run_dir / "final_metrics.json").exists(),
+            "latency_exists": (run_dir / "latency.json").exists(),
+            "gpu_summary_exists": (run_dir / "gpu_summary.json").exists(),
+            "checkpoint_exists": checkpoint_exists,
+            "checkpoint_hash_matches": checkpoint_hash_matches,
+        },
     }
 
 
@@ -922,7 +941,8 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
 def compare_runs(run_dirs: list[Path], output_dir: Path) -> list[dict[str, Any]]:
     output_dir.mkdir(parents=True, exist_ok=True)
     runs = [_load_run(path.resolve()) for path in run_dirs]
-    compatibility = _protocol_compatibility(runs)
+    expected_protocol = _comparison_protocol_document(runs)
+    compatibility = _protocol_compatibility(runs, expected_protocol)
     rows = []
     for run in runs:
         metadata = run["metadata"]
@@ -1004,14 +1024,14 @@ def compare_runs(run_dirs: list[Path], output_dir: Path) -> list[dict[str, Any]]
         output_dir / "terminal_summary.png",
         f"SOURCE: comparison_terminal.txt | SHA256: {sha256_file(terminal_path)}",
     )
-    recorded_protocol = (
-        runs[0]["metadata"].get("protocol_config", {}).get("path") if runs else None
-    )
-    protocol_path = (
-        Path(recorded_protocol)
-        if recorded_protocol
-        else project_root() / "configs" / "experiments" / "baseline_v1.yaml"
-    )
+    snapshot_protocol = runs[0]["run_dir"] / "protocol_snapshot.yaml" if runs else None
+    recorded_protocol = runs[0]["metadata"].get("protocol_config", {}).get("path") if runs else None
+    if snapshot_protocol is not None and snapshot_protocol.exists():
+        protocol_path = snapshot_protocol
+    elif recorded_protocol:
+        protocol_path = Path(recorded_protocol)
+    else:
+        protocol_path = project_root() / "configs" / "experiments" / "baseline_v1.yaml"
     if protocol_path.exists():
         write_protocol_artifacts(protocol_path, output_dir, print_terminal=False)
     _write_comparison_markdown(output_dir / "experiment_report.md", rows, compatibility, aggregate_rows)
@@ -1034,6 +1054,7 @@ def _write_comparison_markdown(
         "# MCU detector 실험 결과",
         "",
         f"- protocol 판정: **{verdict}**",
+        f"- 정식 release 판정: **{'READY' if compatibility.get('release_ready') else 'BLOCKED'}**",
         "- AP/AR 출처: 두 framework prediction을 동일 `pycocotools==2.0.11` COCOeval로 재계산",
         "- 운영점 P/R/F1 출처: 공통 score-sorted class-aware greedy 1:1 matcher",
         "- 범위: validation 결과이며 독립적인 실제 컨베이어-camera test 결과가 아님",
@@ -1084,6 +1105,11 @@ def _write_comparison_markdown(
         for mismatch in compatibility["critical_mismatches"]:
             lines.append(f"- `{mismatch['field']}`: `{json.dumps(mismatch['values'], ensure_ascii=False)}`")
         lines.append("")
+    if compatibility.get("release_blockers"):
+        lines.extend(["## 정식 release 차단 항목", ""])
+        for blocker in compatibility["release_blockers"]:
+            lines.append(f"- `{blocker['field']}`: `{json.dumps(blocker, ensure_ascii=False)}`")
+        lines.append("")
     if aggregate_rows:
         lines.extend(
             [
@@ -1116,12 +1142,42 @@ def _write_comparison_markdown(
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _protocol_compatibility(runs: list[dict[str, Any]]) -> dict[str, Any]:
+def _comparison_protocol_document(runs: list[dict[str, Any]]) -> dict[str, Any]:
+    candidates: list[Path] = []
+    if runs:
+        candidates.append(runs[0]["run_dir"] / "protocol_snapshot.yaml")
+        recorded = runs[0]["metadata"].get("protocol_config", {}).get("path")
+        if recorded:
+            candidates.append(Path(recorded))
+    candidates.append(project_root() / "configs" / "experiments" / "baseline_v1.yaml")
+    for candidate in candidates:
+        if candidate.exists():
+            document = load_protocol(candidate)
+            document["_loaded_source_sha256"] = sha256_file(candidate)
+            document["_loaded_source_path"] = str(candidate.resolve())
+            return document
+    return {}
+
+
+def _normalize_model_name(value: Any) -> str:
+    return "".join(character for character in str(value).lower() if character.isalnum())
+
+
+def _protocol_compatibility(
+    runs: list[dict[str, Any]],
+    expected_protocol: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    expected_protocol = expected_protocol or {}
+    common = expected_protocol.get("common", {})
+    rules = expected_protocol.get("comparison_rules", {})
+    required_dataset_evidence = [
+        str(field) for field in rules.get("required_dataset_evidence", [])
+    ]
+
     def value(run: dict[str, Any], field: str) -> Any:
         protocol = run["metadata"].get("protocol", {})
-        if field == "train_annotation_sha256":
-            return run["metadata"].get("dataset", {}).get(field)
-        if field == "val_annotation_sha256":
+        dataset = run["metadata"].get("dataset", {})
+        if field in {"train_annotation_sha256", "val_annotation_sha256", *required_dataset_evidence}:
             return run["metadata"].get("dataset", {}).get(field)
         if field == "protocol_config_sha256":
             return run["metadata"].get("protocol_config", {}).get("sha256")
@@ -1142,9 +1198,11 @@ def _protocol_compatibility(runs: list[dict[str, Any]]) -> dict[str, Any]:
         "multiscale_range",
         "prediction_floor",
         "nms_iou",
+        "class_agnostic_nms",
         "common_operating_confidence",
         "common_match_iou",
         "protocol_config_sha256",
+        *required_dataset_evidence,
     ]
     mismatches = []
     for field in critical_fields:
@@ -1158,13 +1216,199 @@ def _protocol_compatibility(runs: list[dict[str, Any]]) -> dict[str, Any]:
     seed_sets = {model: sorted(seeds, key=str) for model, seeds in seeds_by_model.items()}
     if len({json.dumps(seeds, sort_keys=True) for seeds in seed_sets.values()}) > 1:
         mismatches.append({"field": "seed_set", "values": seed_sets})
+    expected_models = [str(item) for item in rules.get("required_models", [])]
+    expected_seeds = list(common.get("seeds", []))
+    release_blockers: list[dict[str, Any]] = []
+    if mismatches:
+        release_blockers.append(
+            {"field": "protocol_comparability", "reason": "critical settings differ between runs"}
+        )
+    loaded_protocol_sha256 = expected_protocol.get("_loaded_source_sha256")
+    if loaded_protocol_sha256:
+        wrong_protocol_sources = {
+            run["run_id"]: run["metadata"].get("protocol_config", {}).get("sha256")
+            for run in runs
+            if run["metadata"].get("protocol_config", {}).get("sha256")
+            != loaded_protocol_sha256
+        }
+        if wrong_protocol_sources:
+            release_blockers.append(
+                {
+                    "field": "protocol_snapshot_integrity",
+                    "expected": loaded_protocol_sha256,
+                    "actual": wrong_protocol_sources,
+                }
+            )
+    actual_model_map = {_normalize_model_name(model): model for model in seed_sets}
+    expected_model_set = {_normalize_model_name(model) for model in expected_models}
+    if set(actual_model_map) != expected_model_set:
+        release_blockers.append(
+            {
+                "field": "model_set",
+                "expected": expected_models,
+                "actual": sorted(seed_sets),
+            }
+        )
+    expected_seed_set = set(expected_seeds)
+    for normalized_model in sorted(expected_model_set):
+        display_model = actual_model_map.get(normalized_model)
+        actual_seeds = set(seed_sets.get(display_model, [])) if display_model else set()
+        if actual_seeds != expected_seed_set:
+            release_blockers.append(
+                {
+                    "field": f"seed_set:{display_model or normalized_model}",
+                    "expected": sorted(expected_seed_set),
+                    "actual": sorted(actual_seeds),
+                }
+            )
+    expected_pairs = {(model, seed) for model in expected_model_set for seed in expected_seed_set}
+    actual_pairs = [(_normalize_model_name(run["model"]), value(run, "seed")) for run in runs]
+    if len(actual_pairs) != len(expected_pairs) or set(actual_pairs) != expected_pairs:
+        release_blockers.append(
+            {
+                "field": "complete_model_seed_matrix",
+                "expected_runs": len(expected_pairs),
+                "actual_runs": len(actual_pairs),
+            }
+        )
+    if len(set(actual_pairs)) != len(actual_pairs):
+        release_blockers.append(
+            {"field": "duplicate_model_seed_pair", "reason": "each model/seed pair must occur once"}
+        )
+    incomplete = [
+        run["run_id"]
+        for run in runs
+        if run["metadata"].get("status") != "complete"
+        or run["metadata"].get("stage") == "smoke_not_comparable"
+    ]
+    if incomplete:
+        release_blockers.append(
+            {"field": "complete_non_smoke_runs", "actual": sorted(incomplete)}
+        )
+    expected_values = {
+        "epochs": common.get("epochs"),
+        "batch": common.get("batch_size"),
+        "imgsz": common.get("image_size"),
+        "amp": common.get("amp"),
+        "fraction": 1.0,
+        "prediction_floor": common.get("prediction_floor"),
+        "nms_iou": common.get("nms_iou"),
+        "class_agnostic_nms": common.get("class_agnostic_nms"),
+        "common_operating_confidence": common.get("operating_confidence"),
+        "common_match_iou": common.get("operating_match_iou"),
+    }
+    for field, expected in expected_values.items():
+        wrong = {
+            run["run_id"]: value(run, field)
+            for run in runs
+            if value(run, field) != expected
+        }
+        if expected is not None and wrong:
+            release_blockers.append(
+                {"field": f"expected:{field}", "expected": expected, "actual": wrong}
+            )
+    for field in required_dataset_evidence:
+        missing = [
+            run["run_id"]
+            for run in runs
+            if not run["metadata"].get("dataset", {}).get(field)
+        ]
+        if missing:
+            release_blockers.append(
+                {"field": f"dataset_evidence:{field}", "missing_runs": sorted(missing)}
+            )
+    expected_epoch_count = common.get("epochs")
+    wrong_epoch_counts = {
+        run["run_id"]: len(run.get("epochs", []))
+        for run in runs
+        if expected_epoch_count is not None and len(run.get("epochs", [])) != expected_epoch_count
+    }
+    if wrong_epoch_counts:
+        release_blockers.append(
+            {
+                "field": "completed_epoch_rows",
+                "expected": expected_epoch_count,
+                "actual": wrong_epoch_counts,
+            }
+        )
+    required_evidence_flags = [
+        "epoch_metrics_exists",
+        "final_metrics_exists",
+        "latency_exists",
+        "gpu_summary_exists",
+        "checkpoint_exists",
+        "checkpoint_hash_matches",
+    ]
+    for flag in required_evidence_flags:
+        missing = [
+            run["run_id"] for run in runs if not run.get("evidence_status", {}).get(flag)
+        ]
+        if missing:
+            release_blockers.append(
+                {"field": f"run_evidence:{flag}", "missing_runs": sorted(missing)}
+            )
+    required_metrics = [
+        "ap50_95",
+        "ap50",
+        "ap75",
+        "ar100",
+        "precision",
+        "recall",
+        "f1",
+        "tp",
+        "fp",
+        "fn",
+    ]
+    for metric in required_metrics:
+        invalid = [
+            run["run_id"]
+            for run in runs
+            if not isinstance(run.get("metrics", {}).get(metric), (int, float))
+            or not math.isfinite(float(run["metrics"][metric]))
+        ]
+        if invalid:
+            release_blockers.append(
+                {"field": f"final_metric:{metric}", "invalid_runs": sorted(invalid)}
+            )
+    required_latency = ["e2e_p50_ms", "e2e_p95_ms", "sustained_fps"]
+    for metric in required_latency:
+        invalid = [
+            run["run_id"]
+            for run in runs
+            if not isinstance(run.get("latency", {}).get(metric), (int, float))
+            or not math.isfinite(float(run["latency"][metric]))
+        ]
+        if invalid:
+            release_blockers.append(
+                {"field": f"latency_metric:{metric}", "invalid_runs": sorted(invalid)}
+            )
+    invalid_gpu = [
+        run["run_id"]
+        for run in runs
+        if not isinstance(run.get("gpu", {}).get("peak_memory_used_mib"), (int, float))
+        or not math.isfinite(float(run["gpu"]["peak_memory_used_mib"]))
+    ]
+    if invalid_gpu:
+        release_blockers.append(
+            {"field": "gpu_metric:peak_memory_used_mib", "invalid_runs": sorted(invalid_gpu)}
+        )
     return {
         "comparable": len(runs) >= 2 and not mismatches,
+        "release_ready": len(runs) >= 2 and not mismatches and not release_blockers,
         "run_count": len(runs),
         "critical_mismatches": mismatches,
+        "release_blockers": release_blockers,
         "seed_sets_by_model": seed_sets,
+        "release_expectations": {
+            "models": expected_models,
+            "seeds": expected_seeds,
+            "runs": len(expected_models) * len(expected_seeds),
+            "dataset_evidence": required_dataset_evidence,
+        },
         "note": (
-            "PASS covers shared data, input, micro-batch, evaluation thresholds, and protocol hash. "
+            "Comparable PASS only means the supplied runs share critical settings. Release-ready also "
+            "requires the configured model/seed matrix, full epochs, complete non-smoke runs, and dataset "
+            "equivalence evidence. "
             "Native optimizer, effective batch, augmentation, and loss definitions intentionally remain "
             "framework-specific; final accuracy must come from common COCO evaluation."
         ),
@@ -1251,6 +1495,11 @@ def _comparison_terminal_text(
     else:
         fields = ", ".join(item["field"] for item in compatibility["critical_mismatches"])
         lines.append(f"PROTOCOL: FAIL - NOT COMPARABLE. Mismatched fields: {fields}")
+    if compatibility.get("release_ready"):
+        lines.append("RELEASE: READY - complete model/seed matrix and dataset evidence passed.")
+    else:
+        blockers = ", ".join(item["field"] for item in compatibility.get("release_blockers", []))
+        lines.append(f"RELEASE: BLOCKED - {blockers or 'formal release requirements are incomplete'}")
     if any(row["runs"] > 1 for row in aggregate_rows):
         lines.extend(["", "SEED AGGREGATE (mean +/- sample standard deviation)", "-" * 76])
         for row in aggregate_rows:

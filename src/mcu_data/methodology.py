@@ -55,10 +55,13 @@ def _rationale_rows(document: dict[str, Any]) -> list[dict[str, str]]:
             {
                 "id": str(item.get("id", "")),
                 "item": str(item.get("item", "")),
+                "label": str(item.get("label", item.get("item", ""))),
                 "selected_value": _flatten_value(item.get("selected_value", "")),
                 "status": str(item.get("status", "")),
                 "reason": str(item.get("reason", "")).strip(),
                 "adjustment_rule": str(item.get("adjustment_rule", "")).strip(),
+                "optimality": str(item.get("optimality", "")).strip(),
+                "verification_status": str(item.get("verification_status", "")).strip(),
                 "references": ", ".join(str(value) for value in item.get("references", [])),
             }
         )
@@ -70,10 +73,13 @@ def _write_csv(path: Path, rows: list[dict[str, str]]) -> None:
     fieldnames = list(rows[0]) if rows else [
         "id",
         "item",
+        "label",
         "selected_value",
         "status",
         "reason",
         "adjustment_rule",
+        "optimality",
+        "verification_status",
         "references",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -102,8 +108,11 @@ def _write_methodology_markdown(
         f"- protocol: `{document.get('protocol_id', '-')}`",
         f"- 상태: `{document.get('status', '-')}`",
         f"- 비교 유형: `{document.get('experiment_type', '-')}`",
+        f"- 현재 task: `{document.get('task', '-')}`",
         f"- 원본 config SHA256: `{sha256_file(source_path)}`",
         "",
+        "> 현재 protocol은 Raspberry Pi SBC 1-class bootstrap 전용입니다. Provisional MCU/SMD "
+        "multi-class 학습 protocol이 아닙니다.",
         "> 이 문서는 설정 파일에서 자동 생성되었습니다. Validation 결과는 독립적인 실제 컨베이어 "
         "test 결과가 아니며, 이 benchmark는 순수 architecture ablation이 아닙니다.",
         "> 판단 근거는 YAML/CSV/JSON의 수치이며, PNG는 matplotlib로 렌더링한 비생성형 파생물입니다. "
@@ -121,8 +130,8 @@ def _write_methodology_markdown(
             "",
             "## 선정 근거와 조정 조건",
             "",
-            "| ID | 항목 | 선택값 | 근거 상태 | 선정 이유 | 재조정 조건 |",
-            "|---|---|---|---|---|---|",
+            "| ID | 항목 | 선택값 | 근거 상태 | 선정 이유 | 최적값 여부 | 재조정 조건 | 현재 검증 상태 | 근거 ID |",
+            "|---|---|---|---|---|---|---|---|---|",
         ]
     )
     for row in rows:
@@ -132,7 +141,10 @@ def _write_methodology_markdown(
             row["selected_value"],
             row["status"],
             row["reason"],
+            row["optimality"],
             row["adjustment_rule"],
+            row["verification_status"],
+            row["references"],
         ]
         escaped = [value.replace("|", "/ ").replace("\n", " ") for value in values]
         lines.append("| " + " | ".join(escaped) + " |")
@@ -163,18 +175,67 @@ def _write_methodology_markdown(
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _write_parameter_summary_markdown(
+    path: Path,
+    document: dict[str, Any],
+    rows: list[dict[str, str]],
+    source_path: Path,
+) -> None:
+    lines = [
+        "# 핵심 수치 선정 이유와 검증 상태",
+        "",
+        f"- protocol: `{document.get('protocol_id', '-')}`",
+        f"- 현재 task: `{document.get('task', '-')}`",
+        f"- config SHA256: `{sha256_file(source_path)}`",
+        "",
+        "> 현재 protocol은 Raspberry Pi SBC 1-class bootstrap 전용이며 MCU/SMD multi-class 결과가 아닙니다.",
+        "> 아래 값은 재현 가능한 1차 baseline이며 최적값이 아닙니다. 현재 결과는 validation 범위이고, "
+        "독립적인 실제 카메라 test는 아직 없습니다.",
+        "",
+        "| ID·항목 | 값 | 왜 선택했는가 | 근거 유형 | 최적값 여부 | 다음 조정 조건 | 현재 검증 상태 |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for row in rows:
+        values = [
+            f"{row['id']} {row['label']}",
+            row["selected_value"],
+            row["reason"],
+            row["status"],
+            row["optimality"],
+            row["adjustment_rule"],
+            row["verification_status"],
+        ]
+        escaped = [value.replace("|", "/ ").replace("\n", " ") for value in values]
+        lines.append("| " + " | ".join(escaped) + " |")
+    lines.extend(
+        [
+            "",
+            "## 해석 원칙",
+            "",
+            "- `PAPER_*`/`UPSTREAM_*`은 출처가 있다는 뜻이지 현재 MCU/SMD에서 최적이라는 뜻이 아닙니다.",
+            "- `HARDWARE_DERIVED`는 현재 RTX 5060 Laptop 8 GB에서 실행 가능한 값입니다.",
+            "- `ENGINEERING_BASELINE`/`TO_TUNE`은 gold validation과 실제 카메라 조건으로 다시 정해야 합니다.",
+            "- 상세 알고리즘·참고문헌은 [전체 방법론](experiment_methodology.md), 실제 값은 "
+            "[`configs/experiments/baseline_v1.yaml`](../../configs/experiments/baseline_v1.yaml)을 봅니다.",
+        ]
+    )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def _plot_rationale(
     rows: list[dict[str, str]],
     path: Path,
     *,
     source_label: str,
     source_sha256: str,
+    task: str,
 ) -> None:
     if not rows:
         return
     lines = [
         "MCU VISION — PROTOCOL RATIONALE",
         "PAPER/DOC = cited upstream evidence; ENGINEERING/TO_TUNE = project decision",
+        f"TASK: {task} | SCOPE: Raspberry Pi SBC 1-class bootstrap",
         f"SOURCE: {source_label} | SHA256: {source_sha256}",
         f"RENDERER: matplotlib {matplotlib.__version__} | GENERATIVE_AI: false",
         "",
@@ -255,17 +316,22 @@ def write_protocol_artifacts(
     _write_methodology_markdown(
         output_dir / "experiment_methodology.md", document, rows, source_path
     )
+    _write_parameter_summary_markdown(
+        output_dir / "parameter_rationale.md", document, rows, source_path
+    )
     _plot_rationale(
         rows,
         output_dir / "protocol_rationale.png",
         source_label=source_label,
         source_sha256=source_sha256,
+        task=str(document.get("task", "-")),
     )
     artifact_paths = [
         snapshot,
         output_dir / "protocol_rationale.csv",
         output_dir / "protocol_references.json",
         output_dir / "experiment_methodology.md",
+        output_dir / "parameter_rationale.md",
         output_dir / "protocol_rationale.png",
     ]
     result = {

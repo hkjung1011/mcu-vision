@@ -1,7 +1,10 @@
 import json
 from pathlib import Path
 
-from mcu_data.publishing import publish_evidence_file
+import pytest
+
+from mcu_data.common import sha256_file
+from mcu_data.publishing import publish_evidence_file, validate_comparison_for_run
 
 
 def test_publish_evidence_file_redacts_local_paths_and_process_table(tmp_path: Path) -> None:
@@ -42,3 +45,44 @@ def test_publish_evidence_file_redacts_python_repr_paths(tmp_path: Path) -> None
 
     assert escaped_project.lower() not in destination.read_text(encoding="utf-8").lower()
     assert "<PROJECT_ROOT>" in destination.read_text(encoding="utf-8")
+
+
+def test_validate_comparison_requires_exact_run_manifest(tmp_path: Path) -> None:
+    run_id = "full_seed42"
+    run_manifest = tmp_path / "run_manifest.json"
+    run_manifest.write_text(json.dumps({"run_id": run_id, "status": "complete"}), encoding="utf-8")
+    comparison = tmp_path / "comparison"
+    comparison.mkdir()
+    (comparison / "protocol_compatibility.json").write_text(
+        json.dumps({"comparable": True, "release_ready": False}), encoding="utf-8"
+    )
+    (comparison / "comparison.json").write_text(
+        json.dumps([{"run_id": run_id, "status": "complete"}]), encoding="utf-8"
+    )
+    (comparison / "sources_manifest.json").write_text(
+        json.dumps(
+            {
+                "files": [
+                    {
+                        "run_id": run_id,
+                        "path": f"sources/{run_id}/run_manifest.json",
+                        "source_original_sha256": sha256_file(run_manifest),
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="not formal-release ready"):
+        validate_comparison_for_run(comparison, run_id=run_id, run_manifest_path=run_manifest)
+    (comparison / "protocol_compatibility.json").write_text(
+        json.dumps({"comparable": True, "release_ready": True}), encoding="utf-8"
+    )
+    evidence = validate_comparison_for_run(
+        comparison, run_id=run_id, run_manifest_path=run_manifest
+    )
+    assert evidence["run_id"] == run_id
+    run_manifest.write_text(json.dumps({"run_id": run_id, "status": "changed"}), encoding="utf-8")
+    with pytest.raises(ValueError, match="changed after"):
+        validate_comparison_for_run(comparison, run_id=run_id, run_manifest_path=run_manifest)

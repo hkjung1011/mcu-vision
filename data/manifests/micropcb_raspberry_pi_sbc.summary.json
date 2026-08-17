@@ -14,5 +14,7 @@
   },
   "storage": "NTFS hardlinks; images are not duplicated on disk",
   "coco_output_root": "data/processed/micropcb_rpi_coco",
-  "validation_policy": "Source test specimens are used as val; final test must be captured on the target conveyor."
+  "train_val_condition_group_overlap": 375,
+  "validation_images_with_condition_seen_in_train": 375,
+  "validation_policy": "Source capture serials 1-4 are train and serial 5 is val. Physical specimen independence is not documented; formal AP requires an independent split."
 }

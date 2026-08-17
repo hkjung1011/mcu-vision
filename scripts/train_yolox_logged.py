@@ -198,6 +198,7 @@ def main() -> int:
             "validation_each_epoch": True,
             "prediction_floor": exp.test_conf,
             "nms_iou": exp.nmsthre,
+            "class_agnostic_nms": False,
             "max_detections_for_coco_ap": 100,
             "common_operating_confidence": 0.25,
             "common_match_iou": 0.50,
@@ -224,7 +225,7 @@ def main() -> int:
         "pretrained_checkpoint": pretrained_record,
         "pretrained_weight_statistics": initial_stats,
         "dataset": {
-            "split": "specimen-group train/validation",
+            "split": "source capture partition; physical specimen independence NOT VERIFIED",
             "train_annotation_sha256": sha256_file(train_annotation),
             "val_annotation_sha256": sha256_file(val_annotation),
             "independent_test_available": False,
@@ -334,7 +335,7 @@ def _benchmark_yolox(model, image_path: Path, exp, args: argparse.Namespace, out
         tensor = torch.from_numpy(transformed).unsqueeze(0).cuda(non_blocking=False)
         tensor = tensor.float() if args.fp32 else tensor.half()
         outputs = model(tensor)
-        postprocess(outputs, exp.num_classes, 0.25, 0.65, class_agnostic=True)
+        postprocess(outputs, exp.num_classes, 0.25, 0.65, class_agnostic=False)
 
     warmup = 2 if args.smoke else 20
     iterations = 10 if args.smoke else 100

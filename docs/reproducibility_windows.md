@@ -77,14 +77,16 @@ Smoke는 wiring 확인일 뿐 모델 성능 결과가 아닙니다.
   -ImageSize 640
 ```
 
-`protocol_compatibility.json`이 PASS일 때만 모델 비교표를 해석합니다. 비교 결과는 AP/AR의 공통
-COCOeval, 운영점 공통 matcher, batch-1 latency, VRAM과 seed 평균±sample SD를 포함해야 합니다.
+`protocol_compatibility.json`의 `comparable=true`일 때만 모델 비교표를 해석하고,
+`release_ready=true`일 때만 trained weight를 승격합니다. 비교 결과는 AP/AR의 공통 COCOeval,
+운영점 공통 matcher, batch-1 latency, VRAM과 seed 평균±sample SD를 포함해야 합니다.
 
 ## 7. Git 승격 전 확인
 
 ```powershell
 .\.venv-collect\Scripts\python.exe .\scripts\promote_run.py `
-  --run-dir runs\benchmarks\<completed-run-id>
+  --run-dir runs\benchmarks\<completed-run-id> `
+  --comparison-dir runs\comparisons\<completed-comparison-id>
 
 .\.venv-collect\Scripts\python.exe .\scripts\promote_comparison.py `
   --comparison-dir runs\comparisons\<completed-comparison-id> `
@@ -104,6 +106,8 @@ Promotion copy는 로컬 사용자 경로와 raw process list를 제거하고 or
 - SMD canonical dataset과 CVAT round-trip은 아직 없습니다.
 - 현재 autolabel CLI는 Ultralytics YOLO11 `.pt`만 지원합니다.
 - ONNX export·동등성 검증과 Ubuntu 설치 lock은 아직 구현되지 않았습니다.
+- Canonical manifest/class/image-list와 YOLO↔COCO box/class 동등성 hash 생성은 아직 구현되지 않아
+  정식 release gate가 의도적으로 BLOCKED입니다.
 - full run 시간과 전체 디스크 사용량은 아직 측정되지 않았으므로 실행 전 여유 공간과 전원/열 조건을
   직접 확인합니다.
 

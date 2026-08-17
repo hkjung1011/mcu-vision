@@ -22,6 +22,7 @@ common:
   validation_each_epoch: true
   prediction_floor: 0.001
   nms_iou: 0.65
+  class_agnostic_nms: false
   max_detections_for_coco_ap: 100
   operating_confidence: 0.25
   operating_match_iou: 0.50
@@ -74,6 +75,15 @@ yolox_s:
     hsv_probability: 1.0
 
 comparison_rules:
+  required_models: [yolo11m, YOLOX-S]
+  release_requires_complete_seed_matrix: true
+  required_dataset_evidence:
+    - canonical_dataset_manifest_sha256
+    - class_map_sha256
+    - train_image_list_sha256
+    - val_image_list_sha256
+    - canonical_train_records_sha256
+    - canonical_val_records_sha256
   coco_ap_ar_source: common_pycocotools_cocoeval_2_0_11
   operating_metrics_source: common_score_sorted_class_aware_greedy_one_to_one_matcher
   primary_metric: AP50_95
@@ -86,6 +96,7 @@ comparison_rules:
 rationale:
   - id: R01
     item: experiment_scope
+    label: 비교 범위
     selected_value: framework-native recipe system benchmark
     status: ENGINEERING_BASELINE
     reason: >-
@@ -93,10 +104,13 @@ rationale:
       framework의 native recipe를 유지한다. 따라서 실사용 후보 비교이며 architecture 자체의
       통제 실험으로 해석하지 않는다.
     adjustment_rule: architecture 우열을 주장하려면 유사 규모 모델과 동일 optimizer ablation을 별도로 수행한다.
+    optimality: 해당 없음 — architecture ablation이 아님
+    verification_status: Protocol/config SHA 고정, 3-seed full comparison 미실행
     references: [YOLOX_PAPER, YOLO11_MODEL, ULTRALYTICS_SOURCE]
 
   - id: R02
     item: transfer_learning
+    label: Transfer learning
     selected_value: COCO pretrained, no user-requested backbone freeze
     status: ENGINEERING_BASELINE
     reason: >-
@@ -104,30 +118,39 @@ rationale:
       전자부품 domain 차이에 대응하도록 framework가 trainable로 정의한 backbone/head weight를
       학습한다. Ultralytics의 always-frozen DFL projection처럼 고정된 parameter는 manifest에 기록한다.
     adjustment_rule: overfitting이 확인되면 frozen-backbone ablation을 추가한다.
+    optimality: 아니오 — 소규모 데이터용 1차 baseline
+    verification_status: Weight transfer와 1-epoch smoke 확인, 100 epochs 미검증
     references: [YOLOX_REPO, ULTRALYTICS_TRAIN]
 
   - id: R03
     item: image_size
+    label: 입력 크기
     selected_value: 640 x 640 fixed
     status: ENGINEERING_BASELINE
     reason: >-
       두 모델의 입력 조건을 같게 하고 RTX 5060 Laptop 8 GB에서 batch 8을 유지하기 위한 1차
       기준이다. YOLOX/YOLO11 공식 표에도 640 결과가 있으나 소형 칩 최적 해상도라는 뜻은 아니다.
     adjustment_rule: resize 후 객체 크기 분포와 AP_small을 본 뒤 960/1280 또는 tiling을 비교한다.
+    optimality: 아니오 — 소형 칩 최적값 미확인
+    verification_status: 640 CUDA smoke PASS, 실제 SMD의 pixel-size/AP_small 미검증
     references: [YOLOX_PAPER, YOLO11_MODEL, SAHI_PAPER]
 
   - id: R04
     item: batch_size
+    label: Micro-batch
     selected_value: micro-batch 8
     status: HARDWARE_DERIVED
     reason: >-
       두 모델이 현재 8 GB GPU에서 공통으로 실행 가능한 micro-batch다. YOLO11은 nbs=64로
       gradient accumulation을 사용하고 YOLOX는 batch 8마다 step하므로 effective batch는 같지 않다.
     adjustment_rule: resolved accumulation과 optimizer group을 매 run 기록하며 순수 optimizer 비교로 해석하지 않는다.
+    optimality: 아니오 — 현재 8 GB GPU의 공통 실행값
+    verification_status: 두 framework 1-epoch smoke PASS, 장시간 열·VRAM 미검증
     references: [ULTRALYTICS_SOURCE, YOLOX_PAPER]
 
   - id: R05
     item: epochs
+    label: Epochs
     selected_value: 100
     status: TO_TUNE
     reason: >-
@@ -135,70 +158,94 @@ rationale:
       optimizer step 수가 달라 동일 compute budget은 아니다. YOLOX COCO scratch 논문의 300 epochs를
       재현하는 값이 아니며 최적 epoch라는 보장도 없다.
     adjustment_rule: validation AP plateau, overfitting gap과 loss curve를 보고 동일 규칙으로 연장한다.
+    optimality: 아니오 — TO_TUNE
+    verification_status: 100-epoch full run 미실행
     references: [ULTRALYTICS_TRAIN, YOLOX_PAPER]
 
   - id: R06
     item: seeds
+    label: 반복 seed
     selected_value: 42, 43, 44
     status: ENGINEERING_BASELINE
     reason: 단일 운 좋은 run을 피하고 mean ± sample SD를 제시하기 위한 최소 반복이다.
     adjustment_rule: 모델 차이가 run 간 표준편차와 비슷하면 5회 이상으로 늘린다.
+    optimality: 아니오 — 최소 반복 수
+    verification_status: seed 42/43/44 full comparison 미실행
     references: [PYTORCH_REPRO]
 
   - id: R07
     item: mixed_precision
+    label: Mixed precision
     selected_value: AMP enabled
     status: UPSTREAM_SUPPORTED
     reason: 메모리와 시간을 줄여 동일 GPU에서 학습하며 NaN/overflow와 실제 precision mode를 기록한다.
     adjustment_rule: 수치 불안정 또는 NaN 발생 시 동일 조건의 FP32 검증 run을 수행한다.
+    optimality: 해당 없음 — 실행 방식
+    verification_status: 두 framework CUDA smoke PASS, FP32 control 미실행
     references: [MIXED_PRECISION_PAPER, PYTORCH_AMP]
 
   - id: R08
     item: yolox_optimizer
+    label: YOLOX optimizer
     selected_value: SGD Nesterov, nominal_lr=0.01*batch/64, momentum=0.9, wd=0.0005
     status: PAPER_AND_PINNED_SOURCE_DERIVED_WITH_PROJECT_EPOCH_CHANGE
     reason: >-
       YOLOX 원 논문의 SGD/momentum/weight decay와 linear LR scaling, 고정 source의 Nesterov 구현을
       따른다. batch 8의 nominal/base LR은 0.00125이며 실제 warmup은 0에서 시작한다.
     adjustment_rule: 본 baseline 후 optimizer/LR 변경은 별도 protocol ID로 분리한다.
+    optimality: 아니오 — 전자부품 domain 최적값 미확인
+    verification_status: Resolved config/manifest 확인, 100 epochs 미검증
     references: [YOLOX_PAPER, YOLOX_SOURCE]
 
   - id: R09
     item: yolox_small_model_augmentation
+    label: YOLOX augmentation
     selected_value: MixUp off, Mosaic scale 0.5..1.5; project no-aug final 10/100 epochs
     status: PAPER_DERIVED_AUGMENTATION_WITH_PROJECT_NO_AUG_ADAPTATION
     reason: >-
       YOLOX 논문은 S/Tiny/Nano에서 MixUp 제거와 Mosaic scale 0.5..1.5를 보고했다. 논문의 300 epochs
       중 final no-aug 15 epochs와 달리 현재 10 epochs는 100-epoch transfer baseline의 프로젝트 변경값이다.
     adjustment_rule: 고정 카메라 SMD 데이터가 준비되면 weak/strong augmentation ablation을 수행한다.
+    optimality: 아니오 — 논문 근거와 프로젝트 변경의 결합 baseline
+    verification_status: 설정/source 일치 확인, full-run 증강 효과 미검증
     references: [YOLOX_PAPER]
 
   - id: R10
     item: yolo11_optimizer_and_augmentation
+    label: YOLO11 recipe
     selected_value: pinned Ultralytics v8.4.120 defaults plus project optimizer=SGD override
     status: UPSTREAM_DEFAULT_WITH_PROJECT_OVERRIDE
     reason: >-
       upstream optimizer 기본값은 auto다. 이 프로젝트는 버전별 자동 선택을 피하도록 SGD로 override하고,
       나머지 관련 기본값은 v8.4.120 source에 고정해 실제 적용값을 기록한다.
     adjustment_rule: 모든 변경은 resolved config와 새 protocol ID로 기록한다.
+    optimality: 아니오 — pinned default와 project override
+    verification_status: Resolved config와 1-epoch smoke PASS, 100 epochs 미검증
     references: [ULTRALYTICS_DEFAULTS, ULTRALYTICS_AUGMENT]
 
   - id: R11
     item: primary_accuracy_metric
+    label: 주 평가 기준
     selected_value: COCO AP50-95
     status: STANDARD_METRIC
     reason: IoU 0.50..0.95를 0.05 간격으로 평균해 단일 느슨한 IoU 기준보다 위치 정확도를 엄격히 본다.
     adjustment_rule: AP50, AP75, AP_small, AR100, P/R/F1, TP/FP/FN을 함께 보고한다.
+    optimality: 해당 없음 — 표준 평가 metric
+    verification_status: 평가 경로/maxDets 100 확인, 정식 모델 결과 없음
     references: [COCO_PAPER, COCO_API]
 
   - id: R12
     item: prediction_and_operating_thresholds
-    selected_value: floor=0.001, report point=0.25, match IoU=0.50, NMS IoU=0.65
+    label: Thresholds
+    selected_value: floor=0.001, report point=0.25, match IoU=0.50, NMS IoU=0.65, class-aware NMS
     status: ENGINEERING_BASELINE
     reason: >-
-      낮은 prediction floor로 PR curve를 보존하고 두 framework에 같은 numeric threshold와 공통 evaluator를
-      적용한다. COCO AP/AR와 운영점 greedy matcher 모두 이미지당 score 상위 100개로 제한한다.
+      낮은 prediction floor로 PR curve를 보존하고 두 framework에 같은 numeric threshold와 class-aware
+      NMS를 적용한다. 서로 다른 class가 겹쳐도 상호 억제하지 않으며, COCO AP/AR와 운영점 greedy
+      matcher 모두 이미지당 score 상위 100개로 제한한다.
     adjustment_rule: 배포 confidence와 pseudo-label threshold는 gold validation에서 목표 P/R로 산출한 뒤 test 전에 동결한다.
+    optimality: 아니오 — 공통 보고점
+    verification_status: Top-100 matcher 구현 확인, 배포 threshold 미보정
     references: [COCO_API, YOLOX_SOURCE, ULTRALYTICS_PREDICT]
 
 references:

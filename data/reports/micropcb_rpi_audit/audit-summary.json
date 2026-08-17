@@ -2,13 +2,19 @@
   "counts_by_class": {
     "raspberry_pi_sbc": 1875
   },
-  "created_at": "2026-08-16T14:14:13+00:00",
+  "created_at": "2026-08-17T07:36:58+00:00",
   "cross_class_exact_conflicts": 0,
+  "cross_split_near_duplicate_pairs": 641,
   "data_root": "data/processed/micropcb_rpi/images",
   "decode_failures": 0,
   "exact_file_duplicate_groups": 0,
   "exact_pixel_duplicate_groups": 0,
   "near_duplicate_pairs": 3511,
+  "near_duplicate_pairs_by_split": {
+    "train__train": 2835,
+    "train__val": 641,
+    "val__val": 35
+  },
   "near_duplicate_pairs_truncated": false,
   "quality_flagged": 0,
   "scanned_files": 1875,

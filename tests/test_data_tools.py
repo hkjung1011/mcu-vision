@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 
 from PIL import Image
@@ -46,6 +47,7 @@ def test_audit_detects_duplicate_pixels(tmp_path: Path) -> None:
     assert summary["scanned_files"] == 2
     assert summary["decode_failures"] == 0
     assert summary["exact_pixel_duplicate_groups"] == 1
+    assert summary["cross_split_near_duplicate_pairs"] == 0
 
 
 def test_prepare_micropcb_filters_rpi_and_writes_yolo(tmp_path: Path) -> None:
@@ -78,5 +80,10 @@ def test_prepare_micropcb_filters_rpi_and_writes_yolo(tmp_path: Path) -> None:
 
     assert summary["total_images"] == 6
     assert summary["split_counts"] == {"train": 3, "val": 3}
+    assert summary["validation_images_with_condition_seen_in_train"] == 3
     assert (tmp_path / "out" / "labels" / "train" / "AAAA1.txt").read_text(encoding="utf-8").startswith("0 ")
     assert not (tmp_path / "out" / "images" / "train" / "BAAA1.jpg").exists()
+    with (tmp_path / "manifest.csv").open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert {row["physical_item_group"] for row in rows} == {"NOT_VERIFIED"}
+    assert "Physical specimen independence is not documented" in summary["validation_policy"]

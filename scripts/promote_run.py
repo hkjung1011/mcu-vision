@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mcu_data.common import sha256_file, write_json
-from mcu_data.publishing import publish_evidence_file
+from mcu_data.publishing import publish_evidence_file, validate_comparison_for_run
 
 
 REPORT_FILES = [
@@ -37,6 +37,7 @@ REPORT_FILES = [
     "protocol_references.json",
     "protocol_artifacts.json",
     "experiment_methodology.md",
+    "parameter_rationale.md",
 ]
 
 SUMMARY_FILES = [
@@ -47,6 +48,7 @@ SUMMARY_FILES = [
     "comparison_terminal.txt",
     "evidence_manifest.json",
     "experiment_methodology.md",
+    "parameter_rationale.md",
     "experiment_report.md",
     "protocol_artifacts.json",
     "protocol_compatibility.json",
@@ -59,16 +61,29 @@ SUMMARY_FILES = [
 def main() -> int:
     parser = argparse.ArgumentParser(description="Copy a verified run into Git/LFS tracked release folders")
     parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument(
+        "--comparison-dir",
+        type=Path,
+        required=True,
+        help="Comparable multi-run report containing this exact run manifest",
+    )
     parser.add_argument("--release-name")
-    parser.add_argument("--allow-smoke", action="store_true")
     args = parser.parse_args()
     run_dir = args.run_dir.resolve()
     manifest_path = run_dir / "run_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest.get("status") != "complete":
         parser.error(f"Only complete runs can be promoted: status={manifest.get('status')}")
-    if manifest.get("stage") == "smoke_not_comparable" and not args.allow_smoke:
-        parser.error("Smoke runs are blocked. Use a full fine-tune run or pass --allow-smoke explicitly.")
+    if manifest.get("stage") == "smoke_not_comparable":
+        parser.error("Smoke runs cannot be promoted to weights/trained.")
+    try:
+        comparison_evidence = validate_comparison_for_run(
+            args.comparison_dir,
+            run_id=str(manifest["run_id"]),
+            run_manifest_path=manifest_path,
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        parser.error(str(exc))
     release_name = args.release_name or manifest["run_id"]
     weight_root = PROJECT_ROOT / "weights" / "trained" / release_name
     report_root = PROJECT_ROOT / "reports" / "runs" / release_name
@@ -130,6 +145,7 @@ def main() -> int:
         "release_name": release_name,
         "source_run_id": manifest.get("run_id"),
         "source_run_manifest_sha256": sha256_file(manifest_path),
+        "validated_by_comparison": comparison_evidence,
         "local_source_path_included": False,
         "model": manifest.get("model"),
         "stage": manifest.get("stage"),

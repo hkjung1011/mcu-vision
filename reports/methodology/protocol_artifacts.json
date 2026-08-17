@@ -1,16 +1,16 @@
 {
   "artifacts": [
     {
-      "bytes": 11153,
+      "bytes": 13564,
       "kind": "evidence",
       "path": "reports/methodology/protocol_snapshot.yaml",
-      "sha256": "e322a95212e7f66402bc47517e823c39f12f9d46aa8a3545b3146dc2af577c31"
+      "sha256": "500ecb6186e9da371669eefe785b6201bed8d0de8eee6fb208c453b8f9468141"
     },
     {
-      "bytes": 5121,
+      "bytes": 6627,
       "kind": "evidence",
       "path": "reports/methodology/protocol_rationale.csv",
-      "sha256": "11ebc535461aa36e612bc740711cb5c4cf1c6c3b17b766b1db5bcfa655139574"
+      "sha256": "7c2787899b4d364ee0fed97f78bc89c9a2c32b9493d335cdbe44a66cb2c0f158"
     },
     {
       "bytes": 2921,
@@ -19,16 +19,22 @@
       "sha256": "36045fde3c88125adf869b3d70681624bd35d08eca3fadecc7ba7a46d32c757a"
     },
     {
-      "bytes": 11448,
+      "bytes": 13838,
       "kind": "evidence",
       "path": "reports/methodology/experiment_methodology.md",
-      "sha256": "40fe7813dfea94a18ebed463c88f36d667c3fceb1398a9f118b464b0ae806b82"
+      "sha256": "818877b22320befcd48e2f525edbff5ea23a21b249615306d06f984679051a10"
     },
     {
-      "bytes": 626323,
+      "bytes": 7291,
+      "kind": "evidence",
+      "path": "reports/methodology/parameter_rationale.md",
+      "sha256": "e8e6d6af9281a9b6b1b39a0045e8204287fab97d6e79e4df5d890b62e61128d7"
+    },
+    {
+      "bytes": 653515,
       "kind": "derived_visual",
       "path": "reports/methodology/protocol_rationale.png",
-      "sha256": "38dee7c2f5f2b8556be2c84442c7aab963249490625101cca9b84a5562f0a6f9"
+      "sha256": "275530de693e2c2b8507a79c459bed1d01ec86b0d12ab72b0ccdc89d14731bae"
     }
   ],
   "generative_ai_used_for_images": false,
@@ -40,5 +46,5 @@
   "renderer": "matplotlib 3.11.1",
   "schema_version": 1,
   "source": "configs/experiments/baseline_v1.yaml",
-  "source_sha256": "e322a95212e7f66402bc47517e823c39f12f9d46aa8a3545b3146dc2af577c31"
+  "source_sha256": "500ecb6186e9da371669eefe785b6201bed8d0de8eee6fb208c453b8f9468141"
 }

@@ -7,7 +7,8 @@
   "notes": [
     "Contains 8,125 images across 13 micro-PCB models, 625 images per model.",
     "Raspberry Pi 1 B+, Raspberry Pi 3 B+, and Raspberry Pi A+ provide 1,875 images in total.",
-    "Images are repeated views of very few physical boards; split by specimen, never random image."
+    "Source split is capture serial 1-4 versus 5; specimen identity is unavailable and independence is not verified.",
+    "Formal evaluation requires a new physical-item/session split and leakage audit."
   ],
   "provider": "kaggle",
   "purpose": "Raspberry Pi SBC classification bootstrap",

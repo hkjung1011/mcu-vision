@@ -159,7 +159,7 @@ def prepare_dataset(
                     "condition_group_id": image_name[:4],
                     "source_split": source_split,
                     "yolo_split": yolo_split,
-                    "physical_item_group": f"{model}:{source_split}_specimen",
+                    "physical_item_group": "NOT_VERIFIED",
                     "source_relative_path": source_image.relative_to(source_root).as_posix(),
                     "source_image": str(source_image.resolve()),
                     "processed_image": str(destination_image.resolve()),
@@ -193,13 +193,28 @@ def prepare_dataset(
     write_if_equal_or_absent(output_root / "dataset.yaml", dataset_yaml)
     if coco_output_root is not None:
         write_coco_dataset(records, coco_output_root)
+    train_condition_groups = {
+        str(row["condition_group_id"]) for row in records if row["yolo_split"] == "train"
+    }
+    val_condition_groups = {
+        str(row["condition_group_id"]) for row in records if row["yolo_split"] == "val"
+    }
     summary: dict[str, object] = {
         "total_images": len(records),
         "split_counts": dict(Counter(str(row["yolo_split"]) for row in records)),
         "model_split_counts": dict(sorted(counts.items())),
         "storage": "NTFS hardlinks; images are not duplicated on disk",
         "coco_output_root": coco_output_root.as_posix() if coco_output_root is not None else None,
-        "validation_policy": "Source test specimens are used as val; final test must be captured on the target conveyor.",
+        "train_val_condition_group_overlap": len(train_condition_groups & val_condition_groups),
+        "validation_images_with_condition_seen_in_train": sum(
+            row["yolo_split"] == "val"
+            and str(row["condition_group_id"]) in train_condition_groups
+            for row in records
+        ),
+        "validation_policy": (
+            "Source capture serials 1-4 are train and serial 5 is val. Physical specimen "
+            "independence is not documented; formal AP requires an independent split."
+        ),
     }
     (manifest_path.with_suffix(".summary.json")).write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

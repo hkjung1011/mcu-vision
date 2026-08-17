@@ -17,8 +17,10 @@ Raspberry Pi bootstrap 공개 데이터와 자체 컨베이어 촬영을 병행�
 | `small_component_generic` | 1,000+ | conveyor SMD 공개 raw 후보 존재, 아직 로컬 미승인 | TO_VERIFY |
 
 micro-PCB의 장수는 많아도 동일 실물 보드를 위치·회전·원근만 바꿔 반복 촬영한 구조입니다. 따라서
-1,875장을 1,875개의 독립 실물로 해석하지 않습니다. source train/test specimen을 섞지 않으며, 최종
-test는 실제 컨베이어의 새로운 실물·촬영 session으로 구성합니다.
+1,875장을 1,875개의 독립 실물로 해석하지 않습니다. 현재 source partition은 같은 조건의 capture
+serial 1–4를 train, 5를 validation으로 둔 것이며 physical specimen 독립성은 확인되지 않았습니다.
+Formal AP 전에 condition/physical-item 기준으로 재분할하고, 최종 test는 실제 컨베이어의 새로운
+실물·촬영 session으로 구성합니다.
 
 ## 소형 칩 class 정의
 

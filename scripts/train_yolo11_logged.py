@@ -207,6 +207,7 @@ def _export_predictions(model: YOLO, annotation_path: Path, image_root: Path, ar
             "device": 0,
             "conf": 0.001,
             "iou": 0.65,
+            "agnostic_nms": False,
             "max_det": 300,
             "stream": False,
             "verbose": False,
@@ -246,6 +247,7 @@ def _benchmark(model: YOLO, image_path: Path, args: argparse.Namespace, output_d
         "quantize": None if args.fp32 else 16,
         "conf": 0.25,
         "iou": 0.65,
+        "agnostic_nms": False,
         "max_det": 300,
         "verbose": False,
         "save": False,
@@ -394,6 +396,7 @@ def main() -> int:
         "validation_each_epoch": True,
         "prediction_floor": 0.001,
         "nms_iou": 0.65,
+        "class_agnostic_nms": False,
         "common_operating_confidence": 0.25,
         "common_match_iou": 0.50,
     }

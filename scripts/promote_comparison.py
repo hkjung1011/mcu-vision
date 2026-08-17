@@ -20,6 +20,7 @@ def main() -> int:
     parser.add_argument("--comparison-dir", type=Path, required=True)
     parser.add_argument("--release-name", required=True)
     parser.add_argument("--allow-not-comparable", action="store_true")
+    parser.add_argument("--allow-not-release-ready", action="store_true")
     args = parser.parse_args()
 
     source_root = args.comparison_dir.resolve()
@@ -27,14 +28,15 @@ def main() -> int:
     if not compatibility_path.exists():
         parser.error(f"Missing protocol_compatibility.json: {source_root}")
     compatibility = json.loads(compatibility_path.read_text(encoding="utf-8"))
-    if not compatibility.get("comparable", False) and not args.allow_not_comparable:
+    override = args.allow_not_comparable or args.allow_not_release_ready
+    if not compatibility.get("release_ready", False) and not override:
         fields = ", ".join(
-            str(item.get("field")) for item in compatibility.get("critical_mismatches", [])
+            str(item.get("field")) for item in compatibility.get("release_blockers", [])
         )
         parser.error(
-            "Comparison failed the protocol gate"
+            "Comparison is not formal-release ready"
             + (f" ({fields})" if fields else "")
-            + ". Use a matched full run or pass --allow-not-comparable explicitly."
+            + ". Complete the configured model/seed/data gates or use an explicit audit override."
         )
 
     destination_root = PROJECT_ROOT / "reports" / "comparisons" / args.release_name
@@ -60,6 +62,7 @@ def main() -> int:
         "source_protocol_compatibility_sha256": sha256_file(compatibility_path),
         "local_source_path_included": False,
         "protocol_comparable": bool(compatibility.get("comparable", False)),
+        "protocol_release_ready": bool(compatibility.get("release_ready", False)),
         "files": copied,
         "publication_note": (
             "Repository copies redact local user/project paths and raw nvidia-smi process listings. "

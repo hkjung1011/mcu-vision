@@ -30,7 +30,8 @@ OCR로 다시 읽어 판단하지 않습니다.
 
 다음 핵심 조건 중 하나라도 다르면 `PROTOCOL: FAIL - NOT COMPARABLE`로 처리합니다.
 
-- dataset/split/class-map hash
+- canonical dataset manifest·split·class-map·image-list hash
+- YOLO label과 COCO annotation의 canonical box/class 동등성 hash
 - model별 seed 집합
 - train fraction, epochs, input size, micro-batch
 - pretrained/full fine-tune/AMP 조건
@@ -40,13 +41,18 @@ OCR로 다시 읽어 판단하지 않습니다.
 FAIL 결과는 로깅·디버깅에는 보존하지만 모델 우열 표에는 포함하지 않습니다. `--allow-not-comparable`은
 명시적 감사 목적 외에는 사용하지 않습니다.
 
+`comparable=true`는 **입력된 run끼리 조건이 같다**는 뜻일 뿐 정식 release 완료를 뜻하지 않습니다.
+`release_ready=true`는 추가로 YOLO11m·YOLOX-S 각각 seed 42/43/44의 6개 complete non-smoke run,
+100 epoch row, baseline 기대값, canonical dataset/YOLO↔COCO 동등성 hash, final metric·latency·GPU log,
+checkpoint 존재와 SHA-256 일치까지 통과해야 합니다.
+
 ## 공통 평가 수치
 
 | 수치 | 용도 | 선정 이유 |
 |---|---|---|
 | AP50-95 | 주 정확도 | COCO 표준 IoU 0.50~0.95 평균으로 위치 품질까지 반영 |
 | AP50 / AP75 | 보조 정확도 | 느슨한 검출 성공과 엄격한 위치 정확도를 분리 |
-| AP_small | 소형 칩 | 640 resize 후 작은 객체 성능 확인 |
+| AP_small | COCO small 객체 | 원본 COCO annotation area `<32² px²`인 객체의 표준 AP 확인 |
 | AR100 | 누락 경향 | 이미지당 최대 100개 예측에서 recall 확인 |
 | P/R/F1, TP/FP/FN | 운영점 | 공통 score-sorted class-aware greedy 1:1 matcher, confidence 0.25, match IoU 0.50 |
 | p50/p95 latency, FPS, VRAM | 배포성 | batch 1 실제 추론의 중앙값·tail·메모리 비교 |
@@ -57,14 +63,18 @@ AP/AR는 `pycocotools==2.0.11` COCOeval, 운영점 수치는 별도 공통 match
 또는 best-F1 threshold를 선택하고 independent test 전에 동결합니다. 오토라벨 threshold도 같은 방식으로
 class별 calibration하되 사람 검수를 생략하지 않습니다.
 
+`AP_small`은 학습 전처리로 640에 resize된 뒤의 pixel 크기가 아니라 원본 COCO annotation area로
+구분됩니다. 따라서 실제 소형 칩 판단에는 letterbox/resize 후 bbox width·height·area 분포와 pixel-size
+bin별 recall 또는 AP를 함께 보고합니다.
+
 ## Git 승격 규칙
 
 1. run 상태가 `complete`인지 확인합니다.
 2. smoke run이 아닌지 확인합니다.
-3. comparison protocol gate가 PASS인지 확인합니다.
+3. comparison protocol gate가 PASS이고 해당 run의 동일 manifest가 비교 source bundle에 있는지 확인합니다.
 4. checkpoint SHA-256이 manifest와 같은지 확인합니다.
 5. raw image와 prediction 전체가 포함되지 않았는지 확인합니다.
-6. `scripts/promote_run.py`/`scripts/promote_comparison.py`로 `weights/trained/`, `reports/`에 복사합니다.
+6. `scripts/promote_run.py --comparison-dir ...`/`scripts/promote_comparison.py`로 `weights/trained/`, `reports/`에 복사합니다.
 7. 비밀정보·절대 사용자 경로·대용량 파일을 재검사한 뒤 Git LFS로 push합니다.
 
 승격본은 로컬 project/user 경로와 raw `nvidia-smi` process 목록을 제거합니다. `artifact_manifest.json`과

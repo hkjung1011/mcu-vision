@@ -38,6 +38,11 @@ def source_from_path(path: Path, data_root: Path) -> str:
     return parts[0] if len(parts) > 1 else "local"
 
 
+def split_from_relative_path(value: str) -> str:
+    first = Path(value).parts[0] if Path(value).parts else ""
+    return first if first in {"train", "val", "test"} else "UNASSIGNED"
+
+
 def inspect_image(
     path: Path,
     data_root: Path,
@@ -212,6 +217,12 @@ def audit_dataset(
     for record in records:
         if record["decode_ok"]:
             counts_by_class[str(record["class_name"])] += 1
+    near_pairs_by_split: dict[str, int] = defaultdict(int)
+    for pair in near_pairs:
+        left_split = split_from_relative_path(str(pair["left_path"]))
+        right_split = split_from_relative_path(str(pair["right_path"]))
+        split_key = "__".join(sorted((left_split, right_split)))
+        near_pairs_by_split[split_key] += 1
     summary = {
         "created_at": utc_now(),
         "data_root": portable_path(data_root),
@@ -223,6 +234,12 @@ def audit_dataset(
         "exact_pixel_duplicate_groups": len(pixel_duplicates),
         "cross_class_exact_conflicts": sum(bool(group["cross_class_conflict"]) for group in pixel_duplicates),
         "near_duplicate_pairs": len(near_pairs),
+        "near_duplicate_pairs_by_split": dict(sorted(near_pairs_by_split.items())),
+        "cross_split_near_duplicate_pairs": sum(
+            split_from_relative_path(str(pair["left_path"]))
+            != split_from_relative_path(str(pair["right_path"]))
+            for pair in near_pairs
+        ),
         "near_duplicate_pairs_truncated": near_pairs_truncated,
         "status": "REVIEW_REQUIRED" if file_duplicates or pixel_duplicates or near_pairs else "NO_DUPLICATES_DETECTED",
     }

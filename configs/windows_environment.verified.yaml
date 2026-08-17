@@ -12,7 +12,7 @@ collection_environment:
 
 repository_validation:
   verified_at: 2026-08-17
-  unit_tests: 13 passed
+  unit_tests: 16 passed
   python_compileall: PASS
   comparison_evidence_path_sanitization: PASS
 
