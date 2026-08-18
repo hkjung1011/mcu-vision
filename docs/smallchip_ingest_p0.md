@@ -36,14 +36,33 @@ PDM은 source가 표시한 권리 상태이며 이 프로젝트가 새 license�
 
 ## 1. 인증 필요 상태 기록
 
+2026-08-19 로그아웃 상태에서 공식 v2 페이지와 COCO export 경로를 확인했다. v2는 `raw-images`,
+2,997 images(2,397 train / 300 valid / 300 test), `Auto-Orient` 적용, augmentation 없음으로 표시된다.
+그러나 `https://universe.roboflow.com/dainius/smdcomponents/dataset/2/download/coco`는 즉시
+`Login or create a free account` dialog를 열고, 계속하면 Terms of Service와 Privacy Policy에
+동의한다고 고지한다. 따라서 인증 없는 공식 COCO ZIP 취득은 확인되지 않았고 우회하지 않는다.
+
+공식 근거 URL은 다음과 같다.
+
+- version page: `https://universe.roboflow.com/dainius/smdcomponents/dataset/2`
+- Roboflow download guide: `https://docs.roboflow.com/universe/download-a-universe-dataset`
+- Roboflow CLI authentication/download reference: `https://github.com/roboflow/roboflow-python/blob/main/CLI-COMMANDS.md`
+- 원 논문: `https://doi.org/10.3390/app12115608`
+
+원 논문은 initial dataset을 3,005 images(2,405/300/300)로 기술하지만 Roboflow v2 표시는
+2,997 images(2,397/300/300)다. 또한 논문의 Data Availability Statement와 Universe의 Public Domain
+표시는 서로 다른 provenance assertion이므로, PDM 표시는 license grant로 확대 해석하지 않는다.
+
 ```powershell
 Set-Location <repository-root>
 .\.venv-collect\Scripts\mcu-download-curated.exe --dataset smd_components_raw
 ```
 
-이 명령은 다운로드를 우회하지 않고 `MANUAL_AUTH_REQUIRED` source record만 생성합니다. Roboflow에서
-직접 인증한 뒤 **raw-images version 2의 COCO ZIP**을 `data/staging/incoming/`에 둡니다. Augmented
-version은 사용하지 않습니다.
+이 명령은 다운로드를 우회하지 않고 `MANUAL_AUTH_REQUIRED` source record만 생성합니다. 사용자가
+Roboflow에 sign in(또는 free account 생성)하고 고지된 약관을 확인한 뒤 **raw-images version 2의
+COCO JSON ZIP**을 `data/staging/incoming/smdcomponents-v2-coco.zip`에 둡니다. Augmented version은
+사용하지 않습니다. 이것이 현재 필요한 단일 외부 조치이며, API key는 UI ZIP export에는 필요하지
+않고 CLI 자동화에만 별도 인증 수단으로 고려합니다.
 
 ## 2. Candidate-only canonical COCO 반입과 YOLO 파생
 

@@ -33,7 +33,7 @@ datasets:
       Transistor: smd_transistor
     notes:
       - Download raw-images version 2, not augmented versions.
-      - Roboflow sign-in/API authorization may be required.
+      - Roboflow sign-in is required by the logged-out v2 COCO download route, verified 2026-08-19; do not bypass it.
       - Capacitor, resistor, diode, and transistor bounding boxes are included.
       - Preserve the source label Condensator and map it explicitly through the ontology alias.
       - Do not reuse the provider random split as an independent formal validation or test set.
