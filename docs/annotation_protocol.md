@@ -4,8 +4,9 @@
 
 목표 workflow는 **CVAT Community + 수동 seed 라벨**, 이후 **학습된 domain YOLO teacher + tiled
 pseudo-label + 전량 사람 검수**입니다. 현재 구현된 CLI는 **Ultralytics YOLO11 `.pt` 기반 proposal
-생성기와 자체 tile/class-aware NMS**까지입니다. CVAT 자동 import/export, Grounding DINO, SAM2,
-실제 SAHI package와 native YOLOX `.pth` backend는 아직 구현·round-trip 검증되지 않았습니다.
+생성기와 자체 tile/class-aware NMS**까지입니다. CVAT 서버 자동 import/export는 없지만, 받은 COCO/YOLO
+export의 round-trip verifier와 reviewer/hash 기반 승격 gate는 구현되었습니다. 실제 CVAT export를 넣은
+통합 검증, Grounding DINO, SAM2, 실제 SAHI package와 native YOLOX `.pth` backend는 아직 미완료입니다.
 
 | 단계 | 입력 | 출력 상태 | 학습 사용 |
 |---|---|---|---|
@@ -58,7 +59,10 @@ Hugging Face implementation 또는 WSL2/Linux build를 검증합니다.
 ```powershell
 .\.venv-yolo11\Scripts\mcu-autolabel-yolo.exe `
   --source data\staging\unlabeled_smd `
+  --source-manifest data\manifests\unlabeled_smd.session-001.json `
   --model runs\benchmarks\<seed-run>\native\weights\best.pt `
+  --teacher-manifest runs\benchmarks\<seed-run>\teacher_manifest.json `
+  --ontology configs\classes.smd_v1.yaml `
   --calibration runs\benchmarks\<seed-run>\final_metrics.json `
   --tile-size 640 --tile-overlap 0.20 `
   --run-id smd_pending_v1
@@ -73,10 +77,11 @@ Hugging Face implementation 또는 WSL2/Linux build를 검증합니다.
 - `previews/`: box, class, score가 그려진 검수 이미지
 - `run_manifest.json`: teacher hash, threshold, tile/NMS 값, 환경
 
-`labels_pending`은 canonical dataset 경로가 아니며 현재 코드에는 이를 train에 자동 합치는 명령이
-없습니다. 다만 수동 복사를 막는 강제 approval gate도 아직 없으므로 reviewer, 승인 시각, 수정 label
-SHA-256과 전체 검수 완료를 확인하는 promotion 기능을 구현하기 전까지 사람이 직접 train 폴더로
-복사하면 안 됩니다. 현재 출력은 CVAT import ZIP이 아니며 CVAT round-trip도 NOT VERIFIED입니다.
+`labels_pending`은 canonical dataset 경로가 아니며 이를 train에 자동 합치지 않습니다. 현재 출력은
+CVAT import ZIP이 아닙니다. `mcu-verify-cvat-roundtrip`과 `mcu-promote-reviewed`를 사용해 실제 CVAT
+COCO export의 왕복 검증, reviewer·승인 시각·export/ontology hash, 전 이미지 disposition이 모두
+PASS한 승격 manifest를 만든 뒤에만 `reviewed_train`으로 다룹니다. 파일을 수동 복사한 것만으로는
+승인 데이터가 되지 않습니다.
 
 ## 수동 라벨 가이드
 

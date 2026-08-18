@@ -7,11 +7,13 @@ implementation:
   backend: ultralytics_YOLO11_pt_only
   native_yolox_backend: NOT_IMPLEMENTED
   cvat_sdk_or_import_zip: NOT_IMPLEMENTED
+  cvat_coco_yolo_roundtrip_verifier: IMPLEMENTED_AWAITING_REAL_CVAT_EXPORT
   grounding_dino: REFERENCE_ONLY_NOT_IMPLEMENTED
   sam2: REFERENCE_ONLY_NOT_IMPLEMENTED
   sahi_package: NOT_USED_custom_tiling_and_class_aware_nms_only
   config_loaded_by_cli: false
-  hard_human_approval_promotion_gate: NOT_IMPLEMENTED
+  source_manifest_role_ontology_teacher_calibration_binding: IMPLEMENTED
+  hard_human_approval_promotion_gate: IMPLEMENTED_AWAITING_REAL_HUMAN_REVIEW
 
 data_states:
   manual_seed: human_created_training_seed

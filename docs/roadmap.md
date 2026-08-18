@@ -11,12 +11,12 @@ pipeline 검증용이며, 최종 제품군 성능으로 해석하지 않습니�
 | 단계 | 현재 상태 | 판정 | 완료 Gate |
 |---:|---|---|---|
 | 1. Windows/GPU 환경 | RTX 5060 Laptop, PyTorch CUDA, YOLO11/YOLOX smoke 확인 | PASS | 환경 lock·GPU smoke 재현 |
-| 2. Class ontology | 5개 class가 모두 provisional | PARTIAL | ID·포함/제외·unknown·OCR 정책 동결, ontology hash 생성 |
+| 2. Class ontology | SMD/STM32 6개 ID와 Dainius alias P0 동결 | PARTIAL | 실제 specimen으로 포함/제외·OCR 정책 승인 |
 | 3. Class별 데이터 | RPi 1,875장만 반입; Pico/STM32/SMD 승인본 0장 | NOT VERIFIED | class별 provenance·중복 감사된 실사 목표 충족 |
 | 4. Split 독립성 | condition/pHash component 기준 1,500/195/180, cross-split 후보 0 | PASS (BOOTSTRAP) | 새 physical item/session 독립 test |
 | 5. 수동 seed/gold | 미시작 | NOT VERIFIED | 대표 200장 전체 instance 라벨, locked val/test 생성 |
-| 6. CVAT 검수 경로 | 아직 구현·round-trip 검증 안 됨 | NOT VERIFIED | YOLO/COCO 왕복 시 box/class 손실 0, reviewer 기록 |
-| 7. Autolabel bootstrap | YOLO11 `.pt` tiled pending proposal만 구현 | PARTIAL | domain teacher·locked gold calibration·전량 사람 승인 |
+| 6. CVAT 검수 경로 | COCO/YOLO verifier와 reviewer/hash 승격 gate 구현 | PARTIAL | 실제 CVAT export에서 왕복 손실 0 확인 |
+| 7. Autolabel bootstrap | role/ontology/teacher/calibration/image-list binding 구현 | PARTIAL | 실제 domain teacher·locked gold·전량 사람 승인 |
 | 8. Multi-class 학습 경로 | dataset CLI·dynamic class 수·canonical equivalence 구현 | PARTIAL | 승인 multi-class data로 양쪽 smoke |
 | 9. 정식 비교 | full 3/6 완료, 1/6 중단, 2/6 미시작 | PARTIAL | 2 models × 3 seeds × 100 epochs, protocol PASS |
 | 10. Git release | 2026-08-18 public progress snapshot·LFS weight 게시 | PARTIAL | 6-run trained checkpoint·report·SHA-256 정식 승격 |
@@ -30,7 +30,7 @@ pipeline 검증용이며, 최종 제품군 성능으로 해석하지 않습니�
 | `raspberry_pi_pico` | 0장 | 공개 후보만 조사 | 자체 촬영과 provenance manifest 필요 |
 | `stm32_dev_board` | 0장 | 공개 독립 실사 1,000장 미확인 | Nucleo/Discovery 등 포함 범위부터 동결 |
 | `stm32_bare_ic` | 0장 | 정확한 대규모 공개 원출처 미확인 | package 검출과 top-mark OCR을 분리하고 자체 촬영 |
-| `small_component_generic` | 0장 | Roboflow raw 후보만 기록 | 인증 후 원본 반입·license·hash 감사, 실제 컨베이어 촬영 병행 |
+| Dainius SMD 4-class | 0장 | Roboflow raw v2 후보와 PDM assertion만 기록 | 인증 후 원본 반입·archive/hash 감사, 실제 컨베이어 촬영 병행 |
 
 `near-duplicate 3,511쌍`은 삭제 대상이 아니라 pHash 기반 **검토 후보**입니다. v2는 후보 연결요소와
 condition group을 원자적으로 배정해 cross-split pair를 0으로 만들었습니다. 다만 원본에 physical
@@ -62,7 +62,7 @@ specimen ID가 없으므로 이 분할은 새 보드·새 카메라 일반화를
 - dataset manifest·class map·image list hash와 YOLO↔COCO box/class 동등성 validator — **PASS**
 - condition/pHash component leakage 감사 — **v2 PASS**, physical specimen ID는 미제공
 - 두 framework의 class-aware NMS(`class_agnostic_nms=false`)와 top-K 조건을 accuracy/latency에 동일 적용
-- CVAT import/export round-trip과 승인 label hash 기록
+- CVAT verifier와 승인 label hash gate — **코드 구현, 실제 export 검증 대기**
 - validation/test를 autolabel source로 선택하지 못하게 차단
 - specimen/session 기준 split·leakage 검사와 독립 test slot 추가
 - 동일 파일 stem의 `.jpg/.png` label 충돌 방지

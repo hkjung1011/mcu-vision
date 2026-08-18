@@ -16,10 +16,10 @@ third-party model·dataset에는 각 원 라이선스가 함께 적용됩니다.
 | Windows 학습 환경 | RTX 5060 Laptop 8,151 MiB, PyTorch 2.12.1+cu130 | **PASS** | 환경 lock과 smoke 유지 |
 | YOLO11 / YOLOX 배선 | 두 framework CUDA smoke, 로그·공통 평가 구현 | **PASS** | full run에서 재확인 |
 | Raspberry Pi bootstrap | train/val/test 1,500/195/180; condition overlap 0; cross-split pHash 후보 0/3,511 | **PASS (bootstrap)** | 새 실물·새 카메라 독립 test |
-| MCU/SMD class 정의 | 5개 provisional class | **PARTIAL** | detector/OCR 범위와 제외 규칙 동결 |
+| MCU/SMD class 정의 | SMD/STM32 6개 ID와 Dainius alias를 P0 동결 | **PARTIAL** | 실제 specimen으로 포함/제외 규칙 승인 |
 | Multi-class 학습 경로 | dataset CLI·YOLOX dynamic class 수·YOLO↔COCO fail-fast 구현 | **PARTIAL** | 실제 multi-class 승인 데이터 smoke |
 | 소형 SMD 실제 데이터 | 승인된 canonical dataset 0장 | **NOT VERIFIED** | provenance·specimen ID가 있는 승인 실사 확보 |
-| 오토라벨 | YOLO11 tiled `pending` proposal까지 구현 | **PARTIAL** | CVAT round-trip·reviewer/hash 승인 gate |
+| 오토라벨 | source/teacher/calibration hash binding과 reviewer 승격 gate 구현 | **PARTIAL** | 실제 SMD teacher·CVAT export 통합 검증 |
 | RPi full 학습 | COMPLETE 3/6, INTERRUPTED 1/6, 미시작 2/6 | **PARTIAL** | 2 models × 3 seeds × 100 epochs 완료 |
 | 정식 모델 비교 | 완료 matrix 부족으로 `release_ready=false` | **NOT VERIFIED** | 6-run protocol PASS 및 mean ± SD |
 | 공개 진행 가중치 | 완료 best 3개 + 중단 best/resume 2개를 LFS에 선별 | **INTERIM_PROGRESS** | formal comparison·ONNX·독립 test 후 `weights/trained` 승격 |

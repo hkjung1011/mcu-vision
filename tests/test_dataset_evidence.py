@@ -266,3 +266,87 @@ def test_load_dataset_evidence_detects_changed_artifact(tmp_path: Path) -> None:
 
     with pytest.raises(DatasetEvidenceError, match="artifact hash differs: class_map_sha256"):
         load_dataset_evidence(output / "dataset_evidence.json")
+
+
+def test_optional_locked_test_split_and_coco_attribute_hashes(tmp_path: Path) -> None:
+    fixture = _write_fixture(tmp_path / "source")
+    dataset_yaml, train_json, val_json, train_images, val_images = fixture
+    yolo_root = dataset_yaml.parent
+    (yolo_root / "images" / "test").mkdir(parents=True)
+    (yolo_root / "labels" / "test").mkdir(parents=True)
+    Image.new("RGB", (120, 90), color=(10, 20, 30)).save(
+        yolo_root / "images" / "test" / "test_chip.png"
+    )
+    (yolo_root / "labels" / "test" / "test_chip.txt").write_text(
+        "0 0.50000000 0.50000000 0.50000000 0.40000000\n",
+        encoding="utf-8",
+    )
+    dataset_yaml.write_text(
+        dataset_yaml.read_text(encoding="utf-8").replace(
+            "val: images/val\n", "val: images/val\ntest: images/test\n"
+        ),
+        encoding="utf-8",
+    )
+    coco_root = train_images.parent
+    test_images = coco_root / "test2017"
+    test_images.mkdir()
+    shutil.copy2(
+        yolo_root / "images" / "test" / "test_chip.png",
+        test_images / "test_chip.png",
+    )
+    test_json = coco_root / "annotations" / "instances_test2017.json"
+    test_json.write_text(
+        json.dumps(
+            {
+                "images": [
+                    {"id": 91, "file_name": "test_chip.png", "width": 120, "height": 90}
+                ],
+                "annotations": [
+                    {
+                        "id": 92,
+                        "image_id": 91,
+                        "category_id": 99,
+                        "bbox": [30, 27, 60, 36],
+                        "iscrowd": 0,
+                        "attributes": {"occluded": False, "truncated": False},
+                    }
+                ],
+                "categories": [
+                    {"id": 99, "name": "chip"},
+                    {"id": 4, "name": "board"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    train_document = json.loads(train_json.read_text(encoding="utf-8"))
+    train_document["annotations"][0]["attributes"] = {
+        "occluded": True,
+        "truncated": False,
+    }
+    train_json.write_text(json.dumps(train_document), encoding="utf-8")
+    output = tmp_path / "evidence"
+
+    report = build_dataset_equivalence_evidence(
+        yolo_dataset_yaml=dataset_yaml,
+        coco_train_annotations=train_json,
+        coco_val_annotations=val_json,
+        coco_train_image_root=train_images,
+        coco_val_image_root=val_images,
+        coco_test_annotations=test_json,
+        coco_test_image_root=test_images,
+        include_coco_attributes=True,
+        output_dir=output,
+    )
+
+    assert report["status"] == "PASS"
+    assert "test_image_list_sha256" in report["evidence"]
+    assert "canonical_test_records_sha256" in report["evidence"]
+    assert "canonical_annotation_attributes_sha256" in report["evidence"]
+    assert (output / "test_image_list.json").is_file()
+    assert (output / "canonical_test_records.jsonl").is_file()
+    assert (output / "canonical_annotation_attributes.jsonl").is_file()
+    loaded = load_dataset_evidence(output / "dataset_evidence.json")
+    assert loaded["canonical_annotation_attributes_sha256"] == sha256_file(
+        output / "canonical_annotation_attributes.jsonl"
+    )

@@ -7,9 +7,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 from .common import sha256_file, write_json
+from .contracts import (
+    ContractError,
+    Ontology,
+    canonical_sha256,
+    load_json_object,
+    load_ontology,
+    require_sha256,
+    safe_relative_path,
+)
 from .runlog import (
     GpuSampler,
     collect_system_environment,
@@ -23,6 +32,8 @@ from .runlog import (
 
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
+AUTOLABEL_SOURCE_SCHEMA = "mcu.autolabel-source.v1"
+ALLOWED_TEACHER_ANNOTATION_STATES = {"manual_seed", "reviewed_train"}
 
 
 def project_root() -> Path:
@@ -41,6 +52,180 @@ def iter_images(source: Path) -> list[Path]:
         for path in source.rglob("*")
         if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
     )
+
+
+def _ontology_sha(document: dict[str, Any], *, field: str) -> str:
+    direct = document.get("ontology_sha256")
+    if direct is None and isinstance(document.get("ontology"), dict):
+        direct = document["ontology"].get("sha256")
+    return require_sha256(direct, field=field)
+
+
+def _manifest_class_map(value: Any, *, field: str) -> dict[int, str]:
+    if not isinstance(value, dict) or not value:
+        raise ContractError(f"{field} must be a non-empty id-to-name mapping")
+    result: dict[int, str] = {}
+    for raw_id, raw_name in value.items():
+        try:
+            class_id = int(raw_id)
+        except (TypeError, ValueError) as exc:
+            raise ContractError(f"{field} contains a non-integer class id: {raw_id!r}") from exc
+        if not isinstance(raw_name, str) or not raw_name:
+            raise ContractError(f"{field}[{class_id}] must be a non-empty class name")
+        if class_id in result:
+            raise ContractError(f"{field} contains duplicate class id {class_id}")
+        result[class_id] = raw_name
+    if sorted(result) != list(range(len(result))):
+        raise ContractError(f"{field} ids must be contiguous from zero")
+    return result
+
+
+def validate_source_binding(
+    *, source_manifest_path: Path, source: Path, ontology: Ontology
+) -> dict[str, Any]:
+    manifest_path = source_manifest_path.resolve()
+    document = load_json_object(manifest_path, label="autolabel source manifest")
+    if document.get("schema_version") != AUTOLABEL_SOURCE_SCHEMA:
+        raise ContractError(
+            f"Autolabel source manifest schema must be {AUTOLABEL_SOURCE_SCHEMA}"
+        )
+    if document.get("role") != "unlabeled_train":
+        raise ContractError(
+            "Autolabel source role must be unlabeled_train; validation/test/gold inputs are forbidden"
+        )
+    if _ontology_sha(document, field="source manifest ontology_sha256") != ontology.sha256:
+        raise ContractError("Autolabel source manifest ontology hash differs from the selected ontology")
+    raw_images = document.get("images")
+    if not isinstance(raw_images, list) or not raw_images:
+        raise ContractError("Autolabel source manifest images must be a non-empty list")
+    declared: dict[str, dict[str, Any]] = {}
+    binding_rows: list[dict[str, Any]] = []
+    for index, row in enumerate(raw_images, start=1):
+        if not isinstance(row, dict):
+            raise ContractError(f"Source manifest image {index} must be an object")
+        relative = safe_relative_path(row.get("path"), field=f"images[{index}].path")
+        if relative in declared:
+            raise ContractError(f"Duplicate source manifest image path: {relative}")
+        if row.get("role", "unlabeled_train") != "unlabeled_train":
+            raise ContractError(f"Source manifest image is not unlabeled_train: {relative}")
+        try:
+            width = int(row["width"])
+            height = int(row["height"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ContractError(f"Source manifest image dimensions are invalid: {relative}") from exc
+        if width <= 0 or height <= 0:
+            raise ContractError(f"Source manifest image dimensions are invalid: {relative}")
+        normalized = {
+            "path": relative,
+            "sha256": require_sha256(row.get("sha256"), field=f"images[{index}].sha256"),
+            "width": width,
+            "height": height,
+            "role": "unlabeled_train",
+        }
+        declared[relative] = normalized
+        binding_rows.append(normalized)
+    binding_rows.sort(key=lambda row: str(row["path"]))
+    expected_image_list_sha = canonical_sha256(binding_rows)
+    declared_image_list_sha = require_sha256(
+        document.get("image_list_sha256"), field="source manifest image_list_sha256"
+    )
+    if declared_image_list_sha != expected_image_list_sha:
+        raise ContractError("Source manifest image_list_sha256 does not match its image records")
+
+    actual_paths = iter_images(source)
+    actual: dict[str, Path] = {}
+    for path in actual_paths:
+        relative = path.name if source.is_file() else path.relative_to(source.resolve()).as_posix()
+        if relative in actual:
+            raise ContractError(f"Duplicate runtime source image path: {relative}")
+        actual[relative] = path
+    if set(actual) != set(declared):
+        missing = sorted(set(declared) - set(actual))[:10]
+        unexpected = sorted(set(actual) - set(declared))[:10]
+        raise ContractError(
+            f"Runtime source image set differs from manifest: missing={missing}, unexpected={unexpected}"
+        )
+    for relative, path in actual.items():
+        expected = declared[relative]
+        if sha256_file(path) != expected["sha256"]:
+            raise ContractError(f"Runtime source image hash differs from manifest: {relative}")
+        with Image.open(path) as opened:
+            opened.load()
+            dimensions = ImageOps.exif_transpose(opened).size
+        if dimensions != (expected["width"], expected["height"]):
+            raise ContractError(
+                f"Runtime source image dimensions differ from manifest: {relative}"
+            )
+    dataset_id = document.get("dataset_id")
+    if not isinstance(dataset_id, str) or not dataset_id:
+        raise ContractError("Source manifest dataset_id must be a non-empty string")
+    return {
+        "manifest_sha256": sha256_file(manifest_path),
+        "schema_version": document["schema_version"],
+        "dataset_id": dataset_id,
+        "role": "unlabeled_train",
+        "ontology_sha256": ontology.sha256,
+        "image_list_sha256": declared_image_list_sha,
+        "image_count": len(binding_rows),
+        "images": binding_rows,
+    }
+
+
+def validate_teacher_binding(
+    *, teacher_manifest_path: Path, model_path: Path, ontology: Ontology
+) -> dict[str, Any]:
+    manifest_path = teacher_manifest_path.resolve()
+    document = load_json_object(manifest_path, label="teacher manifest")
+    if document.get("training_annotation_state") not in ALLOWED_TEACHER_ANNOTATION_STATES:
+        raise ContractError(
+            "Teacher training_annotation_state must be manual_seed or reviewed_train"
+        )
+    if _ontology_sha(document, field="teacher ontology_sha256") != ontology.sha256:
+        raise ContractError("Teacher ontology hash differs from the selected ontology")
+    expected_checkpoint = require_sha256(
+        document.get("checkpoint_sha256"), field="teacher checkpoint_sha256"
+    )
+    actual_checkpoint = sha256_file(model_path)
+    if expected_checkpoint != actual_checkpoint:
+        raise ContractError("Teacher checkpoint hash differs from teacher manifest")
+    class_map = _manifest_class_map(document.get("class_map"), field="teacher class_map")
+    if class_map != ontology.classes_by_id:
+        raise ContractError(
+            "Teacher class map must exactly match the selected frozen ontology: "
+            f"teacher={class_map}, ontology={ontology.classes_by_id}"
+        )
+    return {
+        "manifest_sha256": sha256_file(manifest_path),
+        "checkpoint_sha256": actual_checkpoint,
+        "ontology_sha256": ontology.sha256,
+        "training_annotation_state": document["training_annotation_state"],
+        "training_dataset_id": document.get("training_dataset_id"),
+        "class_map": class_map,
+    }
+
+
+def validate_calibration_binding(
+    *, calibration_path: Path, teacher_sha256: str, ontology: Ontology
+) -> dict[str, Any]:
+    document = load_json_object(calibration_path.resolve(), label="calibration metrics")
+    binding = document.get("calibration_binding")
+    if not isinstance(binding, dict):
+        raise ContractError("Calibration metrics must contain calibration_binding")
+    if binding.get("source_role") != "gold_validation_locked":
+        raise ContractError("Calibration source_role must be gold_validation_locked")
+    if require_sha256(binding.get("teacher_sha256"), field="calibration teacher_sha256") != teacher_sha256:
+        raise ContractError("Calibration teacher hash differs from the selected teacher")
+    if require_sha256(binding.get("ontology_sha256"), field="calibration ontology_sha256") != ontology.sha256:
+        raise ContractError("Calibration ontology hash differs from the selected ontology")
+    image_list_sha = require_sha256(
+        binding.get("image_list_sha256"), field="calibration image_list_sha256"
+    )
+    return {
+        "source_role": "gold_validation_locked",
+        "teacher_sha256": teacher_sha256,
+        "ontology_sha256": ontology.sha256,
+        "image_list_sha256": image_list_sha,
+    }
 
 
 def tile_starts(length: int, tile_size: int, overlap: float) -> list[int]:
@@ -294,7 +479,25 @@ def build_parser() -> argparse.ArgumentParser:
         description="Create review-only YOLO pseudo-label proposals with optional tiled inference"
     )
     parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument(
+        "--source-manifest",
+        type=Path,
+        required=True,
+        help="Hash-bound mcu.autolabel-source.v1 manifest with role=unlabeled_train",
+    )
     parser.add_argument("--model", type=Path, required=True)
+    parser.add_argument(
+        "--teacher-manifest",
+        type=Path,
+        required=True,
+        help="Teacher checkpoint/class/ontology provenance manifest",
+    )
+    parser.add_argument(
+        "--ontology",
+        type=Path,
+        default=root / "configs" / "classes.smd_v1.yaml",
+        help="Frozen class ontology used by source, teacher, and calibration",
+    )
     parser.add_argument("--run-id")
     parser.add_argument("--output-root", type=Path, default=root / "runs" / "autolabel")
     parser.add_argument("--calibration", type=Path, help="final_metrics.json from a manual gold validation set")
@@ -327,19 +530,37 @@ def main(argv: list[str] | None = None) -> None:
     if args.tile_size and not 0 <= args.tile_overlap < 1:
         raise ValueError("tile overlap must be in [0, 1)")
     source = args.source.resolve()
+    source_manifest_path = args.source_manifest.resolve()
     model_path = args.model.resolve()
+    teacher_manifest_path = args.teacher_manifest.resolve()
+    ontology = load_ontology(args.ontology.resolve())
     calibration_path = args.calibration.resolve() if args.calibration else None
     images = iter_images(source)
     if not images:
         raise ValueError(f"No supported images found: {source}")
     if not model_path.exists():
         raise FileNotFoundError(f"Teacher checkpoint does not exist: {model_path}")
-    run_id = args.run_id or "autolabel_" + datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = args.output_root.resolve() / run_id
-    if run_dir.exists() and any(run_dir.iterdir()):
-        raise FileExistsError(f"Autolabel run directory is not empty: {run_dir}")
-    run_dir.mkdir(parents=True, exist_ok=True)
-
+    source_binding = validate_source_binding(
+        source_manifest_path=source_manifest_path,
+        source=source,
+        ontology=ontology,
+    )
+    teacher_binding = validate_teacher_binding(
+        teacher_manifest_path=teacher_manifest_path,
+        model_path=model_path,
+        ontology=ontology,
+    )
+    calibration_binding = None
+    if calibration_path is not None:
+        calibration_binding = validate_calibration_binding(
+            calibration_path=calibration_path,
+            teacher_sha256=teacher_binding["checkpoint_sha256"],
+            ontology=ontology,
+        )
+    if args.high_confidence is not None and calibration_binding is None:
+        raise ContractError(
+            "--high-confidence requires a hash-bound gold_validation_locked calibration"
+        )
     try:
         from ultralytics import YOLO
     except ImportError as exc:
@@ -349,18 +570,38 @@ def main(argv: list[str] | None = None) -> None:
         ) from exc
 
     thresholds, calibration_record = _calibration_thresholds(calibration_path)
+    if calibration_binding is not None:
+        calibration_record["binding"] = calibration_binding
     model = YOLO(str(model_path))
     class_names = _class_names(model)
+    if class_names != teacher_binding["class_map"]:
+        raise ContractError(
+            f"Loaded teacher class map differs from teacher manifest: "
+            f"loaded={class_names}, manifest={teacher_binding['class_map']}"
+        )
+    allowed_threshold_keys = {"__global__", *class_names.values(), *(str(key) for key in class_names)}
+    unknown_threshold_keys = sorted(set(thresholds) - allowed_threshold_keys)
+    if unknown_threshold_keys:
+        raise ContractError(
+            f"Calibration contains classes absent from teacher manifest: {unknown_threshold_keys}"
+        )
     selected_classes = set(args.classes) if args.classes else None
     if selected_classes and not selected_classes.issubset(class_names):
         unknown = sorted(selected_classes - set(class_names))
         raise ValueError(f"Requested class IDs are not in teacher model: {unknown}")
+    run_id = args.run_id or "autolabel_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = args.output_root.resolve() / run_id
+    if run_dir.exists() and any(run_dir.iterdir()):
+        raise FileExistsError(f"Autolabel run directory is not empty: {run_dir}")
+    run_dir.mkdir(parents=True, exist_ok=True)
     model_record = {
         "path": str(model_path),
-        "sha256": sha256_file(model_path),
+        "sha256": teacher_binding["checkpoint_sha256"],
         "bytes": model_path.stat().st_size,
         "mib": model_path.stat().st_size / 1024**2,
         "classes": class_names,
+        "teacher_manifest_sha256": teacher_binding["manifest_sha256"],
+        "training_annotation_state": teacher_binding["training_annotation_state"],
     }
     manifest: dict[str, Any] = {
         "schema_version": 1,
@@ -370,6 +611,8 @@ def main(argv: list[str] | None = None) -> None:
         "start_utc": utc_now_precise(),
         "source": str(source),
         "source_images": len(images),
+        "source_binding": source_binding,
+        "ontology": ontology.record(),
         "teacher": model_record,
         "calibration": calibration_record,
         "manual_high_confidence_override": args.high_confidence,
@@ -414,7 +657,7 @@ def main(argv: list[str] | None = None) -> None:
             for index, image_path in enumerate(images, start=1):
                 relative = _relative_image_path(image_path, source)
                 with Image.open(image_path) as opened:
-                    image = opened.convert("RGB")
+                    image = ImageOps.exif_transpose(opened).convert("RGB")
                 predictions, tile_count = _predict_image(
                     model,
                     image,

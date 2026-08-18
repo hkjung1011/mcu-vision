@@ -48,8 +48,8 @@ validation 수치와 중단 run의 native epoch 수치도 직접 같은 성능 �
 | REQ-DATA-01 | class별 승인된 고유 실사 1,000장 목표와 provenance 확보 | NOT VERIFIED |
 | REQ-DATA-02 | physical item/session 기준 split과 YOLO↔COCO label 동등성 hash | 형식 동등성 PASS / physical item NOT VERIFIED |
 | REQ-MC-01 | 임의 canonical dataset/class 수를 두 framework가 동일하게 학습·평가 | 코드 PASS / multi-class data NOT VERIFIED |
-| REQ-AUTO-01 | YOLO11 proposal을 `pending` 분리 출력 | LOCAL PASS / val·test source 강제 차단 없음 |
-| REQ-AUTO-02 | CVAT round-trip 및 reviewer/hash 기반 강제 승인 gate | NOT VERIFIED |
+| REQ-AUTO-01 | YOLO11 proposal을 `pending` 분리 출력 | 코드 PASS / role·image-list hash로 val·test source 차단 |
+| REQ-AUTO-02 | CVAT round-trip 및 reviewer/hash 기반 강제 승인 gate | 코드 PASS / 실제 CVAT export NOT VERIFIED |
 | REQ-UB-01 | Ubuntu 실제 카메라 test set에서 정확도와 end-to-end latency 측정 | NOT VERIFIED |
 
 ## 다음 실행 순서

@@ -18,6 +18,11 @@ annotation 파일의 SHA-256만 비교하면 표현 형식과 JSON 순서가 달
 추가한다. COCO 이미지 폴더가 표준 `train2017`, `val2017` 배치가 아니면
 `--coco-train-images`, `--coco-val-images`로 지정한다.
 
+Locked test까지 고정할 때는 dataset.yaml의 `test`와 함께 `--coco-test`,
+`--coco-test-images`를 지정한다. CVAT의 primitive attributes와 `occluded`/`truncated`를
+별도 hash 증거로 남기려면 `--include-coco-attributes`를 추가한다. 이 attribute hash는
+YOLO가 속성을 표현한다는 뜻이 아니며 COCO 원본의 보조 증거다.
+
 종료 코드는 `0=PASS`, `1=동등성 FAIL`, `2=입력/구조 ERROR`다. FAIL/ERROR를 학습
 승인으로 바꾸지 않는다.
 
@@ -30,6 +35,8 @@ annotation 파일의 SHA-256만 비교하면 표현 형식과 JSON 순서가 달
 | `class_map.json` | YOLO zero-based class index와 NFC-normalized 이름 |
 | `train_image_list.json`, `val_image_list.json` | basename, encoded-file SHA-256, 실제 decode 크기 |
 | `canonical_*_records.jsonl` | 정렬된 image/class/bbox record와 개별 `record_sha256` |
+| `test_image_list.json`, `canonical_test_records.jsonl` | optional locked test 증거 |
+| `canonical_annotation_attributes.jsonl` | optional COCO/CVAT attribute 증거 |
 | `dataset_equivalence_report.json` | YOLO-only/COCO-only 차이 수와 제한된 예시 |
 
 run manifest의 `dataset`에는 다음 값을 그대로 넣는다.

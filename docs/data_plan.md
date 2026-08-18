@@ -61,7 +61,7 @@ exact SKU label을 만들지 않고 `unknown/unreadable` 정책을 적용합니�
 
 원본 이미지는 private 저장소라도 저작권 조건이 사라지지 않으므로 Git에 넣지 않습니다. 저장소에는
 다운로더, provenance manifest, split ID, class map, audit report만 넣고 원본은 로컬/NAS/object storage에
-보관합니다. Public Domain/CC BY 자료를 재배포할 때도 creator와 license URL을 유지합니다.
+보관합니다. Public Domain rights statement 또는 CC BY 자료를 사용할 때도 creator와 rights/license URL을 유지합니다.
 
 구체적인 출처와 라이선스는 [`configs/datasets.curated.yaml`](../configs/datasets.curated.yaml)과
 [`configs/sources.wikimedia.yaml`](../configs/sources.wikimedia.yaml)을 기준으로 합니다.
