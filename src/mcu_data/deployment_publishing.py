@@ -12,7 +12,7 @@ from typing import Any, Iterable, Mapping
 
 from .common import portable_path, sha256_file, write_json
 from .checkpoint_publishing import assert_binary_has_no_local_paths
-from .publishing import publish_evidence_file
+from .publishing import publish_evidence_file, validate_formal_comparison
 
 
 EVALUATION_REPORT_FILES = (
@@ -162,6 +162,7 @@ def _verify_comparison(
     expected: Mapping[str, Any],
 ) -> dict[str, Any]:
     comparison_dir = comparison_dir.resolve()
+    validate_formal_comparison(comparison_dir)
     compatibility_path = comparison_dir / "protocol_compatibility.json"
     comparison_path = comparison_dir / "comparison.json"
     sources_path = comparison_dir / "sources_manifest.json"

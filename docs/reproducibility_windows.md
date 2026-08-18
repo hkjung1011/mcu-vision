@@ -145,6 +145,24 @@ YOLOX-S seed 42/43, 두 모델 seed 44의 정확한 6개 경로와 고정 attest
 checkout의 HEAD/clean 상태를 읽어 run manifest의 `framework_commit` 및 experiment config SHA와
 일치해야 합니다.
 
+현재 campaign 경로를 사용한 명령은 다음과 같습니다.
+
+```powershell
+$Old = "runs\benchmarks\micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267"
+$New = "runs\benchmarks\micropcb_rpi_completion_b3e4176_20260818"
+.\scripts\compare_formal_mixed_runs.ps1 `
+  -Yolo11Seed42 "$Old\yolo11m_seed42" `
+  -Yolo11Seed43 "$Old\yolo11m_seed43" `
+  -YoloXSeed42 "$Old\yolox_s_seed42" `
+  -YoloXSeed43 "$New\yolox_s_seed43" `
+  -Yolo11Seed44 "$New\yolo11m_seed44" `
+  -YoloXSeed44 "$New\yolox_s_seed44" `
+  -OutputDirectory "runs\comparisons\formal_mixed_63bc679_b3e4176"
+```
+
+Wrapper는 comparator 종료 코드가 0이어도 `release_ready=false`, blocker 또는 critical mismatch가
+하나라도 있으면 `BLOCKED` 오류와 nonzero exit code를 반환합니다.
+
 ## 7. Git 승격 전 확인
 
 ```powershell

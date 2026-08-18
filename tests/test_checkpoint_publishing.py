@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import os
+import subprocess
 
 import pytest
 
@@ -91,3 +93,37 @@ def test_formal_checkpoint_bridge_binds_original_and_published_hashes(tmp_path: 
             run_manifest=run_manifest,
             framework="yolo11",
         )
+
+
+def test_actual_yolo11_sanitizer_in_framework_environment(tmp_path: Path) -> None:
+    python = os.environ.get("MCU_YOLO11_PYTHON")
+    if not python:
+        pytest.skip("Set MCU_YOLO11_PYTHON to run the actual Ultralytics checkpoint integration")
+    project = Path(__file__).resolve().parents[1]
+    source = project / "weights" / "pretrained" / "yolo11m.pt"
+    if not source.is_file():
+        pytest.skip("YOLO11 integration checkpoint is unavailable")
+    destination = tmp_path / "published.pt"
+    program = (
+        "import json,sys; from pathlib import Path; "
+        "from mcu_data.checkpoint_publishing import sanitize_yolo11_checkpoint; "
+        "print(json.dumps(sanitize_yolo11_checkpoint(Path(sys.argv[1]),Path(sys.argv[2]),"
+        "project_root=Path(sys.argv[3]))))"
+    )
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(project / "src")
+    completed = subprocess.run(
+        [python, "-c", program, str(source), str(destination), str(project)],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=180,
+        env=environment,
+    )
+    result = json.loads(completed.stdout)
+    assert result["source_original_sha256"] == sha256_file(source)
+    assert result["state_dict_bitwise_equal"] is True
+    assert result["source_forward_captured_before_scrub"] is True
+    assert result["forward_max_abs_difference"] == 0.0
+    assert result["ultralytics_load"] == "PASS"
+    assert destination.stat().st_size < source.stat().st_size * 1.2

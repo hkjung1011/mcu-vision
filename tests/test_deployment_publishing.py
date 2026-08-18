@@ -46,18 +46,6 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
     checkpoint.write_bytes(b"trained-native-checkpoint")
     onnx.write_bytes(b"verified-onnx-graph")
     source_original_sha = "1" * 64
-    run_manifest = _write_json(
-        project / "runs" / "benchmarks" / run_id / "run_manifest.json",
-        {
-            "run_id": run_id,
-            "status": "complete",
-            "stage": "fine_tune_candidate",
-            "model": "yolo11m",
-            "best_checkpoint": {"sha256": source_original_sha},
-        },
-    )
-    run_manifest_sha = sha256_file(run_manifest)
-
     comparison = project / "runs" / "comparisons" / "campaign_full"
     provenance_document = {"status": "PASS", "schema_version": 2, "mixed_commits": False}
     provenance_path = _write_json(comparison / "run_provenance.json", provenance_document)
@@ -67,38 +55,81 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
     )
     compatibility_path = _write_json(
         comparison / "protocol_compatibility.json",
-        {"release_ready": True, "comparable": True, "run_provenance": provenance_document},
-    )
-    comparison_path = _write_json(
-        comparison / "comparison.json", [{"run_id": run_id, "status": "complete"}]
-    )
-    native_metrics = _write_json(project / "runs" / run_id / "final_metrics.json", {"metrics": {}})
-    bundled_run_manifest = comparison / "sources" / run_id / "run_manifest.json"
-    bundled_run_manifest.parent.mkdir(parents=True)
-    bundled_run_manifest.write_bytes(run_manifest.read_bytes())
-    bundled_native_metrics = comparison / "sources" / run_id / "final_metrics.json"
-    bundled_native_metrics.write_bytes(native_metrics.read_bytes())
-    sources_path = _write_json(
-        comparison / "sources_manifest.json",
         {
-            "files": [
-                {
-                    "run_id": run_id,
-                    "path": f"sources/{run_id}/run_manifest.json",
-                    "source_original_sha256": run_manifest_sha,
-                    "published_sha256": sha256_file(bundled_run_manifest),
-                    "bytes": bundled_run_manifest.stat().st_size,
-                },
-                {
-                    "run_id": run_id,
-                    "path": f"sources/{run_id}/final_metrics.json",
-                    "source_original_sha256": sha256_file(native_metrics),
-                    "published_sha256": sha256_file(bundled_native_metrics),
-                    "bytes": bundled_native_metrics.stat().st_size,
-                },
-            ]
+            "release_ready": True,
+            "comparable": True,
+            "critical_mismatches": [],
+            "release_blockers": [],
+            "run_count": 6,
+            "release_expectations": {
+                "models": ["yolo11m", "YOLOX-S"],
+                "seeds": [42, 43, 44],
+                "runs": 6,
+            },
+            "run_provenance": provenance_document,
         },
     )
+    dataset = {
+        "train_annotation_sha256": "2" * 64,
+        "val_annotation_sha256": "3" * 64,
+        **{field: "4" * 64 for field in (
+            "canonical_dataset_manifest_sha256", "class_map_sha256",
+            "train_image_list_sha256", "val_image_list_sha256",
+            "canonical_train_records_sha256", "canonical_val_records_sha256",
+        )},
+    }
+    metrics_document = {"metrics": {
+        "ap50_95": 0.5, "ap50": 0.7, "ap75": 0.4, "ar100": 0.6,
+        "precision": 0.8, "recall": 0.7, "f1": 0.746, "tp": 70, "fp": 20, "fn": 30,
+    }}
+    rows = []
+    source_records = []
+    selected: dict[str, Path] = {}
+    for model in ("yolo11m", "YOLOX-S"):
+        for seed in (42, 43, 44):
+            candidate_id = ("yolo11" if model == "yolo11m" else "yolox") + f"_seed{seed}"
+            source_dir = project / "runs" / "benchmarks" / candidate_id
+            manifest = _write_json(source_dir / "run_manifest.json", {
+                "run_id": candidate_id, "status": "complete", "stage": "fine_tune_candidate",
+                "model": model, "best_checkpoint": {"sha256": source_original_sha if candidate_id == run_id else "5" * 64},
+                "protocol": {
+                    "seed": seed, "epochs": 100, "batch": 8, "imgsz": 640, "workers": 0,
+                    "amp": True, "fraction": 1.0, "multiscale_range": 0, "prediction_floor": 0.001,
+                    "nms_iou": 0.65, "class_agnostic_nms": False,
+                    "common_operating_confidence": 0.25, "common_match_iou": 0.5,
+                },
+                "dataset": dataset, "protocol_config": {"sha256": "6" * 64},
+            })
+            final_metrics = _write_json(
+                (project / "runs" / candidate_id / "final_metrics.json") if candidate_id == run_id else source_dir / "final_metrics.json",
+                metrics_document,
+            )
+            epoch_metrics = source_dir / "epoch_metrics.csv"
+            epoch_metrics.write_text("epoch,map50\n" + "".join(f"{i},0.5\n" for i in range(1, 101)), encoding="utf-8")
+            latency = _write_json(source_dir / "latency.json", {"e2e_p50_ms": 10.0, "e2e_p95_ms": 12.0, "sustained_fps": 90.0})
+            gpu = _write_json(source_dir / "gpu_summary.json", {"peak_memory_used_mib": 4000.0})
+            rows.append({
+                "run_id": candidate_id, "model": model, "status": "complete",
+                **metrics_document["metrics"],
+            })
+            for source in (manifest, epoch_metrics, final_metrics, latency, gpu):
+                destination = comparison / "sources" / candidate_id / source.name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(source.read_bytes())
+                source_records.append({
+                    "run_id": candidate_id,
+                    "path": destination.relative_to(comparison).as_posix(),
+                    "source_original_sha256": sha256_file(source),
+                    "published_sha256": sha256_file(destination),
+                    "bytes": destination.stat().st_size,
+                })
+            if candidate_id == run_id:
+                selected = {"manifest": manifest, "metrics": final_metrics}
+    run_manifest = selected["manifest"]
+    native_metrics = selected["metrics"]
+    run_manifest_sha = sha256_file(run_manifest)
+    comparison_path = _write_json(comparison / "comparison.json", rows)
+    sources_path = _write_json(comparison / "sources_manifest.json", {"files": source_records})
     comparison_evidence = {
         "comparison_id": comparison.name,
         "protocol_compatibility_sha256": sha256_file(compatibility_path),
@@ -363,6 +394,39 @@ def test_promote_deployment_rejects_local_path_in_tracked_metadata(tmp_path: Pat
     _write_json(paths["deployment_metadata"], metadata)
 
     with pytest.raises(ValueError, match="absolute path"):
+        _promote(paths)
+
+
+def test_promote_deployment_rejects_provenance_file_tamper(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    provenance = paths["comparison"] / "run_provenance.json"
+    document = json.loads(provenance.read_text(encoding="utf-8"))
+    document["status"] = "FAIL"
+    _write_json(provenance, document)
+
+    with pytest.raises(ValueError, match="provenance"):
+        _promote(paths)
+
+
+def test_promote_deployment_rejects_duplicate_source_bundle_record(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    sources = paths["comparison"] / "sources_manifest.json"
+    document = json.loads(sources.read_text(encoding="utf-8"))
+    document["files"].append(dict(document["files"][0]))
+    _write_json(sources, document)
+
+    with pytest.raises(ValueError, match="paths must be unique"):
+        _promote(paths)
+
+
+def test_promote_deployment_rejects_comparison_metric_forgery(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    comparison = paths["comparison"] / "comparison.json"
+    rows = json.loads(comparison.read_text(encoding="utf-8"))
+    rows[0]["ap50_95"] = 0.999
+    _write_json(comparison, rows)
+
+    with pytest.raises(ValueError, match="row metric differs"):
         _promote(paths)
 
 

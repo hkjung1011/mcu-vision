@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import csv
 import json
+import math
 import os
 import re
 import shutil
@@ -17,6 +19,37 @@ NVIDIA_PROCESS_TABLE = re.compile(
 )
 WINDOWS_USER_HOME = re.compile(
     r"(?i)(?<![A-Za-z0-9])(?:[A-Z]:[\\/]Users[\\/][^\\/\s\"']+)"
+)
+FORMAL_MODELS = {"yolo11m", "yoloxs"}
+FORMAL_SEEDS = {42, 43, 44}
+FORMAL_COMMON = {
+    "epochs": 100,
+    "batch": 8,
+    "imgsz": 640,
+    "workers": 0,
+    "amp": True,
+    "fraction": 1.0,
+    "multiscale_range": 0,
+    "prediction_floor": 0.001,
+    "nms_iou": 0.65,
+    "class_agnostic_nms": False,
+    "common_operating_confidence": 0.25,
+    "common_match_iou": 0.5,
+}
+REQUIRED_DATASET_FIELDS = (
+    "canonical_dataset_manifest_sha256",
+    "class_map_sha256",
+    "train_image_list_sha256",
+    "val_image_list_sha256",
+    "canonical_train_records_sha256",
+    "canonical_val_records_sha256",
+)
+REQUIRED_SOURCE_FILES = (
+    "run_manifest.json",
+    "epoch_metrics.csv",
+    "final_metrics.json",
+    "latency.json",
+    "gpu_summary.json",
 )
 
 
@@ -142,6 +175,157 @@ def publish_evidence_file(
     }
 
 
+def _normalized_model(value: Any) -> str:
+    return "".join(character for character in str(value).lower() if character.isalnum())
+
+
+def _finite_fields(document: dict[str, Any], fields: tuple[str, ...], label: str) -> None:
+    invalid = [
+        field
+        for field in fields
+        if not isinstance(document.get(field), (int, float))
+        or not math.isfinite(float(document[field]))
+    ]
+    if invalid:
+        raise ValueError(f"Formal comparison {label} has invalid numeric fields: {invalid}")
+
+
+def validate_formal_comparison(comparison_dir: Path) -> dict[str, Any]:
+    """Independently rebuild the formal six-run gate from the published source bundle."""
+    comparison_dir = comparison_dir.resolve()
+    compatibility_path = comparison_dir / "protocol_compatibility.json"
+    comparison_path = comparison_dir / "comparison.json"
+    sources_path = comparison_dir / "sources_manifest.json"
+    compatibility = json.loads(compatibility_path.read_text(encoding="utf-8-sig"))
+    if not (
+        compatibility.get("release_ready") is True
+        and compatibility.get("comparable") is True
+        and compatibility.get("critical_mismatches") == []
+        and compatibility.get("release_blockers") == []
+        and int(compatibility.get("run_count", -1)) == 6
+    ):
+        raise ValueError("Formal comparison compatibility claims are not an unblocked six-run PASS")
+    expectations = compatibility.get("release_expectations", {})
+    if (
+        {_normalized_model(value) for value in expectations.get("models", [])} != FORMAL_MODELS
+        or {int(value) for value in expectations.get("seeds", [])} != FORMAL_SEEDS
+        or int(expectations.get("runs", -1)) != 6
+    ):
+        raise ValueError("Formal comparison release expectations are not the exact model/seed matrix")
+
+    comparison_rows = json.loads(comparison_path.read_text(encoding="utf-8-sig"))
+    if not isinstance(comparison_rows, list) or len(comparison_rows) != 6:
+        raise ValueError("Formal comparison.json must contain exactly six rows")
+    row_ids = [str(row.get("run_id") or "") for row in comparison_rows if isinstance(row, dict)]
+    if len(row_ids) != 6 or len(set(row_ids)) != 6:
+        raise ValueError("Formal comparison run_id values must be six unique identifiers")
+
+    sources = json.loads(sources_path.read_text(encoding="utf-8-sig"))
+    records = sources.get("files", []) if isinstance(sources, dict) else []
+    if not isinstance(records, list):
+        raise ValueError("Formal sources_manifest.files must be a list")
+    record_paths = [str(record.get("path") or "") for record in records if isinstance(record, dict)]
+    if len(record_paths) != len(records) or len(set(record_paths)) != len(record_paths):
+        raise ValueError("Formal source bundle paths must be unique")
+    by_run_file: dict[tuple[str, str], tuple[dict[str, Any], Path]] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            raise ValueError("Formal source bundle record must be an object")
+        run_id = str(record.get("run_id") or "")
+        relative = str(record.get("path") or "").replace("\\", "/")
+        filename = Path(relative).name
+        key = (run_id, filename)
+        if key in by_run_file:
+            raise ValueError(f"Duplicate formal source evidence: {run_id}/{filename}")
+        path = (comparison_dir / relative).resolve()
+        try:
+            path.relative_to(comparison_dir)
+        except ValueError as exc:
+            raise ValueError("Formal source evidence escapes comparison directory") from exc
+        if not path.is_file():
+            raise FileNotFoundError(path)
+        if str(record.get("published_sha256", "")).lower() != sha256_file(path):
+            raise ValueError(f"Formal source published SHA-256 mismatch: {relative}")
+        if int(record.get("bytes", -1)) != path.stat().st_size:
+            raise ValueError(f"Formal source byte-size mismatch: {relative}")
+        original_sha = str(record.get("source_original_sha256", "")).lower()
+        if not re.fullmatch(r"[0-9a-f]{64}", original_sha):
+            raise ValueError(f"Formal source original SHA-256 is invalid: {relative}")
+        by_run_file[key] = (record, path)
+
+    manifests: dict[str, dict[str, Any]] = {}
+    metrics_by_run: dict[str, dict[str, Any]] = {}
+    critical_values: dict[str, set[str]] = {}
+    actual_pairs: set[tuple[str, int]] = set()
+    for run_id in row_ids:
+        missing = [name for name in REQUIRED_SOURCE_FILES if (run_id, name) not in by_run_file]
+        if missing:
+            raise ValueError(f"Formal run evidence is incomplete for {run_id}: {missing}")
+        manifest = json.loads(by_run_file[(run_id, "run_manifest.json")][1].read_text(encoding="utf-8-sig"))
+        if (
+            str(manifest.get("run_id")) != run_id
+            or manifest.get("status") != "complete"
+            or manifest.get("stage") == "smoke_not_comparable"
+            or not str(manifest.get("best_checkpoint", {}).get("sha256") or "")
+        ):
+            raise ValueError(f"Formal run manifest is not a complete checkpointed run: {run_id}")
+        protocol = manifest.get("protocol", {})
+        model = _normalized_model(manifest.get("model"))
+        seed = int(protocol.get("seed", -1))
+        actual_pairs.add((model, seed))
+        for field, expected in FORMAL_COMMON.items():
+            defaults = {"fraction": 1.0, "multiscale_range": 0}
+            actual = protocol.get(field, defaults.get(field))
+            if actual != expected:
+                raise ValueError(f"Formal protocol {field} mismatch for {run_id}")
+        dataset = manifest.get("dataset", {})
+        critical = {
+            "train_annotation_sha256": dataset.get("train_annotation_sha256"),
+            "val_annotation_sha256": dataset.get("val_annotation_sha256"),
+            "protocol_config_sha256": manifest.get("protocol_config", {}).get("sha256"),
+            **{field: dataset.get(field) for field in REQUIRED_DATASET_FIELDS},
+        }
+        for field, value in critical.items():
+            if value in (None, ""):
+                raise ValueError(f"Formal critical evidence {field} is missing for {run_id}")
+            critical_values.setdefault(field, set()).add(json.dumps(value, sort_keys=True))
+
+        with by_run_file[(run_id, "epoch_metrics.csv")][1].open(
+            "r", encoding="utf-8-sig", newline=""
+        ) as handle:
+            epochs = list(csv.DictReader(handle))
+        if len(epochs) != 100:
+            raise ValueError(f"Formal epoch evidence must contain 100 rows: {run_id}")
+        final = json.loads(by_run_file[(run_id, "final_metrics.json")][1].read_text(encoding="utf-8-sig"))
+        metrics = final.get("metrics", final.get("metrics_common", {}))
+        _finite_fields(
+            metrics,
+            ("ap50_95", "ap50", "ap75", "ar100", "precision", "recall", "f1", "tp", "fp", "fn"),
+            f"metrics/{run_id}",
+        )
+        metrics_by_run[run_id] = metrics
+        latency = json.loads(by_run_file[(run_id, "latency.json")][1].read_text(encoding="utf-8-sig"))
+        _finite_fields(latency, ("e2e_p50_ms", "e2e_p95_ms", "sustained_fps"), f"latency/{run_id}")
+        gpu = json.loads(by_run_file[(run_id, "gpu_summary.json")][1].read_text(encoding="utf-8-sig"))
+        _finite_fields(gpu, ("peak_memory_used_mib",), f"gpu/{run_id}")
+        manifests[run_id] = manifest
+
+    expected_pairs = {(model, seed) for model in FORMAL_MODELS for seed in FORMAL_SEEDS}
+    if actual_pairs != expected_pairs:
+        raise ValueError("Formal source manifests do not form the exact model/seed matrix")
+    mismatched = [field for field, values in critical_values.items() if len(values) != 1]
+    if mismatched:
+        raise ValueError(f"Formal critical fields differ across source manifests: {mismatched}")
+    for row in comparison_rows:
+        manifest = manifests[str(row["run_id"])]
+        if row.get("status") != "complete" or _normalized_model(row.get("model")) != _normalized_model(manifest.get("model")):
+            raise ValueError("Formal comparison row differs from its source run manifest")
+        for field in ("ap50_95", "ap50", "ap75", "ar100", "precision", "recall", "f1", "tp", "fp", "fn"):
+            if row.get(field) != metrics_by_run[str(row["run_id"])].get(field):
+                raise ValueError(f"Formal comparison row metric differs from source evidence: {field}")
+    return {"status": "PASS", "run_count": 6, "model_seed_pairs": sorted(actual_pairs)}
+
+
 def validate_comparison_for_run(
     comparison_dir: Path,
     *,
@@ -157,6 +341,7 @@ def validate_comparison_for_run(
     for path in (compatibility_path, comparison_path, sources_manifest_path, provenance_path):
         if not path.exists():
             raise FileNotFoundError(f"Comparison evidence is missing: {path}")
+    validate_formal_comparison(comparison_dir)
 
     compatibility = json.loads(compatibility_path.read_text(encoding="utf-8"))
     if not compatibility.get("release_ready", False):

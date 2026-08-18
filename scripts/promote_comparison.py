@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mcu_data.common import sha256_file, write_json
-from mcu_data.publishing import publish_evidence_file
+from mcu_data.publishing import publish_evidence_file, validate_formal_comparison
 
 
 def main() -> int:
@@ -31,6 +31,10 @@ def main() -> int:
         )
 
     source_root = args.comparison_dir.resolve()
+    try:
+        validate_formal_comparison(source_root)
+    except (FileNotFoundError, ValueError) as exc:
+        parser.error(str(exc))
     compatibility_path = source_root / "protocol_compatibility.json"
     if not compatibility_path.exists():
         parser.error(f"Missing protocol_compatibility.json: {source_root}")

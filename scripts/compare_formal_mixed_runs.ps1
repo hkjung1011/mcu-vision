@@ -6,12 +6,20 @@ param(
     [Parameter(Mandatory = $true)][string]$YoloXSeed43,
     [Parameter(Mandatory = $true)][string]$Yolo11Seed44,
     [Parameter(Mandatory = $true)][string]$YoloXSeed44,
-    [Parameter(Mandatory = $true)][string]$OutputDirectory
+    [Parameter(Mandatory = $true)][string]$OutputDirectory,
+    [string]$CompareExecutableOverride
 )
 
 $ErrorActionPreference = "Stop"
 $ProjectRoot = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
-$CompareExecutable = Join-Path $ProjectRoot ".venv-collect\Scripts\mcu-compare-runs.exe"
+if ($CompareExecutableOverride -and $env:MCU_TEST_COMPARE_EXECUTABLE_OVERRIDE -ne "1") {
+    throw "CompareExecutableOverride is test-only"
+}
+$CompareExecutable = if ($CompareExecutableOverride) {
+    [System.IO.Path]::GetFullPath($CompareExecutableOverride)
+} else {
+    Join-Path $ProjectRoot ".venv-collect\Scripts\mcu-compare-runs.exe"
+}
 $Attestation = Join-Path $ProjectRoot "configs\experiments\mixed_commit_rpi_v2_attestation.json"
 $Runs = @(
     $Yolo11Seed42,
@@ -44,6 +52,19 @@ try {
     & $CompareExecutable @Arguments
     if ($LASTEXITCODE -ne 0) {
         throw "Formal mixed-run comparison failed with exit code $LASTEXITCODE"
+    }
+    $CompatibilityPath = Join-Path ([System.IO.Path]::GetFullPath($OutputDirectory)) "protocol_compatibility.json"
+    if (-not (Test-Path -LiteralPath $CompatibilityPath -PathType Leaf)) {
+        throw "Comparator did not create protocol_compatibility.json"
+    }
+    $Compatibility = Get-Content -LiteralPath $CompatibilityPath -Raw | ConvertFrom-Json
+    if (
+        $Compatibility.release_ready -ne $true -or
+        $Compatibility.comparable -ne $true -or
+        @($Compatibility.release_blockers).Count -ne 0 -or
+        @($Compatibility.critical_mismatches).Count -ne 0
+    ) {
+        throw "Formal comparison is BLOCKED; inspect protocol_compatibility.json"
     }
 }
 finally {

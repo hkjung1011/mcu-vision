@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -102,7 +104,7 @@ def test_publish_evidence_file_redacts_any_windows_user_profile(
     assert "<USER_HOME>" in published
 
 
-def test_validate_comparison_requires_exact_run_manifest(tmp_path: Path) -> None:
+def test_validate_comparison_rejects_forged_one_run_release_ready_claim(tmp_path: Path) -> None:
     run_id = "full_seed42"
     run_manifest = tmp_path / "run_manifest.json"
     run_manifest.write_text(json.dumps({"run_id": run_id, "status": "complete"}), encoding="utf-8")
@@ -115,7 +117,12 @@ def test_validate_comparison_requires_exact_run_manifest(tmp_path: Path) -> None
         json.dumps(provenance), encoding="utf-8"
     )
     (comparison / "protocol_compatibility.json").write_text(
-        json.dumps({"comparable": True, "release_ready": False}), encoding="utf-8"
+        json.dumps({
+            "comparable": True, "release_ready": True, "critical_mismatches": [],
+            "release_blockers": [], "run_count": 6,
+            "release_expectations": {"models": ["yolo11m", "YOLOX-S"], "seeds": [42, 43, 44], "runs": 6},
+            "run_provenance": provenance,
+        }), encoding="utf-8"
     )
     (comparison / "comparison.json").write_text(
         json.dumps([{"run_id": run_id, "status": "complete"}]), encoding="utf-8"
@@ -140,17 +147,20 @@ def test_validate_comparison_requires_exact_run_manifest(tmp_path: Path) -> None
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="not formal-release ready"):
+    with pytest.raises(ValueError, match="exactly six rows"):
         validate_comparison_for_run(comparison, run_id=run_id, run_manifest_path=run_manifest)
-    (comparison / "protocol_compatibility.json").write_text(
-        json.dumps({"comparable": True, "release_ready": True, "run_provenance": provenance}),
-        encoding="utf-8",
+    project = Path(__file__).resolve().parents[1]
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(project / "scripts" / "promote_comparison.py"),
+            "--comparison-dir",
+            str(comparison),
+            "--release-name",
+            "forged_one_run_fixture",
+        ],
+        capture_output=True,
+        text=True,
     )
-    evidence = validate_comparison_for_run(
-        comparison, run_id=run_id, run_manifest_path=run_manifest
-    )
-    assert evidence["run_id"] == run_id
-    assert evidence["native_final_metrics_sha256"] == sha256_file(final_metrics)
-    run_manifest.write_text(json.dumps({"run_id": run_id, "status": "changed"}), encoding="utf-8")
-    with pytest.raises(ValueError, match="changed after"):
-        validate_comparison_for_run(comparison, run_id=run_id, run_manifest_path=run_manifest)
+    assert completed.returncode != 0
+    assert "exactly six rows" in completed.stderr
