@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from mcu_data.common import sha256_file
+from mcu_data.publishing import create_formal_validation, validate_formal_comparison
 from mcu_data.deployment_publishing import (
     promote_deployment_release,
     validate_promoted_deployment_for_runtime,
@@ -84,6 +85,7 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
     }}
     rows = []
     source_records = []
+    local_bindings = []
     selected: dict[str, Path] = {}
     for model in ("yolo11m", "YOLOX-S"):
         for seed in (42, 43, 44):
@@ -109,7 +111,7 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
             latency = _write_json(source_dir / "latency.json", {"e2e_p50_ms": 10.0, "e2e_p95_ms": 12.0, "sustained_fps": 90.0})
             gpu = _write_json(source_dir / "gpu_summary.json", {"peak_memory_used_mib": 4000.0})
             rows.append({
-                "run_id": candidate_id, "model": model, "status": "complete",
+                "run_id": candidate_id, "model": model, "seed": seed, "status": "complete",
                 **metrics_document["metrics"],
             })
             for source in (manifest, epoch_metrics, final_metrics, latency, gpu):
@@ -123,6 +125,12 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
                     "published_sha256": sha256_file(destination),
                     "bytes": destination.stat().st_size,
                 })
+                local_bindings.append({
+                    "run_id": candidate_id,
+                    "filename": source.name,
+                    "source_path": str(source.resolve()),
+                    "source_original_sha256": sha256_file(source),
+                })
             if candidate_id == run_id:
                 selected = {"manifest": manifest, "metrics": final_metrics}
     run_manifest = selected["manifest"]
@@ -130,6 +138,12 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
     run_manifest_sha = sha256_file(run_manifest)
     comparison_path = _write_json(comparison / "comparison.json", rows)
     sources_path = _write_json(comparison / "sources_manifest.json", {"files": source_records})
+    _write_json(
+        comparison / "local_source_bindings.json",
+        {"schema_version": 1, "private_local_only": True, "files": local_bindings},
+    )
+    formal_validation_path = comparison / "formal_validation.json"
+    create_formal_validation(comparison)
     comparison_evidence = {
         "comparison_id": comparison.name,
         "protocol_compatibility_sha256": sha256_file(compatibility_path),
@@ -137,6 +151,7 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
         "sources_manifest_sha256": sha256_file(sources_path),
         "run_provenance_sha256": sha256_file(provenance_path),
         "run_provenance_attestation_sha256": sha256_file(attestation_path),
+        "formal_validation_sha256": sha256_file(formal_validation_path),
         "run_manifest_sha256": run_manifest_sha,
         "native_final_metrics_sha256": sha256_file(native_metrics),
         "run_id": run_id,
@@ -427,6 +442,86 @@ def test_promote_deployment_rejects_comparison_metric_forgery(tmp_path: Path) ->
     _write_json(comparison, rows)
 
     with pytest.raises(ValueError, match="row metric differs"):
+        _promote(paths)
+
+
+def test_promote_deployment_rejects_row_seed_swap(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    comparison = paths["comparison"] / "comparison.json"
+    rows = json.loads(comparison.read_text(encoding="utf-8"))
+    rows[0]["seed"], rows[1]["seed"] = rows[1]["seed"], rows[0]["seed"]
+    _write_json(comparison, rows)
+
+    with pytest.raises(ValueError, match="row differs"):
+        _promote(paths)
+
+
+def test_promote_deployment_rejects_coherent_published_numeric_forgery(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    comparison_dir = paths["comparison"]
+    comparison_path = comparison_dir / "comparison.json"
+    rows = json.loads(comparison_path.read_text(encoding="utf-8"))
+    target_id = rows[0]["run_id"]
+    rows[0]["ap50_95"] = 0.999
+    _write_json(comparison_path, rows)
+    published_metrics = comparison_dir / "sources" / target_id / "final_metrics.json"
+    metrics = json.loads(published_metrics.read_text(encoding="utf-8"))
+    metrics["metrics"]["ap50_95"] = 0.999
+    _write_json(published_metrics, metrics)
+    sources_path = comparison_dir / "sources_manifest.json"
+    sources = json.loads(sources_path.read_text(encoding="utf-8"))
+    record = next(
+        item for item in sources["files"]
+        if item["run_id"] == target_id and item["path"].endswith("final_metrics.json")
+    )
+    record["published_sha256"] = sha256_file(published_metrics)
+    record["bytes"] = published_metrics.stat().st_size
+    _write_json(sources_path, sources)
+
+    with pytest.raises(ValueError, match="numeric evidence differs from local original"):
+        _promote(paths)
+
+
+def test_promoted_comparison_chain_verifies_without_private_local_bindings(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    (paths["comparison"] / "local_source_bindings.json").unlink()
+    result = validate_formal_comparison(paths["comparison"])
+    assert result["status"] == "PASS"
+
+
+def test_promoted_comparison_chain_rejects_formal_record_tamper(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    (paths["comparison"] / "local_source_bindings.json").unlink()
+    formal = paths["comparison"] / "formal_validation.json"
+    document = json.loads(formal.read_text(encoding="utf-8"))
+    document["source_chain_sha256"] = "0" * 64
+    _write_json(formal, document)
+    with pytest.raises(ValueError, match="digest chain differs"):
+        validate_formal_comparison(paths["comparison"])
+
+
+def test_promote_deployment_rejects_missing_provenance_file(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    (paths["comparison"] / "run_provenance.json").unlink()
+
+    with pytest.raises(FileNotFoundError):
+        _promote(paths)
+
+
+def test_promote_deployment_rejects_missing_mixed_commit_attestation(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    provenance_path = paths["comparison"] / "run_provenance.json"
+    provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+    provenance["mixed_commits"] = True
+    provenance["attestation"] = {"allowed_commits": ["a" * 40, "b" * 40]}
+    _write_json(provenance_path, provenance)
+    compatibility_path = paths["comparison"] / "protocol_compatibility.json"
+    compatibility = json.loads(compatibility_path.read_text(encoding="utf-8"))
+    compatibility["run_provenance"] = provenance
+    _write_json(compatibility_path, compatibility)
+    (paths["comparison"] / "run_provenance_attestation.json").unlink()
+
+    with pytest.raises(ValueError, match="attestation is missing"):
         _promote(paths)
 
 

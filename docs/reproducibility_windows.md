@@ -163,6 +163,13 @@ $New = "runs\benchmarks\micropcb_rpi_completion_b3e4176_20260818"
 Wrapper는 comparator 종료 코드가 0이어도 `release_ready=false`, blocker 또는 critical mismatch가
 하나라도 있으면 `BLOCKED` 오류와 nonzero exit code를 반환합니다.
 
+Comparison 생성 폴더의 `local_source_bindings.json`은 promotion 시 원본 run artifact를 다시
+SHA-256하고 published JSON/CSV의 canonical numeric digest가 원본과 같은지 확인하기 위한
+로컬 전용 파일입니다. 절대경로가 포함되므로 Git/publication에는 복사하지 않습니다. 검증 뒤 생성되는
+`formal_validation.json`에는 원본/published SHA와 numeric digest의 immutable source chain만 기록하며,
+공개 clone의 후속 deployment validator는 이 chain을 현재 bundle에서 재계산합니다. 로컬 원본이나
+binding이 없는 comparison은 최초 formal promotion에 사용할 수 없습니다.
+
 ## 7. Git 승격 전 확인
 
 ```powershell

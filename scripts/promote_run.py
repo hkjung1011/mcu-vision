@@ -56,6 +56,7 @@ SUMMARY_FILES = [
     "protocol_compatibility.json",
     "run_provenance.json",
     "run_provenance_attestation.json",
+    "formal_validation.json",
     "protocol_rationale.csv",
     "protocol_references.json",
     "protocol_snapshot.yaml",

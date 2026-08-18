@@ -32,7 +32,7 @@ def main() -> int:
 
     source_root = args.comparison_dir.resolve()
     try:
-        validate_formal_comparison(source_root)
+        validate_formal_comparison(source_root, require_local_originals=True)
     except (FileNotFoundError, ValueError) as exc:
         parser.error(str(exc))
     compatibility_path = source_root / "protocol_compatibility.json"
@@ -58,6 +58,8 @@ def main() -> int:
     copied: list[dict[str, object]] = []
     for source in sorted(path for path in source_root.rglob("*") if path.is_file()):
         relative = source.relative_to(source_root)
+        if relative.as_posix() == "local_source_bindings.json":
+            continue
         destination = destination_root / relative
         record = publish_evidence_file(source, destination, project_root=PROJECT_ROOT)
         copied.append(

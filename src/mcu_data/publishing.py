@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 import os
@@ -190,7 +191,49 @@ def _finite_fields(document: dict[str, Any], fields: tuple[str, ...], label: str
         raise ValueError(f"Formal comparison {label} has invalid numeric fields: {invalid}")
 
 
-def validate_formal_comparison(comparison_dir: Path) -> dict[str, Any]:
+def _numeric_digest(path: Path) -> str:
+    values: list[list[Any]] = []
+    if path.suffix.lower() in {".json", ".jsonl"}:
+        documents = (
+            [json.loads(line) for line in path.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
+            if path.suffix.lower() == ".jsonl"
+            else [json.loads(path.read_text(encoding="utf-8-sig"))]
+        )
+
+        def visit(value: Any, location: str) -> None:
+            if isinstance(value, bool):
+                return
+            if isinstance(value, (int, float)):
+                values.append([location, value])
+            elif isinstance(value, dict):
+                for key in sorted(value):
+                    visit(value[key], f"{location}.{key}")
+            elif isinstance(value, list):
+                for index, item in enumerate(value):
+                    visit(item, f"{location}[{index}]")
+
+        for index, document in enumerate(documents):
+            visit(document, f"document[{index}]")
+    elif path.suffix.lower() == ".csv":
+        with path.open("r", encoding="utf-8-sig", newline="") as handle:
+            for row_index, row in enumerate(csv.DictReader(handle)):
+                for key, raw in row.items():
+                    try:
+                        number = float(raw) if raw not in (None, "") else None
+                    except ValueError:
+                        continue
+                    if number is not None and math.isfinite(number):
+                        values.append([f"row[{row_index}].{key}", number])
+    payload = json.dumps(values, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def validate_formal_comparison(
+    comparison_dir: Path,
+    *,
+    require_local_originals: bool = False,
+    _allow_missing_formal_record: bool = False,
+) -> dict[str, Any]:
     """Independently rebuild the formal six-run gate from the published source bundle."""
     comparison_dir = comparison_dir.resolve()
     compatibility_path = comparison_dir / "protocol_compatibility.json"
@@ -205,6 +248,21 @@ def validate_formal_comparison(comparison_dir: Path) -> dict[str, Any]:
         and int(compatibility.get("run_count", -1)) == 6
     ):
         raise ValueError("Formal comparison compatibility claims are not an unblocked six-run PASS")
+    provenance_path = comparison_dir / "run_provenance.json"
+    provenance = json.loads(provenance_path.read_text(encoding="utf-8-sig"))
+    if provenance.get("status") != "PASS" or compatibility.get("run_provenance") != provenance:
+        raise ValueError("Formal comparison provenance is missing, failed, or differs from compatibility")
+    attestation_path = comparison_dir / "run_provenance_attestation.json"
+    if provenance.get("mixed_commits") is True and (
+        not attestation_path.is_file() or not isinstance(provenance.get("attestation"), dict)
+    ):
+        raise ValueError("Formal mixed-commit provenance attestation is missing or unbound")
+    if provenance.get("mixed_commits") is True:
+        attestation = json.loads(attestation_path.read_text(encoding="utf-8-sig"))
+        if sorted(attestation.get("allowed_commits", [])) != sorted(
+            provenance["attestation"].get("allowed_commits", [])
+        ):
+            raise ValueError("Formal provenance attestation commit set differs from provenance")
     expectations = compatibility.get("release_expectations", {})
     if (
         {_normalized_model(value) for value in expectations.get("models", [])} != FORMAL_MODELS
@@ -318,12 +376,94 @@ def validate_formal_comparison(comparison_dir: Path) -> dict[str, Any]:
         raise ValueError(f"Formal critical fields differ across source manifests: {mismatched}")
     for row in comparison_rows:
         manifest = manifests[str(row["run_id"])]
-        if row.get("status") != "complete" or _normalized_model(row.get("model")) != _normalized_model(manifest.get("model")):
+        if (
+            row.get("status") != "complete"
+            or _normalized_model(row.get("model")) != _normalized_model(manifest.get("model"))
+            or int(row.get("seed", -1)) != int(manifest.get("protocol", {}).get("seed", -2))
+        ):
             raise ValueError("Formal comparison row differs from its source run manifest")
         for field in ("ap50_95", "ap50", "ap75", "ar100", "precision", "recall", "f1", "tp", "fp", "fn"):
             if row.get(field) != metrics_by_run[str(row["run_id"])].get(field):
                 raise ValueError(f"Formal comparison row metric differs from source evidence: {field}")
-    return {"status": "PASS", "run_count": 6, "model_seed_pairs": sorted(actual_pairs)}
+    required_records = [
+        (run_id, filename, *by_run_file[(run_id, filename)])
+        for run_id in sorted(row_ids)
+        for filename in REQUIRED_SOURCE_FILES
+    ]
+    bindings_path = comparison_dir / "local_source_bindings.json"
+    bindings: dict[tuple[str, str], dict[str, Any]] = {}
+    if bindings_path.is_file():
+        binding_document = json.loads(bindings_path.read_text(encoding="utf-8-sig"))
+        for binding in binding_document.get("files", []):
+            key = (str(binding.get("run_id") or ""), str(binding.get("filename") or ""))
+            if key in bindings:
+                raise ValueError(f"Duplicate local source binding: {key}")
+            bindings[key] = binding
+    if require_local_originals and not bindings:
+        raise ValueError("Formal promotion requires local original run-artifact bindings")
+
+    source_chain = []
+    for run_id, filename, record, published_path in required_records:
+        published_numeric = _numeric_digest(published_path)
+        if bindings:
+            binding = bindings.get((run_id, filename))
+            if not binding:
+                raise ValueError(f"Local original binding is missing: {run_id}/{filename}")
+            original_path = Path(str(binding.get("source_path") or "")).resolve()
+            if not original_path.is_file():
+                raise FileNotFoundError(f"Local original run artifact is missing: {original_path}")
+            original_sha = sha256_file(original_path)
+            if (
+                original_sha != str(record.get("source_original_sha256", "")).lower()
+                or original_sha != str(binding.get("source_original_sha256", "")).lower()
+            ):
+                raise ValueError(f"Local original SHA-256 differs for {run_id}/{filename}")
+            if _numeric_digest(original_path) != published_numeric:
+                raise ValueError(f"Published numeric evidence differs from local original: {run_id}/{filename}")
+        source_chain.append(
+            {
+                "run_id": run_id,
+                "filename": filename,
+                "source_original_sha256": str(record["source_original_sha256"]).lower(),
+                "published_sha256": str(record["published_sha256"]).lower(),
+                "bytes": int(record["bytes"]),
+                "numeric_digest": published_numeric,
+            }
+        )
+    chain_payload = json.dumps(source_chain, separators=(",", ":"), sort_keys=True)
+    formal_record = {
+        "schema_version": 1,
+        "status": "PASS",
+        "run_count": 6,
+        "model_seed_pairs": [list(pair) for pair in sorted(actual_pairs)],
+        "protocol_compatibility_sha256": sha256_file(compatibility_path),
+        "comparison_sha256": sha256_file(comparison_path),
+        "sources_manifest_sha256": sha256_file(sources_path),
+        "run_provenance_sha256": sha256_file(provenance_path),
+        "run_provenance_attestation_sha256": (
+            sha256_file(attestation_path) if attestation_path.is_file() else None
+        ),
+        "source_chain_sha256": hashlib.sha256(chain_payload.encode("utf-8")).hexdigest(),
+        "source_chain": source_chain,
+    }
+    formal_path = comparison_dir / "formal_validation.json"
+    if formal_path.is_file():
+        recorded = json.loads(formal_path.read_text(encoding="utf-8-sig"))
+        if recorded != formal_record:
+            raise ValueError("Formal validation digest chain differs from comparison evidence")
+    elif not _allow_missing_formal_record:
+        raise FileNotFoundError("Formal comparison is missing formal_validation.json")
+    return formal_record
+
+
+def create_formal_validation(comparison_dir: Path) -> dict[str, Any]:
+    record = validate_formal_comparison(
+        comparison_dir,
+        require_local_originals=True,
+        _allow_missing_formal_record=True,
+    )
+    write_json(comparison_dir.resolve() / "formal_validation.json", record)
+    return record
 
 
 def validate_comparison_for_run(
@@ -341,7 +481,7 @@ def validate_comparison_for_run(
     for path in (compatibility_path, comparison_path, sources_manifest_path, provenance_path):
         if not path.exists():
             raise FileNotFoundError(f"Comparison evidence is missing: {path}")
-    validate_formal_comparison(comparison_dir)
+    validate_formal_comparison(comparison_dir, require_local_originals=True)
 
     compatibility = json.loads(compatibility_path.read_text(encoding="utf-8"))
     if not compatibility.get("release_ready", False):
@@ -402,6 +542,7 @@ def validate_comparison_for_run(
         "run_provenance_attestation_sha256": (
             sha256_file(attestation_path) if attestation_path.is_file() else None
         ),
+        "formal_validation_sha256": sha256_file(comparison_dir / "formal_validation.json"),
         "run_manifest_sha256": current_manifest_sha256,
         "native_final_metrics_sha256": native_final_metrics_sha256,
         "run_id": run_id,

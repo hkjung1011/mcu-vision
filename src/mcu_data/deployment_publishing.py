@@ -34,6 +34,7 @@ COMPARISON_REPORT_FILES = (
     "protocol_compatibility.json",
     "run_provenance.json",
     "run_provenance_attestation.json",
+    "formal_validation.json",
     "comparison.json",
     "sources_manifest.json",
 )
@@ -233,6 +234,7 @@ def _verify_comparison(
         "run_provenance_attestation_sha256": (
             sha256_file(attestation_path) if attestation_path.is_file() else None
         ),
+        "formal_validation_sha256": sha256_file(comparison_dir / "formal_validation.json"),
         "run_manifest_sha256": run_manifest_sha256,
         "native_final_metrics_sha256": native_final_metrics_sha256,
         "run_id": run_id,
@@ -806,6 +808,7 @@ def promote_deployment_release(
         "sources_manifest_sha256",
         "run_provenance_sha256",
         "run_provenance_attestation_sha256",
+        "formal_validation_sha256",
         "run_manifest_sha256",
         "native_final_metrics_sha256",
         "run_id",

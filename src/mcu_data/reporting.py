@@ -19,7 +19,7 @@ import numpy as np
 
 from .common import portable_path, safe_stem, sha256_file, write_json
 from .methodology import load_protocol, write_protocol_artifacts
-from .publishing import publish_evidence_file
+from .publishing import create_formal_validation, publish_evidence_file
 from .run_provenance import verify_run_provenance
 from .runlog import (
     checkpoint_file_record,
@@ -1065,6 +1065,7 @@ def compare_runs(
         write_protocol_artifacts(protocol_path, output_dir, print_terminal=False)
     _write_comparison_markdown(output_dir / "experiment_report.md", rows, compatibility, aggregate_rows)
     _bundle_run_evidence(output_dir, runs)
+    create_formal_validation(output_dir)
     _write_evidence_manifest(output_dir)
     print(f"\nComparison artifacts: {output_dir.resolve()}")
     return rows
@@ -1700,6 +1701,7 @@ def _bundle_run_evidence(output_dir: Path, runs: list[dict[str, Any]]) -> None:
         "gpu_summary.json",
     )
     records: list[dict[str, Any]] = []
+    local_bindings: list[dict[str, Any]] = []
     used_names: set[str] = set()
     for run in runs:
         run_id = str(run["run_id"])
@@ -1723,6 +1725,14 @@ def _bundle_run_evidence(output_dir: Path, runs: list[dict[str, Any]]) -> None:
                     **publication,
                 }
             )
+            local_bindings.append(
+                {
+                    "run_id": run_id,
+                    "filename": filename,
+                    "source_path": str(source.resolve()),
+                    "source_original_sha256": publication["source_original_sha256"],
+                }
+            )
     write_json(
         output_dir / "sources_manifest.json",
         {
@@ -1735,6 +1745,10 @@ def _bundle_run_evidence(output_dir: Path, runs: list[dict[str, Any]]) -> None:
             "files": records,
         },
     )
+    write_json(
+        output_dir / "local_source_bindings.json",
+        {"schema_version": 1, "private_local_only": True, "files": local_bindings},
+    )
 
 
 def _write_evidence_manifest(output_dir: Path) -> None:
@@ -1745,6 +1759,7 @@ def _write_evidence_manifest(output_dir: Path) -> None:
         output_dir / "protocol_compatibility.json",
         output_dir / "run_provenance.json",
         output_dir / "run_provenance_attestation.json",
+        output_dir / "formal_validation.json",
         output_dir / "sources_manifest.json",
     ]
     sources_root = output_dir / "sources"
