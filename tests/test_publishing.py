@@ -83,6 +83,25 @@ def test_publish_evidence_file_accepts_utf8_bom_json(tmp_path: Path) -> None:
     assert json.loads(destination.read_text(encoding="utf-8-sig"))["metric"] == 0.5
 
 
+@pytest.mark.parametrize(
+    "local_path",
+    [r"D:\Users\AnotherPerson\private\weights.pt", "E:/Users/BuildAgent/secret/file.json"],
+)
+def test_publish_evidence_file_redacts_any_windows_user_profile(
+    tmp_path: Path, local_path: str
+) -> None:
+    project = tmp_path / "project"
+    source = project / "source.json"
+    source.parent.mkdir(parents=True)
+    source.write_text(json.dumps({"path": local_path}), encoding="utf-8")
+    destination = project / "published.json"
+    publish_evidence_file(source, destination, project_root=project)
+    published = destination.read_text(encoding="utf-8")
+    assert "AnotherPerson" not in published
+    assert "BuildAgent" not in published
+    assert "<USER_HOME>" in published
+
+
 def test_validate_comparison_requires_exact_run_manifest(tmp_path: Path) -> None:
     run_id = "full_seed42"
     run_manifest = tmp_path / "run_manifest.json"
@@ -91,6 +110,10 @@ def test_validate_comparison_requires_exact_run_manifest(tmp_path: Path) -> None
     final_metrics.write_text(json.dumps({"metrics": {"ap50_95": 0.5}}), encoding="utf-8")
     comparison = tmp_path / "comparison"
     comparison.mkdir()
+    provenance = {"status": "PASS", "schema_version": 2, "mixed_commits": False}
+    (comparison / "run_provenance.json").write_text(
+        json.dumps(provenance), encoding="utf-8"
+    )
     (comparison / "protocol_compatibility.json").write_text(
         json.dumps({"comparable": True, "release_ready": False}), encoding="utf-8"
     )
@@ -120,7 +143,8 @@ def test_validate_comparison_requires_exact_run_manifest(tmp_path: Path) -> None
     with pytest.raises(ValueError, match="not formal-release ready"):
         validate_comparison_for_run(comparison, run_id=run_id, run_manifest_path=run_manifest)
     (comparison / "protocol_compatibility.json").write_text(
-        json.dumps({"comparable": True, "release_ready": True}), encoding="utf-8"
+        json.dumps({"comparable": True, "release_ready": True, "run_provenance": provenance}),
+        encoding="utf-8",
     )
     evidence = validate_comparison_for_run(
         comparison, run_id=run_id, run_manifest_path=run_manifest

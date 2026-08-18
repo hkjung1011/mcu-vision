@@ -70,6 +70,8 @@ class map, 전처리, output 의미, ONNX opset, raw error, post-NMS 개수가 �
 `*.verification-failed.onnx`로 격리되고 카메라 runner가 받아들이지 않습니다.
 `.pt`/`.pth`는 Python pickle을 포함할 수 있으므로 이 명령에는 해당 GitHub release에서 직접 받은
 자체 checkpoint처럼 출처와 SHA-256을 확인한 파일만 입력합니다.
+YOLOX export는 설치 문자열이나 하드코딩된 SHA만 신뢰하지 않고, 실제 imported `yolox.__file__`
+checkout의 Git HEAD가 run manifest `framework_commit`과 같고 checkout이 clean일 때만 진행합니다.
 
 export 뒤에는 [ONNX 전체 split 검증](onnx_split_evaluation.md)의 formal val/test를 모델별로 모두
 실행하고 `scripts/promote_deployment.py`를 통과시킵니다. Git에 올릴 최종 배포 증빙은

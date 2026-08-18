@@ -184,6 +184,9 @@ def main() -> int:
             "metadata_sanitized": checkpoint_publication["metadata_sanitized"],
             "state_dict_bitwise_equal": checkpoint_publication["state_dict_bitwise_equal"],
             "forward_max_abs_difference": checkpoint_publication["forward_max_abs_difference"],
+            "source_forward_captured_before_scrub": checkpoint_publication.get(
+                "source_forward_captured_before_scrub", False
+            ),
             "ultralytics_load": checkpoint_publication["ultralytics_load"],
         },
         "reports": sorted(set(copied_reports)),

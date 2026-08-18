@@ -32,6 +32,8 @@ EVALUATION_REPORT_FILES = (
 
 COMPARISON_REPORT_FILES = (
     "protocol_compatibility.json",
+    "run_provenance.json",
+    "run_provenance_attestation.json",
     "comparison.json",
     "sources_manifest.json",
 )
@@ -163,9 +165,16 @@ def _verify_comparison(
     compatibility_path = comparison_dir / "protocol_compatibility.json"
     comparison_path = comparison_dir / "comparison.json"
     sources_path = comparison_dir / "sources_manifest.json"
+    provenance_path = comparison_dir / "run_provenance.json"
     compatibility = _read_object(compatibility_path, "comparison protocol compatibility")
     if compatibility.get("release_ready") is not True:
         raise ValueError("Original comparison is not release_ready")
+    provenance = _read_object(provenance_path, "comparison run provenance")
+    if provenance.get("status") != "PASS" or compatibility.get("run_provenance") != provenance:
+        raise ValueError("Original comparison provenance is not an exact PASS")
+    attestation_path = comparison_dir / "run_provenance_attestation.json"
+    if provenance.get("mixed_commits") is True and not attestation_path.is_file():
+        raise FileNotFoundError("Mixed comparison provenance attestation is missing")
     with comparison_path.open("r", encoding="utf-8") as handle:
         comparison_rows = json.load(handle)
     if not isinstance(comparison_rows, list):
@@ -219,6 +228,10 @@ def _verify_comparison(
         "protocol_compatibility_sha256": sha256_file(compatibility_path),
         "comparison_sha256": sha256_file(comparison_path),
         "sources_manifest_sha256": sha256_file(sources_path),
+        "run_provenance_sha256": sha256_file(provenance_path),
+        "run_provenance_attestation_sha256": (
+            sha256_file(attestation_path) if attestation_path.is_file() else None
+        ),
         "run_manifest_sha256": run_manifest_sha256,
         "native_final_metrics_sha256": native_final_metrics_sha256,
         "run_id": run_id,
@@ -234,6 +247,8 @@ def _verify_comparison(
         "protocol_compatibility": compatibility_path,
         "comparison": comparison_path,
         "sources_manifest": sources_path,
+        "run_provenance": provenance_path,
+        "run_provenance_attestation": attestation_path if attestation_path.is_file() else None,
     }
     return actual
 
@@ -689,6 +704,7 @@ def promote_deployment_release(
         checkpoint_record.get("metadata_sanitized") is True
         and checkpoint_record.get("state_dict_bitwise_equal") is True
         and float(checkpoint_record.get("forward_max_abs_difference", -1)) == 0.0
+        and checkpoint_record.get("source_forward_captured_before_scrub") is True
         and checkpoint_record.get("ultralytics_load") == "PASS"
     ):
         raise ValueError("YOLO11 native checkpoint sanitizer evidence is not a formal PASS")
@@ -747,6 +763,7 @@ def promote_deployment_release(
         publication.get("metadata_sanitized") is True
         and publication.get("state_dict_bitwise_equal") is True
         and float(publication.get("forward_max_abs_difference", -1)) == 0.0
+        and publication.get("source_forward_captured_before_scrub") is True
         and publication.get("ultralytics_load") == "PASS"
     ):
         raise ValueError("Deployment did not retain YOLO11 sanitizer evidence")
@@ -786,6 +803,8 @@ def promote_deployment_release(
         "protocol_compatibility_sha256",
         "comparison_sha256",
         "sources_manifest_sha256",
+        "run_provenance_sha256",
+        "run_provenance_attestation_sha256",
         "run_manifest_sha256",
         "native_final_metrics_sha256",
         "run_id",
@@ -878,6 +897,8 @@ def promote_deployment_release(
                 )
         for name in COMPARISON_REPORT_FILES:
             source = comparison_dir / name
+            if name == "run_provenance_attestation.json" and not source.is_file():
+                continue
             relative = f"comparison/{name}"
             published.append(
                 _publish(

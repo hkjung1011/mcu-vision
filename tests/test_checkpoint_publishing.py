@@ -29,6 +29,11 @@ def test_binary_privacy_gate_rejects_project_path(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="machine-local path"):
         assert_binary_has_no_local_paths(unsafe, project)
 
+    arbitrary_user = tmp_path / "arbitrary.pt"
+    arbitrary_user.write_bytes(b"D:\\Users\\AnotherPerson\\private\\weights.pt")
+    with pytest.raises(ValueError, match="machine-local path"):
+        assert_binary_has_no_local_paths(arbitrary_user, project)
+
 
 def test_formal_checkpoint_bridge_binds_original_and_published_hashes(tmp_path: Path) -> None:
     project = tmp_path / "project"
@@ -57,6 +62,7 @@ def test_formal_checkpoint_bridge_binds_original_and_published_hashes(tmp_path: 
                     "metadata_sanitized": True,
                     "state_dict_bitwise_equal": True,
                     "forward_max_abs_difference": 0.0,
+                    "source_forward_captured_before_scrub": True,
                     "ultralytics_load": "PASS",
                 },
             }

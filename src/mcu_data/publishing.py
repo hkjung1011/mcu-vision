@@ -15,6 +15,9 @@ OMITTED_JSON_KEYS = {"nvidia_smi"}
 NVIDIA_PROCESS_TABLE = re.compile(
     r"(?ms)^\+[-+]+\+\r?\n\| Processes:.*?^\+[-+]+\+\r?\n?"
 )
+WINDOWS_USER_HOME = re.compile(
+    r"(?i)(?<![A-Za-z0-9])(?:[A-Z]:[\\/]Users[\\/][^\\/\s\"']+)"
+)
 
 
 def _replacement_pairs(project_root: Path) -> list[tuple[str, str]]:
@@ -48,6 +51,8 @@ def _scrub_text(value: str, replacements: list[tuple[str, str]]) -> tuple[str, b
         value,
     )
     changed = changed or bool(process_table_count)
+    value, generic_user_count = WINDOWS_USER_HOME.subn("<USER_HOME>", value)
+    changed = changed or bool(generic_user_count)
     return value, changed
 
 
@@ -148,7 +153,8 @@ def validate_comparison_for_run(
     compatibility_path = comparison_dir / "protocol_compatibility.json"
     comparison_path = comparison_dir / "comparison.json"
     sources_manifest_path = comparison_dir / "sources_manifest.json"
-    for path in (compatibility_path, comparison_path, sources_manifest_path):
+    provenance_path = comparison_dir / "run_provenance.json"
+    for path in (compatibility_path, comparison_path, sources_manifest_path, provenance_path):
         if not path.exists():
             raise FileNotFoundError(f"Comparison evidence is missing: {path}")
 
@@ -161,6 +167,12 @@ def validate_comparison_for_run(
             "Comparison is not formal-release ready"
             + (f" ({blockers})" if blockers else "")
         )
+    provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+    if provenance.get("status") != "PASS" or compatibility.get("run_provenance") != provenance:
+        raise ValueError("Comparison run provenance is missing, failed, or differs from compatibility")
+    attestation_path = comparison_dir / "run_provenance_attestation.json"
+    if provenance.get("mixed_commits") is True and not attestation_path.is_file():
+        raise FileNotFoundError("Mixed-commit comparison is missing its provenance attestation")
 
     comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
     rows = [row for row in comparison if str(row.get("run_id")) == run_id]
@@ -201,6 +213,10 @@ def validate_comparison_for_run(
         "protocol_compatibility_sha256": sha256_file(compatibility_path),
         "comparison_sha256": sha256_file(comparison_path),
         "sources_manifest_sha256": sha256_file(sources_manifest_path),
+        "run_provenance_sha256": sha256_file(provenance_path),
+        "run_provenance_attestation_sha256": (
+            sha256_file(attestation_path) if attestation_path.is_file() else None
+        ),
         "run_manifest_sha256": current_manifest_sha256,
         "native_final_metrics_sha256": native_final_metrics_sha256,
         "run_id": run_id,

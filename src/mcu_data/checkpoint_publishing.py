@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import re
 from pathlib import Path
@@ -8,12 +9,20 @@ from typing import Any
 from .common import sha256_file
 
 
+WINDOWS_USER_HOME_TEXT = re.compile(
+    r"(?i)(?<![A-Za-z0-9])(?:[A-Z]:[\\/]Users[\\/][^\\/\s\"']+)"
+)
+WINDOWS_USER_HOME_BYTES = re.compile(
+    rb"(?i)(?<![A-Za-z0-9])(?:[A-Z]:[\\/]Users[\\/][^\\/\s\"']+)"
+)
+
+
 def _replace_local_path(value: str, project_root: Path) -> str:
     candidates = {str(project_root.resolve()), str(Path.home().resolve())}
     for candidate in sorted(candidates, key=len, reverse=True):
         for spelling in (candidate, candidate.replace("\\", "/"), candidate.replace("\\", "\\\\")):
             value = re.sub(re.escape(spelling), "<PROJECT_ROOT>", value, flags=re.IGNORECASE)
-    return value
+    return WINDOWS_USER_HOME_TEXT.sub("<USER_HOME>", value)
 
 
 def _scrub_checkpoint_value(value: Any, project_root: Path) -> Any:
@@ -69,7 +78,12 @@ def forbidden_local_path_bytes(project_root: Path) -> set[bytes]:
 
 def assert_binary_has_no_local_paths(path: Path, project_root: Path) -> None:
     content = path.read_bytes().lower()
-    if any(value in content for value in forbidden_local_path_bytes(project_root)):
+    compact_utf16 = content.replace(b"\x00", b"")
+    if (
+        any(value in content or value in compact_utf16 for value in forbidden_local_path_bytes(project_root))
+        or WINDOWS_USER_HOME_BYTES.search(content)
+        or WINDOWS_USER_HOME_BYTES.search(compact_utf16)
+    ):
         raise ValueError(f"Published binary still contains a machine-local path: {path.name}")
 
 
@@ -128,6 +142,7 @@ def verify_formal_checkpoint_bridge(
             record.get("metadata_sanitized") is True
             and record.get("state_dict_bitwise_equal") is True
             and float(record.get("forward_max_abs_difference", -1)) == 0.0
+            and record.get("source_forward_captured_before_scrub") is True
             and record.get("ultralytics_load") == "PASS"
         )
         if not passed:
@@ -138,6 +153,9 @@ def verify_formal_checkpoint_bridge(
         "metadata_sanitized": bool(record.get("metadata_sanitized")),
         "state_dict_bitwise_equal": record.get("state_dict_bitwise_equal") is True,
         "forward_max_abs_difference": record.get("forward_max_abs_difference"),
+        "source_forward_captured_before_scrub": record.get(
+            "source_forward_captured_before_scrub"
+        ) is True,
         "ultralytics_load": record.get("ultralytics_load"),
     }
 
@@ -160,6 +178,16 @@ def sanitize_yolo11_checkpoint(
     checkpoint = torch.load(source, map_location="cpu", weights_only=False)
     if not isinstance(checkpoint, dict) or checkpoint.get("model") is None:
         raise ValueError(f"Unexpected YOLO11 checkpoint structure: {source}")
+    # .float() mutates a module in-place; isolate it so the checkpoint tensors retain their
+    # original dtype/bytes before metadata-only publication.
+    original_model = copy.deepcopy(checkpoint["model"]).float().eval()
+    sample = torch.zeros((1, 3, 64, 64), dtype=torch.float32)
+    with torch.inference_mode():
+        original_outputs = [
+            tensor.detach().clone() for tensor in _flatten_tensors(original_model(sample))
+        ]
+    if not original_outputs:
+        raise ValueError("Could not capture original YOLO11 forward outputs before scrubbing")
     for key in tuple(checkpoint):
         if key not in {"model", "ema"}:
             checkpoint[key] = _scrub_checkpoint_value(checkpoint[key], project_root)
@@ -176,16 +204,13 @@ def sanitize_yolo11_checkpoint(
         if not torch.equal(source_state[name], published_state[name]):
             raise ValueError(f"Published YOLO11 tensor changed: {name}")
 
-    source_model = checkpoint["model"].float().eval()
     published_model = published["model"].float().eval()
-    sample = torch.zeros((1, 3, 64, 64), dtype=torch.float32)
     with torch.inference_mode():
-        source_outputs = _flatten_tensors(source_model(sample))
         published_outputs = _flatten_tensors(published_model(sample))
-    if len(source_outputs) != len(published_outputs) or not source_outputs:
+    if len(original_outputs) != len(published_outputs):
         raise ValueError("Could not compare published YOLO11 forward outputs")
     maximum_absolute_difference = 0.0
-    for original, public in zip(source_outputs, published_outputs, strict=True):
+    for original, public in zip(original_outputs, published_outputs, strict=True):
         if original.shape != public.shape:
             raise ValueError("Published YOLO11 output shape changed")
         difference = float((original - public).abs().max().item()) if original.numel() else 0.0
@@ -202,5 +227,6 @@ def sanitize_yolo11_checkpoint(
         "metadata_sanitized": True,
         "state_dict_bitwise_equal": True,
         "forward_max_abs_difference": maximum_absolute_difference,
+        "source_forward_captured_before_scrub": True,
         "ultralytics_load": "PASS",
     }

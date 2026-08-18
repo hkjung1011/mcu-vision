@@ -135,6 +135,15 @@ dataset-evidence hash와 실제 checkpoint SHA-256까지 모두 확인된 run만
 서로 다른 Git commit의 run을 섞는 경우 `mcu-compare-runs --provenance-attestation
 configs/experiments/mixed_commit_rpi_v2_attestation.json`을 지정해야 하며, exact commit/blob와
 model별 framework/pretrained/protocol hash가 맞지 않으면 `release_ready=false`입니다.
+현재 63bc679/b3e4176 혼합 6-run은 인자 순서를 명시한
+`scripts/compare_formal_mixed_runs.ps1`로 실행합니다. 이 wrapper는 YOLO11 seed 42/43,
+YOLOX-S seed 42/43, 두 모델 seed 44의 정확한 6개 경로와 고정 attestation을 comparator에
+전달합니다. Comparator 자신의 current HEAD/clean 상태와 `reporting.py`/
+`run_provenance.py` Git blob도 결과에 기록되며 dirty checkout이면 release를 차단합니다.
+두 commit이 같아도 framework version, pretrained/protocol SHA, PyTorch, CUDA runtime, cuDNN
+동일성 검사는 생략되지 않습니다. YOLOX는 추가로 imported `yolox.__file__`가 속한 실제 Git
+checkout의 HEAD/clean 상태를 읽어 run manifest의 `framework_commit` 및 experiment config SHA와
+일치해야 합니다.
 
 ## 7. Git 승격 전 확인
 

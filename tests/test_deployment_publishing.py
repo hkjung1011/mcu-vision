@@ -59,8 +59,15 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
     run_manifest_sha = sha256_file(run_manifest)
 
     comparison = project / "runs" / "comparisons" / "campaign_full"
+    provenance_document = {"status": "PASS", "schema_version": 2, "mixed_commits": False}
+    provenance_path = _write_json(comparison / "run_provenance.json", provenance_document)
+    attestation_path = _write_json(
+        comparison / "run_provenance_attestation.json",
+        {"schema_version": 2, "required_scope_version": "formal-training-provenance-v2"},
+    )
     compatibility_path = _write_json(
-        comparison / "protocol_compatibility.json", {"release_ready": True, "comparable": True}
+        comparison / "protocol_compatibility.json",
+        {"release_ready": True, "comparable": True, "run_provenance": provenance_document},
     )
     comparison_path = _write_json(
         comparison / "comparison.json", [{"run_id": run_id, "status": "complete"}]
@@ -97,6 +104,8 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
         "protocol_compatibility_sha256": sha256_file(compatibility_path),
         "comparison_sha256": sha256_file(comparison_path),
         "sources_manifest_sha256": sha256_file(sources_path),
+        "run_provenance_sha256": sha256_file(provenance_path),
+        "run_provenance_attestation_sha256": sha256_file(attestation_path),
         "run_manifest_sha256": run_manifest_sha,
         "native_final_metrics_sha256": sha256_file(native_metrics),
         "run_id": run_id,
@@ -108,6 +117,7 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
         "metadata_sanitized": True,
         "state_dict_bitwise_equal": True,
         "forward_max_abs_difference": 0.0,
+        "source_forward_captured_before_scrub": True,
         "ultralytics_load": "PASS",
     }
     _write_json(

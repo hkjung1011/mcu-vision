@@ -24,6 +24,7 @@ from yolox.utils import get_model_info, postprocess
 
 from mcu_data.common import portable_path, sha256_file, write_json
 from mcu_data.dataset_evidence import verify_dataset_against_evidence
+from mcu_data.framework_provenance import verify_yolox_source
 from mcu_data.methodology import write_protocol_artifacts
 from mcu_data.reporting import compare_runs, evaluate_predictions
 from mcu_data.runlog import (
@@ -120,6 +121,7 @@ def _load_trusted_checkpoint(path: Path) -> dict:
 def main() -> int:
     configure_utf8_output()
     args = parse_args()
+    yolox_source = verify_yolox_source(yolox.__file__)
     if args.smoke:
         args.epochs = 1
         args.workers = 0
@@ -229,7 +231,8 @@ def main() -> int:
         "run_id": run_id,
         "framework": "YOLOX",
         "framework_version": getattr(yolox, "__version__", "source"),
-        "framework_commit": "6ddff4824372906469a7fae2dc3206c7aa4bbaee",
+        "framework_commit": yolox_source["commit"],
+        "framework_source_clean": yolox_source["clean"],
         "model": "YOLOX-S",
         "stage": "smoke_not_comparable" if args.smoke else "fine_tune_candidate",
         "status": "running",

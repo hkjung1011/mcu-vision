@@ -1,5 +1,6 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "required_scope_version": "formal-training-provenance-v2",
   "scope": "micropcb_rpi_phash_v2 formal six-run comparison",
   "allowed_commits": [
     "63bc679d88d56907433b6586e2a7efacb46a25d6",
@@ -32,15 +33,21 @@
     "yolo11m": [
       "framework_version",
       "pretrained_checkpoint.sha256",
-      "protocol_config.sha256"
+      "protocol_config.sha256",
+      "environment.torch",
+      "environment.torch_cuda_runtime",
+      "environment.cudnn"
     ],
     "YOLOX-S": [
       "framework_version",
+      "framework_commit",
       "pretrained_checkpoint.sha256",
       "protocol_config.sha256",
-      "experiment_config.sha256"
+      "experiment_config.sha256",
+      "environment.torch",
+      "environment.torch_cuda_runtime",
+      "environment.cudnn"
     ]
   },
-  "known_limitation": "The run manifest records the installed framework version but not the external YOLOX source Git commit. This attestation cannot reconstruct an unrecorded external commit.",
-  "rationale": "The only changed frozen implementation input is publishing.py and the exact blob pair is publication-only. All model-specific framework, pretrained checkpoint, and protocol hashes must remain equal."
+  "rationale": "The only changed frozen implementation input is publishing.py and the exact blob pair is publication-only. Repository commit, framework version/commit, PyTorch/CUDA/cuDNN runtime, pretrained checkpoint, protocol, and YOLOX experiment config are fail-closed equality gates."
 }

@@ -30,6 +30,7 @@ from mcu_data.deployment import (
     preprocessing_spec,
     restore_boxes,
 )
+from mcu_data.framework_provenance import verify_yolox_source
 from mcu_data.publishing import validate_comparison_for_run
 
 
@@ -171,12 +172,15 @@ def _export_yolox(
     opset: int,
     image_size: int,
     class_count: int,
+    expected_framework_commit: str,
 ) -> tuple[np.ndarray, dict[str, str]]:
     import yolox
     from torch import nn
     from yolox.exp import get_exp
     from yolox.models.network_blocks import SiLU
     from yolox.utils import replace_module
+
+    source = verify_yolox_source(yolox.__file__, expected_framework_commit)
 
     os.environ["MCU_IMAGE_SIZE"] = str(image_size)
     os.environ["MCU_NUM_CLASSES"] = str(class_count)
@@ -211,7 +215,8 @@ def _export_yolox(
     return native, {
         "framework": "YOLOX",
         "framework_version": getattr(yolox, "__version__", "source"),
-        "framework_commit": "6ddff4824372906469a7fae2dc3206c7aa4bbaee",
+        "framework_commit": source["commit"],
+        "framework_source_clean": source["clean"],
         "output_semantics": (
             "[batch, anchors, 5+classes]; decoded xywh pixels + objectness + class probabilities; "
             "score=objectness*class probability; NMS external"
@@ -360,6 +365,12 @@ def _verify_run_manifest(
         raise ValueError(f"Expected an Ultralytics run manifest, got {manifest.get('framework')!r}")
     if framework == "yolox" and "yolox" not in manifest_framework:
         raise ValueError(f"Expected a YOLOX run manifest, got {manifest.get('framework')!r}")
+    if framework == "yolox":
+        framework_commit = str(manifest.get("framework_commit") or "")
+        if len(framework_commit) != 40 or any(
+            character not in "0123456789abcdef" for character in framework_commit.lower()
+        ):
+            raise ValueError("YOLOX run manifest is missing a valid framework_commit")
     protocol_config = manifest.get("protocol_config")
     if isinstance(protocol_config, dict):
         protocol_config = dict(protocol_config)
@@ -378,6 +389,7 @@ def _verify_run_manifest(
         "model": manifest.get("model"),
         "stage": manifest.get("stage"),
         "status": manifest.get("status"),
+        "framework_commit": manifest.get("framework_commit"),
         "protocol_config": protocol_config,
         "experiment_config": experiment_config,
         "dataset": {
@@ -642,6 +654,7 @@ def main() -> int:
                 args.opset,
                 args.imgsz,
                 len(coco_names),
+                str(run_manifest.get("framework_commit") or ""),
             )
         deployment["framework_metadata"] = framework_metadata
 
