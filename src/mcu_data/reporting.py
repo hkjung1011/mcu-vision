@@ -20,6 +20,7 @@ import numpy as np
 from .common import portable_path, safe_stem, sha256_file, write_json
 from .methodology import load_protocol, write_protocol_artifacts
 from .publishing import publish_evidence_file
+from .run_provenance import verify_run_provenance
 from .runlog import (
     checkpoint_file_record,
     collect_system_environment,
@@ -940,11 +941,30 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def compare_runs(run_dirs: list[Path], output_dir: Path) -> list[dict[str, Any]]:
+def compare_runs(
+    run_dirs: list[Path],
+    output_dir: Path,
+    *,
+    provenance_attestation: Path | None = None,
+) -> list[dict[str, Any]]:
     output_dir.mkdir(parents=True, exist_ok=True)
     runs = [_load_run(path.resolve()) for path in run_dirs]
+    run_ids = [str(run["run_id"]) for run in runs]
+    if len(set(run_ids)) != len(run_ids):
+        raise ValueError("Duplicate run_id values are not allowed in a comparison")
     expected_protocol = _comparison_protocol_document(runs)
     compatibility = _protocol_compatibility(runs, expected_protocol)
+    provenance = verify_run_provenance(
+        runs,
+        repository=project_root(),
+        attestation_path=provenance_attestation.resolve() if provenance_attestation else None,
+    )
+    compatibility["run_provenance"] = provenance
+    if provenance["status"] != "PASS":
+        compatibility["release_ready"] = False
+        compatibility["release_blockers"].append(
+            {"field": "run_provenance", "blockers": provenance["blockers"]}
+        )
     rows = []
     for run in runs:
         metadata = run["metadata"]
@@ -994,6 +1014,13 @@ def compare_runs(run_dirs: list[Path], output_dir: Path) -> list[dict[str, Any]]
         _write_csv(output_dir / "aggregate_comparison.csv", list(aggregate_rows[0]), aggregate_rows)
     write_json(output_dir / "aggregate_comparison.json", aggregate_rows)
     write_json(output_dir / "protocol_compatibility.json", compatibility)
+    write_json(output_dir / "run_provenance.json", provenance)
+    if provenance_attestation is not None:
+        publish_evidence_file(
+            provenance_attestation.resolve(),
+            output_dir / "run_provenance_attestation.json",
+            project_root=project_root(),
+        )
     terminal_text = _comparison_terminal_text(rows, compatibility, aggregate_rows)
     terminal_path = output_dir / "comparison_terminal.txt"
     terminal_path.write_text(terminal_text, encoding="utf-8", newline="\n")
@@ -1716,6 +1743,8 @@ def _write_evidence_manifest(output_dir: Path) -> None:
         output_dir / "comparison.json",
         output_dir / "comparison_terminal.txt",
         output_dir / "protocol_compatibility.json",
+        output_dir / "run_provenance.json",
+        output_dir / "run_provenance_attestation.json",
         output_dir / "sources_manifest.json",
     ]
     sources_root = output_dir / "sources"
@@ -1755,8 +1784,17 @@ def compare_main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Print and plot multiple logged detector runs")
     parser.add_argument("--runs", type=Path, nargs="+", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--provenance-attestation",
+        type=Path,
+        help="Required fail-closed attestation when selected run manifests use multiple Git commits",
+    )
     args = parser.parse_args(argv)
-    compare_runs(args.runs, args.output_dir.resolve())
+    compare_runs(
+        args.runs,
+        args.output_dir.resolve(),
+        provenance_attestation=args.provenance_attestation,
+    )
 
 
 def weights_main(argv: list[str] | None = None) -> None:

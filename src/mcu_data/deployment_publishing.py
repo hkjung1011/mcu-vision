@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from .common import portable_path, sha256_file, write_json
+from .checkpoint_publishing import assert_binary_has_no_local_paths
 from .publishing import publish_evidence_file
 
 
@@ -679,6 +680,19 @@ def promote_deployment_release(
     _relative_under(checkpoint_path, release_weight_root, "Promoted native checkpoint")
     checkpoint = _verify_record_file(checkpoint_path, checkpoint_record, "promoted native checkpoint")
     checkpoint["path"] = checkpoint_path.relative_to(project_root).as_posix()
+    is_yolo11 = str(native.get("model", "")).lower().startswith("yolo11")
+    source_original_sha = str(checkpoint_record.get("source_original_sha256", "")).lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", source_original_sha):
+        raise ValueError("Native checkpoint record is missing source_original_sha256")
+    checkpoint["source_original_sha256"] = source_original_sha
+    if is_yolo11 and not (
+        checkpoint_record.get("metadata_sanitized") is True
+        and checkpoint_record.get("state_dict_bitwise_equal") is True
+        and float(checkpoint_record.get("forward_max_abs_difference", -1)) == 0.0
+        and checkpoint_record.get("ultralytics_load") == "PASS"
+    ):
+        raise ValueError("YOLO11 native checkpoint sanitizer evidence is not a formal PASS")
+    assert_binary_has_no_local_paths(checkpoint_path, project_root)
 
     _relative_under(deployment_metadata_path, release_weight_root, "Deployment metadata")
     _relative_under(onnx_path, release_weight_root, "Deployment ONNX")
@@ -723,6 +737,19 @@ def promote_deployment_release(
     )
     if _record_sha(deployment_artifacts["checkpoint"], "deployment checkpoint") != checkpoint["sha256"]:
         raise ValueError("Deployment checkpoint differs from the promoted native checkpoint")
+    publication = _mapping(deployment.get("checkpoint_publication"), "deployment checkpoint_publication")
+    if (
+        str(publication.get("source_original_sha256", "")).lower() != source_original_sha
+        or str(publication.get("published_sha256", "")).lower() != checkpoint["sha256"]
+    ):
+        raise ValueError("Deployment checkpoint publication bridge differs from native artifact")
+    if is_yolo11 and not (
+        publication.get("metadata_sanitized") is True
+        and publication.get("state_dict_bitwise_equal") is True
+        and float(publication.get("forward_max_abs_difference", -1)) == 0.0
+        and publication.get("ultralytics_load") == "PASS"
+    ):
+        raise ValueError("Deployment did not retain YOLO11 sanitizer evidence")
     run_manifest_record = _mapping(
         deployment_artifacts.get("run_manifest"), "deployment run manifest artifact"
     )
@@ -734,6 +761,12 @@ def promote_deployment_release(
     _verify_record_file(
         run_manifest_path, run_manifest_record, "deployment run manifest artifact"
     )
+    run_manifest_document = _read_object(run_manifest_path, "deployment run manifest")
+    original_record = _mapping(
+        run_manifest_document.get("best_checkpoint"), "run manifest best_checkpoint"
+    )
+    if str(original_record.get("sha256", "")).lower() != source_original_sha:
+        raise ValueError("Run manifest original checkpoint differs from publication bridge")
     onnx_record = _mapping(deployment_artifacts.get("onnx"), "deployment ONNX artifact")
     onnx_file_name = onnx_record.get("file_name")
     if (
@@ -745,6 +778,7 @@ def promote_deployment_release(
         raise ValueError("Deployment ONNX must be the recorded file next to its metadata")
     onnx = _verify_record_file(onnx_path, onnx_record, "deployment ONNX artifact")
     onnx["path"] = onnx_path.relative_to(project_root).as_posix()
+    assert_binary_has_no_local_paths(onnx_path, project_root)
     metadata_sha = sha256_file(deployment_metadata_path)
 
     for key in (

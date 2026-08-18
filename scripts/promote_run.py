@@ -12,6 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mcu_data.common import sha256_file, write_json
+from mcu_data.checkpoint_publishing import sanitize_yolo11_checkpoint
 from mcu_data.publishing import publish_evidence_file, validate_comparison_for_run
 
 
@@ -53,6 +54,8 @@ SUMMARY_FILES = [
     "experiment_report.md",
     "protocol_artifacts.json",
     "protocol_compatibility.json",
+    "run_provenance.json",
+    "run_provenance_attestation.json",
     "protocol_rationale.csv",
     "protocol_references.json",
     "protocol_snapshot.yaml",
@@ -110,7 +113,25 @@ def main() -> int:
     weight_root.mkdir(parents=True)
     report_root.mkdir(parents=True)
     promoted_checkpoint = weight_root / checkpoint.name
-    shutil.copy2(checkpoint, promoted_checkpoint)
+    framework = str(manifest.get("framework", "")).lower()
+    is_yolo11 = "ultralytics" in framework or str(manifest.get("model", "")).lower().startswith("yolo11")
+    if is_yolo11:
+        checkpoint_publication = sanitize_yolo11_checkpoint(
+            checkpoint,
+            promoted_checkpoint,
+            project_root=PROJECT_ROOT,
+        )
+    else:
+        shutil.copy2(checkpoint, promoted_checkpoint)
+        checkpoint_publication = {
+            "source_original_sha256": actual_sha256,
+            "published_sha256": sha256_file(promoted_checkpoint),
+            "bytes": promoted_checkpoint.stat().st_size,
+            "metadata_sanitized": False,
+            "state_dict_bitwise_equal": True,
+            "forward_max_abs_difference": 0.0,
+            "ultralytics_load": "NOT_APPLICABLE",
+        }
     copied_reports = []
     publication_records = []
     for relative in REPORT_FILES:
@@ -157,14 +178,21 @@ def main() -> int:
         "stage": manifest.get("stage"),
         "checkpoint": {
             "path": promoted_checkpoint.relative_to(PROJECT_ROOT).as_posix(),
-            "bytes": promoted_checkpoint.stat().st_size,
-            "sha256": sha256_file(promoted_checkpoint),
+            "bytes": checkpoint_publication["bytes"],
+            "sha256": checkpoint_publication["published_sha256"],
+            "source_original_sha256": checkpoint_publication["source_original_sha256"],
+            "metadata_sanitized": checkpoint_publication["metadata_sanitized"],
+            "state_dict_bitwise_equal": checkpoint_publication["state_dict_bitwise_equal"],
+            "forward_max_abs_difference": checkpoint_publication["forward_max_abs_difference"],
+            "ultralytics_load": checkpoint_publication["ultralytics_load"],
         },
         "reports": sorted(set(copied_reports)),
         "published_evidence": sorted(publication_records, key=lambda item: str(item["path"])),
         "publication_note": (
             "Repository copies redact local user/project paths and raw nvidia-smi process listings. "
-            "Original and published SHA-256 values are recorded per file; numeric metrics are unchanged."
+            "Original and published SHA-256 values are recorded per file; numeric metrics are unchanged. "
+            "YOLO11 checkpoints additionally require bitwise-equal tensors, zero forward difference, "
+            "and a successful Ultralytics reload after metadata sanitization."
         ),
         "raw_images_included": False,
         "predictions_included": False,

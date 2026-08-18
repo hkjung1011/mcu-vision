@@ -19,6 +19,7 @@ import numpy as np
 import torch
 
 from mcu_data.common import portable_path, sha256_file, write_json
+from mcu_data.checkpoint_publishing import verify_formal_checkpoint_bridge
 from mcu_data.deployment import (
     artifact_record,
     category_names,
@@ -59,6 +60,11 @@ def parse_args() -> argparse.Namespace:
         "--comparison-dir",
         type=Path,
         help="Formal release-ready comparison containing this exact run manifest",
+    )
+    parser.add_argument(
+        "--native-artifact",
+        type=Path,
+        help="Formal reports/runs/<release>/artifact_manifest.json binding original and published checkpoint hashes",
     )
     parser.add_argument(
         "--diagnostic",
@@ -324,7 +330,7 @@ def _clean_previous(paths: list[Path], force: bool) -> None:
 def _verify_run_manifest(
     manifest_path: Path,
     *,
-    checkpoint_sha256: str,
+    source_checkpoint_sha256: str,
     framework: str,
     image_size: int,
 ) -> dict[str, Any]:
@@ -338,10 +344,10 @@ def _verify_run_manifest(
     best_checkpoint = manifest.get("best_checkpoint")
     if not isinstance(best_checkpoint, dict) or not best_checkpoint.get("sha256"):
         raise ValueError("Run manifest is missing best_checkpoint.sha256")
-    if str(best_checkpoint["sha256"]).lower() != checkpoint_sha256.lower():
+    if str(best_checkpoint["sha256"]).lower() != source_checkpoint_sha256.lower():
         raise ValueError(
             "Run manifest/checkpoint SHA-256 mismatch: "
-            f"manifest={best_checkpoint['sha256']}, checkpoint={checkpoint_sha256}"
+            f"manifest={best_checkpoint['sha256']}, source_checkpoint={source_checkpoint_sha256}"
         )
     protocol = manifest.get("protocol")
     if not isinstance(protocol, dict) or int(protocol.get("imgsz", -1)) != image_size:
@@ -399,6 +405,25 @@ def _verify_run_manifest(
     }
 
 
+def _verify_native_artifact(
+    artifact_path: Path,
+    *,
+    checkpoint: Path,
+    run_manifest: Path,
+    framework: str,
+) -> dict[str, Any]:
+    bridge = verify_formal_checkpoint_bridge(
+        project_root=PROJECT_ROOT,
+        artifact_path=artifact_path,
+        checkpoint=checkpoint,
+        run_manifest=run_manifest,
+        framework=framework,
+    )
+    return bridge | {
+        "artifact": artifact_record(artifact_path) | {"file_name": artifact_path.name},
+    }
+
+
 def _require_inside_project(path: Path, label: str) -> Path:
     resolved = path.resolve()
     try:
@@ -432,8 +457,11 @@ def main() -> int:
             pass
         else:
             raise ValueError("Diagnostic exports cannot be written under weights/trained")
-    elif args.comparison_dir is None:
-        raise ValueError("Formal deployment export requires --comparison-dir; use --diagnostic only for smoke checks")
+    elif args.comparison_dir is None or args.native_artifact is None:
+        raise ValueError(
+            "Formal deployment export requires --comparison-dir and --native-artifact; "
+            "use --diagnostic only for smoke checks"
+        )
     else:
         if args.force:
             raise ValueError("--force is diagnostic-only; formal deployment artifacts are immutable")
@@ -441,6 +469,7 @@ def main() -> int:
             (checkpoint, "checkpoint"),
             (args.run_manifest, "run manifest"),
             (args.comparison_dir, "comparison"),
+            (args.native_artifact, "native artifact"),
             (args.coco_annotations, "COCO annotation"),
             (args.coco_images, "COCO image root"),
             (output_dir, "output directory"),
@@ -491,9 +520,19 @@ def main() -> int:
     preprocessing = preprocessing_spec(args.framework, args.imgsz)
     coco_names = category_names(sample)
     checkpoint_record = artifact_record(checkpoint)
+    checkpoint_publication = None
+    source_checkpoint_sha256 = checkpoint_record["sha256"]
+    if not args.diagnostic:
+        checkpoint_publication = _verify_native_artifact(
+            args.native_artifact,
+            checkpoint=checkpoint,
+            run_manifest=args.run_manifest.resolve(),
+            framework=args.framework,
+        )
+        source_checkpoint_sha256 = checkpoint_publication["source_original_sha256"]
     run_manifest = _verify_run_manifest(
         args.run_manifest,
-        checkpoint_sha256=checkpoint_record["sha256"],
+        source_checkpoint_sha256=source_checkpoint_sha256,
         framework=args.framework,
         image_size=args.imgsz,
     )
@@ -566,6 +605,11 @@ def main() -> int:
     }
     deployment["training_run"] = {key: value for key, value in run_manifest.items() if key != "artifact"}
     deployment["artifacts"]["run_manifest"] = run_manifest["artifact"]
+    if checkpoint_publication is not None:
+        deployment["checkpoint_publication"] = {
+            key: value for key, value in checkpoint_publication.items() if key != "artifact"
+        }
+        deployment["artifacts"]["native_artifact"] = checkpoint_publication["artifact"]
     deployment["release_validation"] = (
         {"status": "PASS", "formal_release": True, **comparison_evidence}
         if comparison_evidence is not None

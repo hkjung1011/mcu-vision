@@ -132,11 +132,14 @@ dataset-evidence hash와 실제 checkpoint SHA-256까지 모두 확인된 run만
 `protocol_compatibility.json`의 `comparable=true`일 때만 모델 비교표를 해석하고,
 `release_ready=true`일 때만 trained weight를 승격합니다. 비교 결과는 AP/AR의 공통 COCOeval,
 운영점 공통 matcher, batch-1 latency, VRAM과 seed 평균±sample SD를 포함해야 합니다.
+서로 다른 Git commit의 run을 섞는 경우 `mcu-compare-runs --provenance-attestation
+configs/experiments/mixed_commit_rpi_v2_attestation.json`을 지정해야 하며, exact commit/blob와
+model별 framework/pretrained/protocol hash가 맞지 않으면 `release_ready=false`입니다.
 
 ## 7. Git 승격 전 확인
 
 ```powershell
-.\.venv-collect\Scripts\python.exe .\scripts\promote_run.py `
+.\.venv-yolo11\Scripts\python.exe .\scripts\promote_run.py `
   --run-dir runs\benchmarks\<CampaignId>\<model>_seed<best-seed> `
   --comparison-dir runs\comparisons\<CampaignId> `
   --release-name rpi_phash_v2_<model>
@@ -150,8 +153,10 @@ git lfs ls-files
 git diff --check
 ```
 
-Promotion copy는 로컬 사용자 경로와 raw process list를 제거하고 original/published SHA-256을 모두
-기록합니다. Smoke 또는 protocol mismatch 결과는 기본적으로 차단됩니다.
+YOLO11 promotion은 Ultralytics/PyTorch 검증 때문에 `.venv-yolo11`에서 실행합니다. YOLOX promotion은
+`.venv-collect`에서도 실행할 수 있습니다. Promotion copy는 로컬 사용자 경로와 raw process list를
+제거하고 original/published SHA-256을 모두 기록합니다. Smoke 또는 protocol mismatch 결과는
+기본적으로 차단됩니다.
 
 ## 알려진 제한
 

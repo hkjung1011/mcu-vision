@@ -45,6 +45,7 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
     onnx.parent.mkdir(parents=True)
     checkpoint.write_bytes(b"trained-native-checkpoint")
     onnx.write_bytes(b"verified-onnx-graph")
+    source_original_sha = "1" * 64
     run_manifest = _write_json(
         project / "runs" / "benchmarks" / run_id / "run_manifest.json",
         {
@@ -52,6 +53,7 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
             "status": "complete",
             "stage": "fine_tune_candidate",
             "model": "yolo11m",
+            "best_checkpoint": {"sha256": source_original_sha},
         },
     )
     run_manifest_sha = sha256_file(run_manifest)
@@ -101,6 +103,13 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
     }
 
     native_artifact = project / "reports" / "runs" / release / "artifact_manifest.json"
+    checkpoint_publication = {
+        "source_original_sha256": source_original_sha,
+        "metadata_sanitized": True,
+        "state_dict_bitwise_equal": True,
+        "forward_max_abs_difference": 0.0,
+        "ultralytics_load": "PASS",
+    }
     _write_json(
         native_artifact,
         {
@@ -111,7 +120,7 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
             "local_source_path_included": False,
             "model": "yolo11m",
             "stage": "fine_tune_candidate",
-            "checkpoint": _record(checkpoint, project),
+            "checkpoint": _record(checkpoint, project) | checkpoint_publication,
         },
     )
 
@@ -141,6 +150,10 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
                 "status": "PASS",
                 "formal_release": True,
                 **comparison_evidence,
+            },
+            "checkpoint_publication": {
+                **checkpoint_publication,
+                "published_sha256": sha256_file(checkpoint),
             },
             "verification": {"status": "PASS", "numeric": {"status": "PASS"}},
             "artifacts": {
@@ -310,6 +323,26 @@ def test_promote_deployment_rejects_checkpoint_mismatch(tmp_path: Path) -> None:
     paths["onnx"].parent.parent.joinpath("best.pt").write_bytes(b"tampered")
 
     with pytest.raises(ValueError, match="SHA-256 mismatch"):
+        _promote(paths)
+
+
+def test_promote_deployment_rejects_missing_yolo11_sanitizer_proof(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    native = json.loads(paths["native_artifact"].read_text(encoding="utf-8"))
+    native["checkpoint"]["metadata_sanitized"] = False
+    _write_json(paths["native_artifact"], native)
+
+    with pytest.raises(ValueError, match="sanitizer evidence"):
+        _promote(paths)
+
+
+def test_promote_deployment_rejects_checkpoint_publication_bridge_tamper(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    deployment = json.loads(paths["deployment_metadata"].read_text(encoding="utf-8"))
+    deployment["checkpoint_publication"]["source_original_sha256"] = "f" * 64
+    _write_json(paths["deployment_metadata"], deployment)
+
+    with pytest.raises(ValueError, match="publication bridge"):
         _promote(paths)
 
 

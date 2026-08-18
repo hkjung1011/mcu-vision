@@ -39,9 +39,10 @@ COCO annotation/image root를 두 모델에 똑같이 사용합니다.
 ```powershell
 .\.venv-yolo11\Scripts\python.exe .\scripts\export_deployment.py `
   --framework yolo11 `
-  --checkpoint .\runs\benchmarks\<RUN>\native\weights\best.pt `
+  --checkpoint .\weights\trained\<RELEASE>\best.pt `
   --run-manifest .\runs\benchmarks\<RUN>\run_manifest.json `
   --comparison-dir .\runs\comparisons\<COMPARISON> `
+  --native-artifact .\reports\runs\<RELEASE>\artifact_manifest.json `
   --output-dir .\weights\trained\<RELEASE>\yolo11m `
   --output-name yolo11m_rpi_b1_640 `
   --coco-annotations .\data\processed\micropcb_rpi_phash_v2_coco\annotations\instances_val2017.json `
@@ -49,9 +50,10 @@ COCO annotation/image root를 두 모델에 똑같이 사용합니다.
 
 .\.venv-yolox\Scripts\python.exe .\scripts\export_deployment.py `
   --framework yolox `
-  --checkpoint .\runs\benchmarks\<RUN>\best_ckpt.pth `
+  --checkpoint .\weights\trained\<RELEASE>\best_ckpt.pth `
   --run-manifest .\runs\benchmarks\<RUN>\run_manifest.json `
   --comparison-dir .\runs\comparisons\<COMPARISON> `
+  --native-artifact .\reports\runs\<RELEASE>\artifact_manifest.json `
   --output-dir .\weights\trained\<RELEASE>\yolox_s `
   --output-name yolox_s_rpi_b1_640 `
   --coco-annotations .\data\processed\micropcb_rpi_phash_v2_coco\annotations\instances_val2017.json `
@@ -60,7 +62,10 @@ COCO annotation/image root를 두 모델에 똑같이 사용합니다.
 
 기본 수치 gate는 `abs(error) <= 1e-3 + 1e-4 * abs(native)`를 모든 raw output 원소가 만족하는지
 확인합니다. 이 기준은 FP32 CPU graph의 export 수치 동등성 smoke gate이며 AP 동등성이나 현장 정확도를
-대체하지 않습니다. 결과 JSON에는 checkpoint/ONNX/검증 이미지/COCO annotation의 SHA-256, byte size,
+대체하지 않습니다. YOLO11 formal checkpoint는 먼저 `promote_run.py`가 로컬 metadata를 제거하고
+tensor bitwise equality, zero-input forward diff=0, Ultralytics reload를 통과시킨 공개본이어야 합니다.
+`--native-artifact`가 원본 run SHA와 공개 checkpoint SHA를 연결합니다. 결과 JSON에는
+checkpoint/ONNX/검증 이미지/COCO annotation의 SHA-256, byte size,
 class map, 전처리, output 의미, ONNX opset, raw error, post-NMS 개수가 기록됩니다. FAIL export는
 `*.verification-failed.onnx`로 격리되고 카메라 runner가 받아들이지 않습니다.
 `.pt`/`.pth`는 Python pickle을 포함할 수 있으므로 이 명령에는 해당 GitHub release에서 직접 받은

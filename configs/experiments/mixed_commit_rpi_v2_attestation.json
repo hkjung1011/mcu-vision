@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "scope": "micropcb_rpi_phash_v2 formal six-run comparison",
+  "allowed_commits": [
+    "63bc679d88d56907433b6586e2a7efacb46a25d6",
+    "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6"
+  ],
+  "implementation_paths": [
+    "scripts/run_compare_seeds.ps1",
+    "scripts/train_yolo11_logged.py",
+    "scripts/train_yolox_logged.py",
+    "configs/yolox_s_micropcb.py",
+    "src/mcu_data/common.py",
+    "src/mcu_data/dataset_evidence.py",
+    "src/mcu_data/methodology.py",
+    "src/mcu_data/publishing.py",
+    "src/mcu_data/reporting.py",
+    "src/mcu_data/runlog.py",
+    "src/mcu_data/yolox_metrics.py"
+  ],
+  "allowed_changes": {
+    "src/mcu_data/publishing.py": {
+      "blobs_by_commit": {
+        "63bc679d88d56907433b6586e2a7efacb46a25d6": "349b1f3fe34a4ce28d02d8dba2749ce4197e4946",
+        "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "7016d8bc1bfe9f54ba02ae6c021e85893e02f449"
+      },
+      "training_semantics_unchanged": true,
+      "rationale": "Publication-only redaction and UTF-8 BOM input handling; no training, evaluation, optimizer, augmentation, or model computation changed."
+    }
+  },
+  "equal_manifest_fields_by_model": {
+    "yolo11m": [
+      "framework_version",
+      "pretrained_checkpoint.sha256",
+      "protocol_config.sha256"
+    ],
+    "YOLOX-S": [
+      "framework_version",
+      "pretrained_checkpoint.sha256",
+      "protocol_config.sha256",
+      "experiment_config.sha256"
+    ]
+  },
+  "known_limitation": "The run manifest records the installed framework version but not the external YOLOX source Git commit. This attestation cannot reconstruct an unrecorded external commit.",
+  "rationale": "The only changed frozen implementation input is publishing.py and the exact blob pair is publication-only. All model-specific framework, pretrained checkpoint, and protocol hashes must remain equal."
+}
