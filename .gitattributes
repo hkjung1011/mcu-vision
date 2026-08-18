@@ -5,6 +5,7 @@
 
 # Published evidence is byte-hashed, so Git must not rewrite LF/CRLF on checkout.
 reports/progress/** -text
+reports/progress/** -whitespace
 
 # Published logs also preserve the trainer's original spacing as evidence.
 reports/progress/**/*.log -whitespace
