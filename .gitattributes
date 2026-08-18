@@ -3,5 +3,8 @@
 *.onnx filter=lfs diff=lfs merge=lfs -text
 *.torchscript filter=lfs diff=lfs merge=lfs -text
 
-# Published logs preserve the trainer's original spacing as evidence.
+# Published evidence is byte-hashed, so Git must not rewrite LF/CRLF on checkout.
+reports/progress/** -text
+
+# Published logs also preserve the trainer's original spacing as evidence.
 reports/progress/**/*.log -whitespace
