@@ -206,6 +206,109 @@ function Format-NativeCommand {
             }) -join " ")
 }
 
+function New-ComparisonArguments {
+    param(
+        [Parameter(Mandatory = $true)][string[]]$RunDirectories,
+        [Parameter(Mandatory = $true)][string]$OutputDirectory,
+        [switch]$Formal
+    )
+    $Arguments = @("--runs") + @($RunDirectories) + @("--output-dir", $OutputDirectory)
+    if ($Formal) {
+        $Arguments += "--formal"
+    }
+    return $Arguments
+}
+
+function Assert-ComparisonResult {
+    param(
+        [Parameter(Mandatory = $true)][string]$ComparisonDirectory,
+        [switch]$Smoke
+    )
+    $CompatibilityPath = Join-Path $ComparisonDirectory "protocol_compatibility.json"
+    if (-not (Test-Path -LiteralPath $CompatibilityPath -PathType Leaf)) {
+        throw "Comparison compatibility file is missing: $CompatibilityPath"
+    }
+    try {
+        $Compatibility = Get-Content -LiteralPath $CompatibilityPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    }
+    catch {
+        throw "Comparison compatibility is not valid JSON: $CompatibilityPath`n$($_.Exception.Message)"
+    }
+    $ComparableIsPass = (
+        ($Compatibility.comparable -is [bool]) -and
+        ($Compatibility.comparable -eq $true)
+    )
+    $CriticalMismatchesAreEmpty = (
+        ($Compatibility.critical_mismatches -is [System.Array]) -and
+        (@($Compatibility.critical_mismatches).Count -eq 0)
+    )
+    if (-not $ComparableIsPass -or -not $CriticalMismatchesAreEmpty) {
+        $Mismatches = @($Compatibility.critical_mismatches | ForEach-Object { $_.field }) -join ", "
+        throw "Comparison completed but comparable is not an unblocked PASS. Critical mismatches: $Mismatches"
+    }
+
+    $FormalValidationPath = Join-Path $ComparisonDirectory "formal_validation.json"
+    if ($Smoke) {
+        if (Test-Path -LiteralPath $FormalValidationPath -PathType Leaf) {
+            throw "Smoke comparison must not produce formal_validation.json: $FormalValidationPath"
+        }
+        return [PSCustomObject]@{
+            Compatibility = $Compatibility
+            FormalValidation = $null
+        }
+    }
+
+    $ReleaseReadyIsPass = (
+        ($Compatibility.release_ready -is [bool]) -and
+        ($Compatibility.release_ready -eq $true)
+    )
+    $ReleaseBlockersAreEmpty = (
+        ($Compatibility.release_blockers -is [System.Array]) -and
+        (@($Compatibility.release_blockers).Count -eq 0)
+    )
+    $CompatibilityRunCountIsSix = (
+        (($Compatibility.run_count -is [int]) -or ($Compatibility.run_count -is [long])) -and
+        ($Compatibility.run_count -eq 6)
+    )
+    $CompatibilityRunCountType = "<missing>"
+    if ($null -ne $Compatibility.run_count) {
+        $CompatibilityRunCountType = $Compatibility.run_count.GetType().FullName
+    }
+    if (-not $ReleaseReadyIsPass -or -not $ReleaseBlockersAreEmpty -or -not $CompatibilityRunCountIsSix) {
+        $Blockers = @($Compatibility.release_blockers | ForEach-Object { $_.field }) -join ", "
+        throw (
+            "Full comparison release gate is not an unblocked PASS for an exact six-run comparison. " +
+            "release_ready_pass=$ReleaseReadyIsPass, release_blockers_empty=$ReleaseBlockersAreEmpty, " +
+            "run_count_six=$CompatibilityRunCountIsSix, " +
+            "run_count_type=$CompatibilityRunCountType. Blockers: $Blockers"
+        )
+    }
+    if (-not (Test-Path -LiteralPath $FormalValidationPath -PathType Leaf)) {
+        throw "Full comparison did not produce formal_validation.json: $FormalValidationPath"
+    }
+    try {
+        $FormalValidation = Get-Content -LiteralPath $FormalValidationPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    }
+    catch {
+        throw "Formal validation is not valid JSON: $FormalValidationPath`n$($_.Exception.Message)"
+    }
+    $FormalStatusIsPass = (
+        ($FormalValidation.status -is [string]) -and
+        ($FormalValidation.status -ceq "PASS")
+    )
+    $FormalRunCountIsSix = (
+        (($FormalValidation.run_count -is [int]) -or ($FormalValidation.run_count -is [long])) -and
+        ($FormalValidation.run_count -eq 6)
+    )
+    if (-not $FormalStatusIsPass -or -not $FormalRunCountIsSix) {
+        throw "Formal validation is not an exact six-run PASS: status=$($FormalValidation.status), run_count=$($FormalValidation.run_count)"
+    }
+    return [PSCustomObject]@{
+        Compatibility = $Compatibility
+        FormalValidation = $FormalValidation
+    }
+}
+
 function Read-JsonFile {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -716,8 +819,11 @@ foreach ($Item in $RunStates) {
     Write-Host ("    " + (Format-NativeCommand $Item.Spec.Executable $Item.Spec.Arguments))
 }
 
-$ComparisonArguments = @("--runs") + @($RunSpecs | ForEach-Object { $_.RunDirectory }) + @(
-    "--output-dir", $ComparisonDirectory
+$ComparisonArguments = @(
+    New-ComparisonArguments `
+        -RunDirectories @($RunSpecs | ForEach-Object { $_.RunDirectory }) `
+        -OutputDirectory $ComparisonDirectory `
+        -Formal:(-not $Smoke)
 )
 Write-Host "  [COMPARE] $(Format-NativeCommand $CompareExecutable $ComparisonArguments)"
 
@@ -833,17 +939,10 @@ try {
         throw "Common comparison failed with exit code ${ComparisonExitCode}: $ComparisonDirectory"
     }
 
-    $CompatibilityPath = Join-Path $ComparisonDirectory "protocol_compatibility.json"
-    Assert-LeafPath $CompatibilityPath "Comparison compatibility"
-    $Compatibility = Read-JsonFile $CompatibilityPath "Comparison compatibility"
-    if (-not [bool]$Compatibility.comparable) {
-        $Blockers = @($Compatibility.critical_mismatches | ForEach-Object { $_.field }) -join ", "
-        throw "Comparison completed but comparable=false. Critical mismatches: $Blockers"
-    }
-    if (-not $Smoke -and -not [bool]$Compatibility.release_ready) {
-        $Blockers = @($Compatibility.release_blockers | ForEach-Object { $_.field }) -join ", "
-        throw "Full comparison completed but release_ready=false. Blockers: $Blockers"
-    }
+    $ComparisonResult = Assert-ComparisonResult `
+        -ComparisonDirectory $ComparisonDirectory `
+        -Smoke:$Smoke
+    $Compatibility = $ComparisonResult.Compatibility
     Assert-RepositoryFrozen -ExpectedHead $RepositoryState.head | Out-Null
     Assert-YoloXSourceFrozen -ExpectedHead $YoloXSourceState.head | Out-Null
     if ((Get-ImplementationSnapshotSha256) -ne $ImplementationSha256) {
@@ -855,6 +954,12 @@ try {
     Write-Host "Common comparison: $ComparisonDirectory"
     Write-Host "Comparable       : $($Compatibility.comparable)"
     Write-Host "Release ready    : $($Compatibility.release_ready)"
+    if ($Smoke) {
+        Write-Host "Formal validation: OMITTED (smoke comparison)"
+    }
+    else {
+        Write-Host "Formal validation: $($ComparisonResult.FormalValidation.status) (runs=$($ComparisonResult.FormalValidation.run_count))"
+    }
 }
 finally {
     Pop-Location
