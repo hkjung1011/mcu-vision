@@ -149,7 +149,7 @@ checkout의 HEAD/clean 상태를 읽어 run manifest의 `framework_commit` 및 e
 
 ```powershell
 $Old = "runs\benchmarks\micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267"
-$New = "runs\benchmarks\micropcb_rpi_completion_b3e4176_20260818"
+$New = "runs\benchmarks\micropcb_rpi_completion_retry3_b3e4176_20260818"
 .\scripts\compare_formal_mixed_runs.ps1 `
   -Yolo11Seed42 "$Old\yolo11m_seed42" `
   -Yolo11Seed43 "$Old\yolo11m_seed43" `
@@ -157,8 +157,12 @@ $New = "runs\benchmarks\micropcb_rpi_completion_b3e4176_20260818"
   -YoloXSeed43 "$New\yolox_s_seed43" `
   -Yolo11Seed44 "$New\yolo11m_seed44" `
   -YoloXSeed44 "$New\yolox_s_seed44" `
-  -OutputDirectory "runs\comparisons\formal_mixed_63bc679_b3e4176"
+  -OutputDirectory "runs\comparisons\formal_mixed_63bc679_b3e4176_retry3"
 ```
+
+`micropcb_rpi_completion_b3e4176_20260818/yolox_s_seed43`의 중단 checkpoint는
+진행 기록으로만 보존하며 formal six-run 입력에 포함하지 않습니다. 위 `retry3` 경로의
+seed43/44 run은 각각 빈 디렉터리에서 100 epochs를 새로 완료한 결과만 사용합니다.
 
 Wrapper는 comparator 종료 코드가 0이어도 `release_ready=false`, blocker 또는 critical mismatch가
 하나라도 있으면 `BLOCKED` 오류와 nonzero exit code를 반환합니다.
