@@ -15,8 +15,8 @@ pipeline 검증용이며, 최종 제품군 성능으로 해석하지 않습니�
 | 3. Class별 데이터 | RPi 1,875장만 반입; Pico/STM32/SMD 승인본 0장 | NOT VERIFIED | class별 provenance·중복 감사된 실사 목표 충족 |
 | 4. Split 독립성 | condition/pHash component 기준 1,500/195/180, cross-split 후보 0 | PASS (BOOTSTRAP) | 새 physical item/session 독립 test |
 | 5. 수동 seed/gold | 미시작 | NOT VERIFIED | 대표 200장 전체 instance 라벨, locked val/test 생성 |
-| 6. CVAT 검수 경로 | COCO/YOLO verifier와 reviewer/hash 승격 gate 구현 | PARTIAL | 실제 CVAT export에서 왕복 손실 0 확인 |
-| 7. Autolabel bootstrap | role/ontology/teacher/calibration/image-list binding 구현 | PARTIAL | 실제 domain teacher·locked gold·전량 사람 승인 |
+| 6. CVAT 검수 경로 | full class-map/image binding verifier와 filtered-COCO 승격 gate 구현 | PARTIAL | 실제 CVAT export에서 왕복 손실 0 확인 |
+| 7. Autolabel bootstrap | trusted registry/locked split/teacher/calibration exact binding 구현 | PARTIAL | 승인 registry entry·실제 domain teacher·전량 사람 승인 |
 | 8. Multi-class 학습 경로 | dataset CLI·dynamic class 수·canonical equivalence 구현 | PARTIAL | 승인 multi-class data로 양쪽 smoke |
 | 9. 정식 비교 | full 3/6 완료, 1/6 중단, 2/6 미시작 | PARTIAL | 2 models × 3 seeds × 100 epochs, protocol PASS |
 | 10. Git release | 2026-08-18 public progress snapshot·LFS weight 게시 | PARTIAL | 6-run trained checkpoint·report·SHA-256 정식 승격 |
@@ -62,9 +62,10 @@ specimen ID가 없으므로 이 분할은 새 보드·새 카메라 일반화를
 - dataset manifest·class map·image list hash와 YOLO↔COCO box/class 동등성 validator — **PASS**
 - condition/pHash component leakage 감사 — **v2 PASS**, physical specimen ID는 미제공
 - 두 framework의 class-aware NMS(`class_agnostic_nms=false`)와 top-K 조건을 accuracy/latency에 동일 적용
-- CVAT verifier와 승인 label hash gate — **코드 구현, 실제 export 검증 대기**
-- validation/test를 autolabel source로 선택하지 못하게 차단
-- specimen/session 기준 split·leakage 검사와 독립 test slot 추가
+- CVAT full class-map/image-binding verifier와 filtered canonical COCO 승격 gate — **코드 구현, 실제 export 검증 대기**
+- project trusted registry와 locked split 기준 validation/test SHA 재선언 차단 — **코드 PASS, 승인 entry 0건**
+- STM32 specimen/part-number evidence와 dataset별 source class allowlist — **코드 PASS, 실제 data 대기**
+- train/val/test exact image SHA leakage와 RPi 9-hash formal evidence — **PASS**, physical specimen ID는 미제공
 - 동일 파일 stem의 `.jpg/.png` label 충돌 방지
 
 ### P1 — 오토라벨 효율·소형 객체 성능

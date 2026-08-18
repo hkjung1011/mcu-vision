@@ -68,6 +68,11 @@ Hugging Face implementation 또는 WSL2/Linux build를 검증합니다.
   --run-id smd_pending_v1
 ```
 
+이 명령은 `configs/data_trust_registry.yaml`의 `APPROVED` entry와 hash-locked
+`unlabeled_train`/`gold_validation_locked`/`test_locked` evidence가 모두 일치할 때만 실행됩니다.
+현재 project registry는 승인 데이터 0장을 정확히 나타내도록 비어 있으므로 실제 split 승인 전에는
+의도적으로 실패합니다. Caller가 만든 source manifest만으로 승인 상태를 주장할 수 없습니다.
+
 산출물은 `runs/autolabel/smd_pending_v1/`에 저장됩니다.
 
 - `terminal.log`: 진행 과정과 최종 수치
@@ -75,13 +80,16 @@ Hugging Face implementation 또는 WSL2/Linux build를 검증합니다.
 - `review_queue.csv`: 빈 예측과 저신뢰 이미지를 앞에 둔 검수 순서
 - `labels_pending/`: YOLO 형식의 미승인 라벨
 - `previews/`: box, class, score가 그려진 검수 이미지
-- `run_manifest.json`: teacher hash, threshold, tile/NMS 값, 환경
+- `pending_reference.coco.json`: stable image ID/path/dimensions/SHA와 full class map을 묶은 exact reference
+- `run_manifest.json`: trusted registry/split, teacher, calibration, pending reference, tile/NMS hash 근거
 
 `labels_pending`은 canonical dataset 경로가 아니며 이를 train에 자동 합치지 않습니다. 현재 출력은
 CVAT import ZIP이 아닙니다. `mcu-verify-cvat-roundtrip`과 `mcu-promote-reviewed`를 사용해 실제 CVAT
 COCO export의 왕복 검증, reviewer·승인 시각·export/ontology hash, 전 이미지 disposition이 모두
-PASS한 승격 manifest를 만든 뒤에만 `reviewed_train`으로 다룹니다. 파일을 수동 복사한 것만으로는
-승인 데이터가 되지 않습니다.
+PASS한 승격 manifest와 **reviewed-only filtered canonical COCO**를 만든 뒤에만 `reviewed_train`으로
+다룹니다. 승격기는 pending image binding과 실제 reference COCO, full class map, round-trip report를
+exact bind합니다. `rejected` image/annotation은 filtered artifact에서 물리적으로 제거되고 그 SHA-256이
+downstream 학습 입력의 필수값이 됩니다. 파일을 수동 복사한 것만으로는 승인 데이터가 되지 않습니다.
 
 ## 수동 라벨 가이드
 

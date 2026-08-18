@@ -3,13 +3,14 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageDraw, ImageOps
 
-from .common import sha256_file, write_json
+from .common import load_yaml, sha256_file, write_json
 from .contracts import (
     ContractError,
     Ontology,
@@ -33,7 +34,10 @@ from .runlog import (
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 AUTOLABEL_SOURCE_SCHEMA = "mcu.autolabel-source.v1"
+TRUST_REGISTRY_SCHEMA = "mcu.data-trust-registry.v1"
+LOCKED_SPLIT_SCHEMA = "mcu.locked-split-evidence.v1"
 ALLOWED_TEACHER_ANNOTATION_STATES = {"manual_seed", "reviewed_train"}
+LOCKED_SPLIT_ROLES = {"unlabeled_train", "gold_validation_locked", "test_locked"}
 
 
 def project_root() -> Path:
@@ -80,8 +84,182 @@ def _manifest_class_map(value: Any, *, field: str) -> dict[int, str]:
     return result
 
 
+def _normalized_image_binding(
+    row: Any, *, index: int, role: str, field_prefix: str
+) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        raise ContractError(f"{field_prefix}[{index}] must be an object")
+    image_id = row.get("image_id")
+    if not isinstance(image_id, str) or not image_id.strip():
+        raise ContractError(f"{field_prefix}[{index}].image_id must be a non-empty string")
+    relative = safe_relative_path(row.get("path"), field=f"{field_prefix}[{index}].path")
+    if row.get("role", role) != role:
+        raise ContractError(f"{field_prefix}[{index}] role must be {role}")
+    try:
+        width = int(row["width"])
+        height = int(row["height"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ContractError(f"{field_prefix}[{index}] dimensions are invalid") from exc
+    if width <= 0 or height <= 0:
+        raise ContractError(f"{field_prefix}[{index}] dimensions are invalid")
+    return {
+        "image_id": image_id.strip(),
+        "path": relative,
+        "sha256": require_sha256(
+            row.get("sha256"), field=f"{field_prefix}[{index}].sha256"
+        ),
+        "width": width,
+        "height": height,
+        "role": role,
+    }
+
+
+def _load_trusted_source_approval(
+    *,
+    trusted_registry_path: Path,
+    dataset_id: str,
+    ontology: Ontology,
+    source_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    registry_path = trusted_registry_path.resolve()
+    registry = load_yaml(registry_path)
+    if registry.get("schema_version") != TRUST_REGISTRY_SCHEMA:
+        raise ContractError(f"Trusted registry schema must be {TRUST_REGISTRY_SCHEMA}")
+    registry_id = registry.get("registry_id")
+    if not isinstance(registry_id, str) or not registry_id:
+        raise ContractError("Trusted registry registry_id must be a non-empty string")
+    actual_registry_sha = sha256_file(registry_path)
+    if source_manifest.get("trusted_registry_id") != registry_id:
+        raise ContractError("Source manifest trusted_registry_id differs from project registry")
+    if require_sha256(
+        source_manifest.get("trusted_registry_sha256"),
+        field="source manifest trusted_registry_sha256",
+    ) != actual_registry_sha:
+        raise ContractError("Source manifest is bound to a different trusted registry revision")
+    datasets = registry.get("datasets")
+    if not isinstance(datasets, dict) or dataset_id not in datasets:
+        raise ContractError(
+            f"Dataset {dataset_id!r} is not approved in the project trusted registry"
+        )
+    entry = datasets[dataset_id]
+    if not isinstance(entry, dict) or entry.get("status") != "APPROVED":
+        raise ContractError(f"Trusted dataset {dataset_id!r} is not status=APPROVED")
+    entry_sha = canonical_sha256(entry)
+    if require_sha256(
+        source_manifest.get("trusted_dataset_record_sha256"),
+        field="source manifest trusted_dataset_record_sha256",
+    ) != entry_sha:
+        raise ContractError("Source manifest trusted dataset record hash differs from registry")
+    if require_sha256(
+        entry.get("ontology_sha256"), field="trusted dataset ontology_sha256"
+    ) != ontology.sha256:
+        raise ContractError("Trusted dataset ontology differs from selected ontology")
+    evidence_record = entry.get("locked_split_evidence")
+    if not isinstance(evidence_record, dict):
+        raise ContractError("Trusted dataset must contain locked_split_evidence")
+    evidence_relative = safe_relative_path(
+        evidence_record.get("path"), field="trusted dataset locked_split_evidence.path"
+    )
+    project_root_path = registry_path.parent.parent.resolve()
+    evidence_path = (project_root_path / evidence_relative).resolve()
+    try:
+        evidence_path.relative_to(project_root_path)
+    except ValueError as exc:
+        raise ContractError("Locked split evidence escapes the project root") from exc
+    expected_evidence_sha = require_sha256(
+        evidence_record.get("sha256"), field="trusted dataset locked_split_evidence.sha256"
+    )
+    if not evidence_path.is_file() or sha256_file(evidence_path) != expected_evidence_sha:
+        raise ContractError("Locked split evidence file is missing or differs from registry")
+    if require_sha256(
+        source_manifest.get("locked_split_evidence_sha256"),
+        field="source manifest locked_split_evidence_sha256",
+    ) != expected_evidence_sha:
+        raise ContractError("Source manifest is bound to different locked split evidence")
+    evidence = load_json_object(evidence_path, label="locked split evidence")
+    if evidence.get("schema_version") != LOCKED_SPLIT_SCHEMA:
+        raise ContractError(f"Locked split evidence schema must be {LOCKED_SPLIT_SCHEMA}")
+    if evidence.get("dataset_id") != dataset_id:
+        raise ContractError("Locked split evidence dataset_id differs from source manifest")
+    if _ontology_sha(evidence, field="locked split evidence ontology_sha256") != ontology.sha256:
+        raise ContractError("Locked split evidence ontology differs from selected ontology")
+    splits = evidence.get("splits")
+    if not isinstance(splits, dict) or set(splits) != LOCKED_SPLIT_ROLES:
+        raise ContractError(
+            "Locked split evidence must explicitly contain unlabeled_train, "
+            "gold_validation_locked, and test_locked"
+        )
+    normalized_splits: dict[str, list[dict[str, Any]]] = {}
+    sha_roles: dict[str, str] = {}
+    id_roles: dict[str, str] = {}
+    path_roles: dict[str, str] = {}
+    for role in sorted(LOCKED_SPLIT_ROLES):
+        split = splits[role]
+        if not isinstance(split, dict) or not isinstance(split.get("images"), list):
+            raise ContractError(f"Locked split {role} must contain an images list")
+        rows = [
+            _normalized_image_binding(
+                row, index=index, role=role, field_prefix=f"locked splits.{role}.images"
+            )
+            for index, row in enumerate(split["images"], start=1)
+        ]
+        rows.sort(key=lambda row: (str(row["path"]), str(row["image_id"])))
+        if len({row["image_id"] for row in rows}) != len(rows):
+            raise ContractError(f"Locked split {role} contains duplicate image_id")
+        if len({row["path"] for row in rows}) != len(rows):
+            raise ContractError(f"Locked split {role} contains duplicate path")
+        expected_list_sha = canonical_sha256(rows)
+        if require_sha256(
+            split.get("image_list_sha256"),
+            field=f"locked splits.{role}.image_list_sha256",
+        ) != expected_list_sha:
+            raise ContractError(f"Locked split {role} image list hash is invalid")
+        for row in rows:
+            stable_id = str(row["image_id"])
+            relative_path = str(row["path"])
+            previous_id_role = id_roles.get(stable_id)
+            if previous_id_role is not None:
+                raise ContractError(
+                    f"Locked split evidence reuses image_id {stable_id!r} in "
+                    f"{previous_id_role} and {role}"
+                )
+            previous_path_role = path_roles.get(relative_path)
+            if previous_path_role is not None:
+                raise ContractError(
+                    f"Locked split evidence reuses image path {relative_path!r} in "
+                    f"{previous_path_role} and {role}"
+                )
+            previous = sha_roles.get(str(row["sha256"]))
+            if previous is not None:
+                raise ContractError(
+                    f"Locked split evidence reuses an image SHA in {previous} and {role}"
+                )
+            id_roles[stable_id] = role
+            path_roles[relative_path] = role
+            sha_roles[str(row["sha256"])] = role
+        normalized_splits[role] = rows
+    approved = normalized_splits.get("unlabeled_train", [])
+    if not approved:
+        raise ContractError("Trusted locked split has no approved unlabeled_train images")
+    return {
+        "registry_id": registry_id,
+        "registry_sha256": actual_registry_sha,
+        "dataset_record_sha256": entry_sha,
+        "locked_split_evidence_path": evidence_relative,
+        "locked_split_evidence_sha256": expected_evidence_sha,
+        "approved_unlabeled_train_images": approved,
+        "protected_image_sha_roles": {
+            sha: role for sha, role in sha_roles.items() if role != "unlabeled_train"
+        },
+    }
+
+
 def validate_source_binding(
-    *, source_manifest_path: Path, source: Path, ontology: Ontology
+    *,
+    source_manifest_path: Path,
+    source: Path,
+    ontology: Ontology,
+    trusted_registry_path: Path,
 ) -> dict[str, Any]:
     manifest_path = source_manifest_path.resolve()
     document = load_json_object(manifest_path, label="autolabel source manifest")
@@ -95,42 +273,57 @@ def validate_source_binding(
         )
     if _ontology_sha(document, field="source manifest ontology_sha256") != ontology.sha256:
         raise ContractError("Autolabel source manifest ontology hash differs from the selected ontology")
+    dataset_id = document.get("dataset_id")
+    if not isinstance(dataset_id, str) or not dataset_id:
+        raise ContractError("Source manifest dataset_id must be a non-empty string")
+    trust = _load_trusted_source_approval(
+        trusted_registry_path=trusted_registry_path,
+        dataset_id=dataset_id,
+        ontology=ontology,
+        source_manifest=document,
+    )
     raw_images = document.get("images")
     if not isinstance(raw_images, list) or not raw_images:
         raise ContractError("Autolabel source manifest images must be a non-empty list")
     declared: dict[str, dict[str, Any]] = {}
     binding_rows: list[dict[str, Any]] = []
     for index, row in enumerate(raw_images, start=1):
-        if not isinstance(row, dict):
-            raise ContractError(f"Source manifest image {index} must be an object")
-        relative = safe_relative_path(row.get("path"), field=f"images[{index}].path")
+        normalized = _normalized_image_binding(
+            row,
+            index=index,
+            role="unlabeled_train",
+            field_prefix="images",
+        )
+        relative = str(normalized["path"])
         if relative in declared:
             raise ContractError(f"Duplicate source manifest image path: {relative}")
-        if row.get("role", "unlabeled_train") != "unlabeled_train":
-            raise ContractError(f"Source manifest image is not unlabeled_train: {relative}")
-        try:
-            width = int(row["width"])
-            height = int(row["height"])
-        except (KeyError, TypeError, ValueError) as exc:
-            raise ContractError(f"Source manifest image dimensions are invalid: {relative}") from exc
-        if width <= 0 or height <= 0:
-            raise ContractError(f"Source manifest image dimensions are invalid: {relative}")
-        normalized = {
-            "path": relative,
-            "sha256": require_sha256(row.get("sha256"), field=f"images[{index}].sha256"),
-            "width": width,
-            "height": height,
-            "role": "unlabeled_train",
-        }
         declared[relative] = normalized
         binding_rows.append(normalized)
-    binding_rows.sort(key=lambda row: str(row["path"]))
+    if len({row["image_id"] for row in binding_rows}) != len(binding_rows):
+        raise ContractError("Source manifest contains duplicate image_id")
+    binding_rows.sort(key=lambda row: (str(row["path"]), str(row["image_id"])))
     expected_image_list_sha = canonical_sha256(binding_rows)
     declared_image_list_sha = require_sha256(
         document.get("image_list_sha256"), field="source manifest image_list_sha256"
     )
     if declared_image_list_sha != expected_image_list_sha:
         raise ContractError("Source manifest image_list_sha256 does not match its image records")
+    protected = trust["protected_image_sha_roles"]
+    redeclared = [
+        {"image_id": row["image_id"], "sha256": row["sha256"], "locked_role": protected[row["sha256"]]}
+        for row in binding_rows
+        if row["sha256"] in protected
+    ]
+    if redeclared:
+        raise ContractError(
+            "Source manifest attempts to redeclare locked validation/test image SHA values: "
+            f"{redeclared[:10]}"
+        )
+    if binding_rows != trust["approved_unlabeled_train_images"]:
+        raise ContractError(
+            "Source manifest image IDs/paths/dimensions/SHA values do not exactly match the "
+            "approved unlabeled_train set in locked split evidence"
+        )
 
     actual_paths = iter_images(source)
     actual: dict[str, Path] = {}
@@ -156,9 +349,6 @@ def validate_source_binding(
             raise ContractError(
                 f"Runtime source image dimensions differ from manifest: {relative}"
             )
-    dataset_id = document.get("dataset_id")
-    if not isinstance(dataset_id, str) or not dataset_id:
-        raise ContractError("Source manifest dataset_id must be a non-empty string")
     return {
         "manifest_sha256": sha256_file(manifest_path),
         "schema_version": document["schema_version"],
@@ -168,6 +358,13 @@ def validate_source_binding(
         "image_list_sha256": declared_image_list_sha,
         "image_count": len(binding_rows),
         "images": binding_rows,
+        "trust": {
+            "registry_id": trust["registry_id"],
+            "registry_sha256": trust["registry_sha256"],
+            "dataset_record_sha256": trust["dataset_record_sha256"],
+            "locked_split_evidence_path": trust["locked_split_evidence_path"],
+            "locked_split_evidence_sha256": trust["locked_split_evidence_sha256"],
+        },
     }
 
 
@@ -296,17 +493,115 @@ def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) ->
         writer.writerows(rows)
 
 
+def _pending_coco_document(
+    *,
+    source_binding: dict[str, Any],
+    class_names: dict[int, str],
+    prediction_rows: list[dict[str, Any]],
+) -> tuple[dict[str, Any], str]:
+    bindings = [
+        {
+            "image_id": row["image_id"],
+            "path": row["path"],
+            "sha256": row["sha256"],
+            "width": int(row["width"]),
+            "height": int(row["height"]),
+        }
+        for row in source_binding["images"]
+    ]
+    bindings.sort(key=lambda row: (str(row["path"]), str(row["image_id"])))
+    image_id_by_path = {
+        str(row["path"]): index for index, row in enumerate(bindings, start=1)
+    }
+    images = [
+        {
+            "id": image_id_by_path[str(row["path"])],
+            "file_name": row["path"],
+            "width": row["width"],
+            "height": row["height"],
+            "mcu_image_id": row["image_id"],
+            "sha256": row["sha256"],
+        }
+        for row in bindings
+    ]
+    annotations: list[dict[str, Any]] = []
+    for annotation_id, row in enumerate(prediction_rows, start=1):
+        x1 = float(row["x1"])
+        y1 = float(row["y1"])
+        x2 = float(row["x2"])
+        y2 = float(row["y2"])
+        annotations.append(
+            {
+                "id": annotation_id,
+                "image_id": image_id_by_path[str(row["image"])],
+                "category_id": int(row["class_id"]) + 1,
+                "bbox": [x1, y1, x2 - x1, y2 - y1],
+                "area": (x2 - x1) * (y2 - y1),
+                "iscrowd": 0,
+                "score": float(row["confidence"]),
+                "attributes": {"occluded": False, "truncated": False},
+            }
+        )
+    document = {
+        "info": {
+            "description": "Pending autolabel reference; every annotation requires human review",
+            "dataset_id": source_binding["dataset_id"],
+            "ontology_sha256": source_binding["ontology_sha256"],
+            "image_bindings_sha256": canonical_sha256(bindings),
+        },
+        "licenses": [],
+        "images": images,
+        "annotations": annotations,
+        "categories": [
+            {"id": class_id + 1, "name": name, "ontology_class_id": class_id}
+            for class_id, name in sorted(class_names.items())
+        ],
+    }
+    return document, canonical_sha256(bindings)
+
+
+def _calibration_confidence(value: Any, *, field: str) -> float:
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ContractError(
+            f"{field} must be finite and in [0, 1] (numeric value required)"
+        ) from exc
+    if not math.isfinite(confidence) or not 0 <= confidence <= 1:
+        raise ContractError(f"{field} must be finite and in [0, 1]")
+    return confidence
+
+
 def _calibration_thresholds(path: Path | None) -> tuple[dict[str, float], dict[str, Any]]:
     if path is None:
         return {}, {"status": "NOT_PROVIDED"}
     document = json.loads(path.read_text(encoding="utf-8"))
     thresholds: dict[str, float] = {}
-    for row in document.get("pseudo_label_calibration_by_class", []):
+    rows = document.get("pseudo_label_calibration_by_class", [])
+    if not isinstance(rows, list):
+        raise ContractError("pseudo_label_calibration_by_class must be a list")
+    for index, row in enumerate(rows, start=1):
+        if not isinstance(row, dict):
+            raise ContractError(f"Calibration row {index} must be an object")
         if row.get("confidence") is not None:
-            thresholds[str(row["category_name"])] = float(row["confidence"])
-    global_value = document.get("pseudo_label_calibration", {}).get("confidence")
+            category = row.get("category_name")
+            if not isinstance(category, str) or not category:
+                raise ContractError(f"Calibration row {index} category_name is invalid")
+            if category in thresholds:
+                raise ContractError(f"Calibration contains duplicate category {category!r}")
+            confidence = _calibration_confidence(
+                row["confidence"], field=f"Calibration confidence for {category!r}"
+            )
+            thresholds[category] = confidence
+    global_record = document.get("pseudo_label_calibration", {})
+    if not isinstance(global_record, dict):
+        raise ContractError("pseudo_label_calibration must be an object")
+    global_value = global_record.get("confidence")
     if global_value is not None:
-        thresholds["__global__"] = float(global_value)
+        confidence = _calibration_confidence(
+            global_value, field="Global calibration confidence"
+        )
+        thresholds["__global__"] = confidence
     return thresholds, {
         "status": "VALIDATION_DERIVED" if thresholds else "NO_VALID_THRESHOLD",
         "path": str(path.resolve()),
@@ -544,6 +839,7 @@ def main(argv: list[str] | None = None) -> None:
         source_manifest_path=source_manifest_path,
         source=source,
         ontology=ontology,
+        trusted_registry_path=project_root() / "configs" / "data_trust_registry.yaml",
     )
     teacher_binding = validate_teacher_binding(
         teacher_manifest_path=teacher_manifest_path,
@@ -778,6 +1074,14 @@ def main(argv: list[str] | None = None) -> None:
         )
         _write_review_instructions(run_dir / "README_REVIEW.md")
 
+        pending_coco, pending_image_bindings_sha = _pending_coco_document(
+            source_binding=source_binding,
+            class_names=class_names,
+            prediction_rows=prediction_rows,
+        )
+        pending_reference_path = run_dir / "pending_reference.coco.json"
+        write_json(pending_reference_path, pending_coco)
+
         total_high = sum(row["high_confidence_candidates"] for row in summary_rows)
         empty_images = sum(
             row["image_status"] == "empty_prediction_review_required" for row in summary_rows
@@ -795,6 +1099,14 @@ def main(argv: list[str] | None = None) -> None:
                     "all_labels_pending_human_review": True,
                 },
                 "gpu_summary": gpu_summary,
+                "pending_reference": {
+                    "path": "pending_reference.coco.json",
+                    "sha256": sha256_file(pending_reference_path),
+                    "image_bindings_sha256": pending_image_bindings_sha,
+                    "class_map_sha256": canonical_sha256(
+                        {str(key): value for key, value in sorted(class_names.items())}
+                    ),
+                },
             }
         )
         write_json(run_dir / "run_manifest.json", manifest)

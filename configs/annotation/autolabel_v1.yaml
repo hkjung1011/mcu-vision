@@ -12,8 +12,12 @@ implementation:
   sam2: REFERENCE_ONLY_NOT_IMPLEMENTED
   sahi_package: NOT_USED_custom_tiling_and_class_aware_nms_only
   config_loaded_by_cli: false
+  project_trusted_registry_and_locked_split_binding: IMPLEMENTED_FAIL_CLOSED_EMPTY_REGISTRY
   source_manifest_role_ontology_teacher_calibration_binding: IMPLEMENTED
+  exact_image_id_path_dimensions_sha_binding: IMPLEMENTED
+  finite_unit_interval_calibration_gate: IMPLEMENTED
   hard_human_approval_promotion_gate: IMPLEMENTED_AWAITING_REAL_HUMAN_REVIEW
+  rejected_image_filtered_canonical_coco: IMPLEMENTED_AWAITING_REAL_HUMAN_REVIEW
 
 data_states:
   manual_seed: human_created_training_seed

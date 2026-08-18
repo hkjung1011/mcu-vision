@@ -14,6 +14,8 @@ dataset:
   split_manifest: data/manifests/micropcb_raspberry_pi_sbc.phash_v2.csv
   split_summary: data/manifests/micropcb_raspberry_pi_sbc.phash_v2.summary.json
   equivalence_evidence: data/evidence/micropcb_rpi_phash_v2/dataset_evidence.json
+  locked_test_evidence_enabled: true
+  include_coco_attributes: true
   coco_annotation_sha256:
     train: 7b6cccb07d3217646147052752fa58ad32a98687968cf5679f5ebf2a9e61f3f4
     val: a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef
@@ -24,12 +26,15 @@ dataset:
   cross_split_phash_candidate_pairs: 0
   physical_item_independence_verified: false
   evidence:
-    canonical_dataset_manifest_sha256: 8039d57c23305b5b37c843abe358401d4ec3cafd2722833fa96acddb799b2e68
+    canonical_dataset_manifest_sha256: 140c99ff55d7cd1d4acb15d4719c59e575ddc6270f1c212532dce8ad430e7c6f
     class_map_sha256: 6921d4723044145cfbb6e7092fcead81762cbf8cc23f975cf0a5523adc4bf693
     train_image_list_sha256: af6126d8b3773083e6cf420cc9dd0e9444b42cb50aa19c5d83191aff0cda6698
     val_image_list_sha256: f96e176c8f33a3bc330c4fc1bc078b97fb0f6ce61006c5c9f50e28574e35cbfd
     canonical_train_records_sha256: 90c21061eb2facacb95e19757d3b828539a06a4dae05ee92e80adfdd6253ea32
     canonical_val_records_sha256: 75f8bd6f535ca18a27ddb7441161e5424d974b86ab5f39cdabba93841e0ea1bd
+    test_image_list_sha256: 9360ef74f71b17217d978346e925746eff90b0550e2859e1c8d054b11b6027f6
+    canonical_test_records_sha256: d4cc89f50a935d88d2b9363dbb8b8f4efadb8f271c62ca7e439ffef1766ec81b
+    canonical_annotation_attributes_sha256: 1c7e9c6a9a372ddb611879df9c88bf49d1d415c1aacab251386790f460981ff7
 
 common:
   train_images: 1500
@@ -112,6 +117,16 @@ comparison_rules:
     - val_image_list_sha256
     - canonical_train_records_sha256
     - canonical_val_records_sha256
+  formal_required_dataset_evidence:
+    - canonical_dataset_manifest_sha256
+    - class_map_sha256
+    - train_image_list_sha256
+    - val_image_list_sha256
+    - canonical_train_records_sha256
+    - canonical_val_records_sha256
+    - test_image_list_sha256
+    - canonical_test_records_sha256
+    - canonical_annotation_attributes_sha256
   coco_ap_ar_source: common_pycocotools_cocoeval_2_0_11
   operating_metrics_source: common_score_sorted_class_aware_greedy_one_to_one_matcher
   primary_metric: AP50_95

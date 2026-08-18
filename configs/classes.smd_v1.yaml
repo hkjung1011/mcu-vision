@@ -33,7 +33,6 @@ classes:
 source_aliases:
   dainius_smdcomponents_v2:
     Condensator: smd_capacitor
-    Capacitor: smd_capacitor
     Resistor: smd_resistor
     Diode: smd_diode
     Transistor: smd_transistor

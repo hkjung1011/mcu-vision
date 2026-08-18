@@ -22,7 +22,10 @@ number나 표면 marking 인식이 필요하면 detector 뒤에 고해상도 cro
 | Raspberry Pi near-duplicate | pHash 후보 3,511쌍, cross-split 0 | PASS (CONSERVATIVE GROUPING) | 후보 연결요소 전체를 같은 split에 배정 |
 | 현재 학습 범위 | Raspberry Pi 1-class bootstrap | PARTIAL | 실제 MCU/SMD 승인 데이터는 아직 없음 |
 | Provisional multi-class 경로 | dataset CLI, dynamic class 수, canonical equivalence gate 구현 | PARTIAL | 실제 multi-class dataset smoke 필요 |
-| 소형 SMD 실제 데이터 | 아직 canonical dataset에 없음 | NOT VERIFIED | 공개 raw 데이터 다운로드·감사 및 자체 촬영 필요 |
+| SMD/STM32 ingest gate | dataset allowlist, exact alias, STM32 specimen evidence, ZIP resource/atomic gate | CODE PASS | 실제 archive 반입 0장 |
+| 소형 SMD 실제 데이터 | trusted registry 승인 canonical dataset 0장 | NOT VERIFIED | 공개 raw 데이터 다운로드·감사 및 자체 촬영 필요 |
+| 오토라벨 신뢰 경계 | project registry/locked split/exact image binding, finite calibration | CODE PASS / DATA BLOCKED | empty registry에 의해 실제 proposal fail closed |
+| CVAT 승격 | exact reference/full class map/all-reviewed 및 rejected filtering | CODE PASS | 실제 CVAT export 검증 필요 |
 | full 3-seed 학습 | 완료 3/6; YOLOX-S seed43 70/100 중단; seed44 2개 미시작 | PARTIAL | seed 42/43/44 동일 protocol 완료 필요 |
 | 독립 컨베이어 test | 없음 | NOT VERIFIED | Ubuntu 카메라로 새 session을 촬영해 test 고정 필요 |
 | 공개 progress weight | 완료 best 3개 + 중단 best/resume 2개 | INTERIM_PROGRESS | metadata 비식별·SHA·load 검증, `release_ready=false` |
@@ -46,10 +49,10 @@ validation 수치와 중단 run의 native epoch 수치도 직접 같은 성능 �
 | REQ-EV-02 | batch 1 p50/p95 latency, FPS, VRAM을 동일 GPU에서 측정 | 완료 run 3개 PASS / thermal repeat 미완료 |
 | REQ-EV-03 | `terminal.log`, CSV/JSON, checkpoint SHA-256, config hash 보존 | PUBLIC PROGRESS PASS / formal 승격 미완료 |
 | REQ-DATA-01 | class별 승인된 고유 실사 1,000장 목표와 provenance 확보 | NOT VERIFIED |
-| REQ-DATA-02 | physical item/session 기준 split과 YOLO↔COCO label 동등성 hash | 형식 동등성 PASS / physical item NOT VERIFIED |
+| REQ-DATA-02 | physical item/session 기준 split과 YOLO↔COCO label 동등성 hash | RPi 9-hash 및 file SHA split gate PASS / physical item NOT VERIFIED |
 | REQ-MC-01 | 임의 canonical dataset/class 수를 두 framework가 동일하게 학습·평가 | 코드 PASS / multi-class data NOT VERIFIED |
-| REQ-AUTO-01 | YOLO11 proposal을 `pending` 분리 출력 | 코드 PASS / role·image-list hash로 val·test source 차단 |
-| REQ-AUTO-02 | CVAT round-trip 및 reviewer/hash 기반 강제 승인 gate | 코드 PASS / 실제 CVAT export NOT VERIFIED |
+| REQ-AUTO-01 | YOLO11 proposal을 `pending` 분리 출력 | 코드 PASS / trusted locked split에 승인 데이터 0장이라 실행 차단 |
+| REQ-AUTO-02 | CVAT round-trip 및 reviewer/hash 기반 강제 승인 gate | 코드 PASS / rejected filtering 포함, 실제 CVAT export NOT VERIFIED |
 | REQ-UB-01 | Ubuntu 실제 카메라 test set에서 정확도와 end-to-end latency 측정 | NOT VERIFIED |
 
 ## 다음 실행 순서

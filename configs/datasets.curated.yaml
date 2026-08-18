@@ -26,6 +26,11 @@ datasets:
     purpose: Conveyor-borne loose SMD detector bootstrap
     ingest_split_policy: bootstrap_train_only
     formal_evaluation_allowed: false
+    allowed_source_labels:
+      Condensator: smd_capacitor
+      Resistor: smd_resistor
+      Diode: smd_diode
+      Transistor: smd_transistor
     notes:
       - Download raw-images version 2, not augmented versions.
       - Roboflow sign-in/API authorization may be required.

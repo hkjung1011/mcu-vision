@@ -11,7 +11,15 @@ from typing import Any, Iterable, Mapping
 import yaml
 
 from .common import sha256_file, write_json
-from .contracts import ContractError, Ontology, load_json_object, load_ontology
+from .contracts import (
+    ContractError,
+    Ontology,
+    canonical_sha256,
+    load_json_object,
+    load_ontology,
+    require_sha256,
+    safe_relative_path,
+)
 
 
 ROUNDTRIP_SCHEMA = "mcu.cvat-roundtrip-report.v1"
@@ -99,10 +107,10 @@ def _bbox_from_yolo(
 def _image_key(file_name: Any) -> str:
     if not isinstance(file_name, str) or not file_name:
         raise RoundTripError("Image file_name must be a non-empty string")
-    key = PurePosixPath(file_name.replace("\\", "/")).name
-    if key in {"", ".", ".."}:
-        raise RoundTripError(f"Invalid image file_name: {file_name!r}")
-    return key
+    try:
+        return safe_relative_path(file_name, field="COCO image file_name")
+    except ContractError as exc:
+        raise RoundTripError(str(exc)) from exc
 
 
 def _attributes(annotation: Mapping[str, Any]) -> dict[str, bool]:
@@ -118,7 +126,12 @@ def _attributes(annotation: Mapping[str, Any]) -> dict[str, bool]:
 
 
 def canonicalize_coco_document(
-    document: dict[str, Any], *, ontology: Ontology, decimals: int, include_attributes: bool
+    document: dict[str, Any],
+    *,
+    ontology: Ontology,
+    decimals: int,
+    include_attributes: bool,
+    require_image_bindings: bool = False,
 ) -> dict[str, Any]:
     images = document.get("images")
     annotations = document.get("annotations")
@@ -130,26 +143,49 @@ def canonicalize_coco_document(
     for category in categories:
         if not isinstance(category, Mapping) or "id" not in category:
             raise RoundTripError("Every COCO category must contain id and name")
+        category_id = category["id"]
+        if isinstance(category_id, bool) or not isinstance(category_id, int):
+            raise RoundTripError("Every COCO category id must be an integer")
         name = category.get("name")
         if not isinstance(name, str) or name not in ontology.classes_by_id.values():
             raise RoundTripError(f"COCO category is absent from ontology: {name!r}")
-        if name in seen_names or category["id"] in category_lookup:
+        if name in seen_names or category_id in category_lookup:
             raise RoundTripError(f"Duplicate COCO category: {name!r}")
         seen_names.add(name)
         class_id = ontology.class_id(name)
-        category_lookup[category["id"]] = (class_id, name)
+        if "ontology_class_id" in category:
+            declared_class_id = category["ontology_class_id"]
+            if (
+                isinstance(declared_class_id, bool)
+                or not isinstance(declared_class_id, int)
+                or declared_class_id != class_id
+            ):
+                raise RoundTripError(
+                    f"COCO category ontology_class_id differs from frozen class map: {name!r}"
+                )
+        category_lookup[category_id] = (class_id, name)
+    expected_names = set(ontology.classes_by_id.values())
+    if seen_names != expected_names:
+        raise RoundTripError(
+            "COCO category map must exactly equal the frozen ontology: "
+            f"missing={sorted(expected_names - seen_names)}, "
+            f"unexpected={sorted(seen_names - expected_names)}"
+        )
     image_lookup: dict[Any, dict[str, Any]] = {}
     seen_keys: set[str] = set()
     image_rows: list[dict[str, Any]] = []
+    image_bindings: list[dict[str, Any]] = []
     for image in images:
         if not isinstance(image, Mapping) or "id" not in image:
             raise RoundTripError("Every COCO image must contain id and file_name")
         image_id = image["id"]
+        if isinstance(image_id, bool) or not isinstance(image_id, (int, str)):
+            raise RoundTripError("Every COCO image id must be an integer or string")
         if image_id in image_lookup:
             raise RoundTripError(f"Duplicate COCO image id: {image_id!r}")
         key = _image_key(image.get("file_name"))
         if key in seen_keys:
-            raise RoundTripError(f"Duplicate COCO image basename: {key}")
+            raise RoundTripError(f"Duplicate COCO image path: {key}")
         seen_keys.add(key)
         try:
             width = int(image["width"])
@@ -161,6 +197,23 @@ def canonicalize_coco_document(
         row = {"image_key": key, "width": width, "height": height}
         image_lookup[image_id] = row
         image_rows.append(row)
+        if require_image_bindings:
+            stable_id = image.get("mcu_image_id", image.get("mcu_asset_id"))
+            if not isinstance(stable_id, str) or not stable_id:
+                raise RoundTripError(
+                    f"Reference COCO image {key} is missing mcu_image_id/mcu_asset_id"
+                )
+            image_bindings.append(
+                {
+                    "image_id": stable_id,
+                    "path": key,
+                    "sha256": require_sha256(
+                        image.get("sha256"), field=f"reference image {key} sha256"
+                    ),
+                    "width": width,
+                    "height": height,
+                }
+            )
     records: list[dict[str, Any]] = []
     for index, annotation in enumerate(annotations, start=1):
         if not isinstance(annotation, Mapping):
@@ -193,10 +246,16 @@ def canonicalize_coco_document(
     return {
         "images": sorted(image_rows, key=_canonical_json),
         "records": sorted(records, key=_canonical_json),
+        "image_bindings": sorted(
+            image_bindings, key=lambda row: (str(row["path"]), str(row["image_id"]))
+        ),
+        "class_map": {
+            str(key): value for key, value in sorted(ontology.classes_by_id.items())
+        },
     }
 
 
-def _load_coco_roundtrip(path: Path) -> tuple[dict[str, Any], str]:
+def load_coco_export_document(path: Path) -> tuple[dict[str, Any], str]:
     if path.suffix.casefold() != ".zip":
         return load_json_object(path, label="CVAT COCO round-trip export"), path.name
     if not zipfile.is_zipfile(path):
@@ -238,9 +297,21 @@ def _yolo_names(archive: zipfile.ZipFile) -> list[str]:
             raise RoundTripError("Invalid YOLO dataset YAML") from exc
         names = document.get("names") if isinstance(document, dict) else None
         if isinstance(names, list):
-            return [str(name) for name in names]
+            if any(not isinstance(name, str) or not name for name in names):
+                raise RoundTripError("YOLO class names must be non-empty strings")
+            return list(names)
         if isinstance(names, dict):
-            indexed = {int(key): str(value) for key, value in names.items()}
+            indexed: dict[int, str] = {}
+            for raw_key, raw_value in names.items():
+                if isinstance(raw_key, bool) or not isinstance(raw_value, str) or not raw_value:
+                    raise RoundTripError("YOLO class ids and names are invalid")
+                try:
+                    class_id = int(raw_key)
+                except (TypeError, ValueError) as exc:
+                    raise RoundTripError("YOLO class ids must be integers") from exc
+                if class_id in indexed:
+                    raise RoundTripError("YOLO class ids collide after integer normalization")
+                indexed[class_id] = raw_value
             if sorted(indexed) != list(range(len(indexed))):
                 raise RoundTripError("YOLO class ids must be contiguous from zero")
             return [indexed[index] for index in range(len(indexed))]
@@ -275,11 +346,11 @@ def _canonicalize_yolo_zip(
         raise RoundTripError("Reference image stems are ambiguous for YOLO")
     with zipfile.ZipFile(path) as archive:
         names = _yolo_names(archive)
-        for class_id, name in enumerate(names):
-            if ontology.classes_by_id.get(class_id) != name:
-                raise RoundTripError(
-                    f"YOLO class map differs from ontology at id {class_id}: {name!r}"
-                )
+        if names != ontology.names:
+            raise RoundTripError(
+                f"YOLO class map must exactly equal the frozen ontology: "
+                f"yolo={names}, ontology={ontology.names}"
+            )
         labels: dict[str, zipfile.ZipInfo] = {}
         for info in archive.infolist():
             if info.is_dir() or not info.filename.casefold().endswith(".txt"):
@@ -375,14 +446,16 @@ def verify_cvat_roundtrip(
         ontology=ontology,
         decimals=bbox_decimals,
         include_attributes=include_attributes,
+        require_image_bindings=True,
     )
     if export_format == "coco":
-        roundtrip_document, member = _load_coco_roundtrip(roundtrip_path)
+        roundtrip_document, member = load_coco_export_document(roundtrip_path)
         roundtrip = canonicalize_coco_document(
             roundtrip_document,
             ontology=ontology,
             decimals=bbox_decimals,
             include_attributes=True,
+            require_image_bindings=False,
         )
     else:
         member = None
@@ -408,9 +481,13 @@ def verify_cvat_roundtrip(
         "format": export_format,
         "bbox_decimal_places": bbox_decimals,
         "ontology": ontology.record(),
+        "class_map": reference["class_map"],
+        "class_map_sha256": canonical_sha256(reference["class_map"]),
         "reference": {
             "name": reference_coco.name,
             "sha256": sha256_file(reference_coco),
+            "image_bindings": reference["image_bindings"],
+            "image_bindings_sha256": canonical_sha256(reference["image_bindings"]),
         },
         "roundtrip_artifact": {
             "name": roundtrip_path.name,

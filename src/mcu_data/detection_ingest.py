@@ -5,6 +5,9 @@ import json
 import math
 import os
 import shutil
+import subprocess
+import tempfile
+import warnings
 import zipfile
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -27,6 +30,12 @@ from .contracts import (
 
 MANIFEST_SCHEMA = "mcu.detection-source-manifest.v1"
 COCO_DESCRIPTION = "Canonical multi-object detection import; source data remains candidate-only"
+MAX_ARCHIVE_MEMBERS = 20_000
+MAX_MEMBER_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
+MAX_TOTAL_UNCOMPRESSED_BYTES = 32 * 1024 * 1024 * 1024
+MAX_COMPRESSION_RATIO = 250.0
+MAX_IMAGE_PIXELS = 100_000_000
+IGNORED_DATA_ROOTS = {"raw", "staging", "processed", "quarantine", "cache"}
 
 
 class DetectionIngestError(ValueError):
@@ -57,9 +66,37 @@ def _normalized_member(value: str) -> str:
 
 def _safe_members(archive: zipfile.ZipFile) -> dict[str, zipfile.ZipInfo]:
     members: dict[str, zipfile.ZipInfo] = {}
-    for info in archive.infolist():
+    infos = archive.infolist()
+    if len(infos) > MAX_ARCHIVE_MEMBERS:
+        raise DetectionIngestError(
+            f"Archive member limit exceeded: {len(infos)} > {MAX_ARCHIVE_MEMBERS}"
+        )
+    total_uncompressed = 0
+    for info in infos:
         if info.is_dir():
             continue
+        if info.flag_bits & 0x1:
+            raise DetectionIngestError(f"Encrypted archive member is forbidden: {info.filename}")
+        unix_mode = (info.external_attr >> 16) & 0o170000
+        if unix_mode == 0o120000:
+            raise DetectionIngestError(f"Archive symlink member is forbidden: {info.filename}")
+        if info.file_size > MAX_MEMBER_UNCOMPRESSED_BYTES:
+            raise DetectionIngestError(
+                f"Archive member uncompressed-size limit exceeded: {info.filename}"
+            )
+        total_uncompressed += info.file_size
+        if total_uncompressed > MAX_TOTAL_UNCOMPRESSED_BYTES:
+            raise DetectionIngestError("Archive total uncompressed-size limit exceeded")
+        if info.file_size:
+            if info.compress_size <= 0:
+                raise DetectionIngestError(
+                    f"Archive member has invalid compressed size: {info.filename}"
+                )
+            ratio = info.file_size / info.compress_size
+            if ratio > MAX_COMPRESSION_RATIO:
+                raise DetectionIngestError(
+                    f"Archive compression-ratio limit exceeded: {info.filename} ({ratio:.1f})"
+                )
         name = _normalized_member(info.filename)
         if name in members:
             raise DetectionIngestError(f"Duplicate normalized archive member: {name}")
@@ -84,6 +121,7 @@ def _load_registry_entry(path: Path, dataset_key: str) -> dict[str, Any]:
         "rights_statement",
         "rights_url",
         "ingest_split_policy",
+        "allowed_source_labels",
     )
     missing = [field for field in required if record.get(field) in (None, "")]
     if missing:
@@ -94,6 +132,18 @@ def _load_registry_entry(path: Path, dataset_key: str) -> dict[str, Any]:
         raise DetectionIngestError(
             "ingest_split_policy must be bootstrap_train_only or preserve_source_split"
         )
+    allowed = record["allowed_source_labels"]
+    if not isinstance(allowed, Mapping) or not allowed:
+        raise DetectionIngestError("allowed_source_labels must be a non-empty mapping")
+    if any(
+        not isinstance(source_name, str)
+        or not source_name
+        or not isinstance(canonical_name, str)
+        or not canonical_name
+        for source_name, canonical_name in allowed.items()
+    ):
+        raise DetectionIngestError("allowed_source_labels must map non-empty strings")
+    record["allowed_source_labels"] = dict(allowed)
     return record
 
 
@@ -165,16 +215,22 @@ def _image_member(
 
 def _decode_archive_image(member: str, content: bytes) -> ArchiveImage:
     try:
-        with Image.open(BytesIO(content)) as probe:
-            probe.verify()
-        with Image.open(BytesIO(content)) as opened:
-            opened.load()
-            image = ImageOps.exif_transpose(opened)
-            width, height = image.size
-    except (OSError, UnidentifiedImageError) as exc:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(BytesIO(content)) as probe:
+                probe.verify()
+            with Image.open(BytesIO(content)) as opened:
+                opened.load()
+                image = ImageOps.exif_transpose(opened)
+                width, height = image.size
+    except (OSError, UnidentifiedImageError, Image.DecompressionBombWarning) as exc:
         raise DetectionIngestError(f"Archive image cannot be decoded: {member}") from exc
     if width <= 0 or height <= 0:
         raise DetectionIngestError(f"Archive image has invalid dimensions: {member}")
+    if width * height > MAX_IMAGE_PIXELS:
+        raise DetectionIngestError(
+            f"Archive image pixel limit exceeded: {member} ({width}x{height})"
+        )
     suffix = PurePosixPath(member).suffix.casefold()
     if suffix not in IMAGE_SUFFIXES:
         raise DetectionIngestError(f"Unsupported archive image extension: {member}")
@@ -230,6 +286,38 @@ def _annotation_attributes(annotation: Mapping[str, Any]) -> dict[str, Any]:
     return dict(sorted(result.items()))
 
 
+def _verified_specimen_evidence(
+    source_image: Mapping[str, Any], *, canonical_class: str, field: str
+) -> dict[str, str] | None:
+    if not canonical_class.startswith("stm32_"):
+        return None
+    raw = source_image.get("specimen_evidence")
+    if not isinstance(raw, Mapping):
+        raise DetectionIngestError(
+            f"{field} class {canonical_class} requires specimen_evidence"
+        )
+    required = ("specimen_id", "evidence_type", "verified_part_number")
+    result: dict[str, str] = {}
+    for key in required:
+        value = raw.get(key)
+        if not isinstance(value, str) or not value.strip():
+            raise DetectionIngestError(f"{field} specimen_evidence.{key} is required")
+        result[key] = value.strip()
+    if result["evidence_type"] not in {
+        "legible_top_marking",
+        "trusted_bom",
+        "manufacturer_traceability",
+    }:
+        raise DetectionIngestError(
+            f"{field} specimen_evidence.evidence_type is not an approved verification method"
+        )
+    if not result["verified_part_number"].upper().startswith("STM32"):
+        raise DetectionIngestError(
+            f"{field} verified_part_number must identify an STM32 part"
+        )
+    return result
+
+
 def _write_bytes_new(path: Path, content: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
@@ -267,7 +355,7 @@ def _dataset_yaml(ontology: Ontology, splits: Iterable[str]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def ingest_coco_archive(
+def _ingest_coco_archive_staged(
     *,
     archive_path: Path,
     registry_path: Path,
@@ -295,6 +383,13 @@ def ingest_coco_archive(
     registry = _load_registry_entry(registry_path, dataset_key)
     dataset_id = str(registry["source_id"])
     ontology = load_ontology(ontology_path)
+    allowed_source_labels = dict(registry["allowed_source_labels"])
+    ontology_aliases = ontology.aliases_by_source.get(dataset_id)
+    if ontology_aliases != allowed_source_labels:
+        raise DetectionIngestError(
+            "Dataset allowed_source_labels must exactly match the frozen ontology aliases: "
+            f"registry={allowed_source_labels}, ontology={ontology_aliases}"
+        )
     policy = str(registry["ingest_split_policy"])
     output_root.mkdir(parents=True, exist_ok=True)
 
@@ -329,8 +424,14 @@ def ingest_coco_archive(
                 source_name = category.get("name")
                 if not isinstance(source_name, str) or not source_name:
                     raise DetectionIngestError("COCO category name must be non-empty")
+                if source_name not in allowed_source_labels:
+                    raise DetectionIngestError(
+                        f"Source category {source_name!r} is not allowed for dataset {dataset_id!r}"
+                    )
                 canonical_name = ontology.source_name(dataset_id, source_name)
                 category_id = category["id"]
+                if isinstance(category_id, bool) or not isinstance(category_id, int):
+                    raise DetectionIngestError("COCO category id must be an integer")
                 if category_id in category_map:
                     raise DetectionIngestError(
                         f"Duplicate COCO category id in {annotation_member}: {category_id!r}"
@@ -416,6 +517,8 @@ def ingest_coco_archive(
                 assets.append(asset_record)
                 by_source_id[source_image_id] = {
                     "canonical": image_record,
+                    "source": source_image,
+                    "asset": asset_record,
                     "label_name": canonical_name,
                     "split": split,
                 }
@@ -445,6 +548,21 @@ def ingest_coco_archive(
                     field=f"{annotation_member}:annotation:{source_annotation_index}",
                 )
                 ontology_class_id, canonical_class, source_class = category_map[category_id]
+                specimen_evidence = _verified_specimen_evidence(
+                    by_source_id[source_image_id]["source"],
+                    canonical_class=canonical_class,
+                    field=f"{annotation_member}:image:{source_image_id}",
+                )
+                if specimen_evidence is not None:
+                    existing_specimen = image_record.get("specimen_evidence")
+                    if existing_specimen not in (None, specimen_evidence):
+                        raise DetectionIngestError(
+                            f"Conflicting specimen evidence for image {source_image_id}"
+                        )
+                    image_record["specimen_evidence"] = specimen_evidence
+                    by_source_id[source_image_id]["asset"][
+                        "specimen_evidence"
+                    ] = specimen_evidence
                 attributes = _annotation_attributes(source_annotation)
                 annotation_record: dict[str, Any] = {
                     "id": annotation_id,
@@ -533,8 +651,9 @@ def ingest_coco_archive(
         "sha256": sha256_file(dataset_yaml_path),
     }
 
-    image_binding = [
-        {
+    image_binding = []
+    for row in sorted(assets, key=lambda value: str(value["path"])):
+        binding_row = {
             "path": row["path"],
             "sha256": row["sha256"],
             "width": row["width"],
@@ -546,8 +665,9 @@ def ingest_coco_archive(
             "source_annotation_member": row["source_annotation_member"],
             "source_split": row["source_split"],
         }
-        for row in sorted(assets, key=lambda value: str(value["path"]))
-    ]
+        if "specimen_evidence" in row:
+            binding_row["specimen_evidence"] = row["specimen_evidence"]
+        image_binding.append(binding_row)
     manifest = {
         "schema_version": MANIFEST_SCHEMA,
         "status": "CANDIDATE_ONLY_NOT_APPROVED",
@@ -590,6 +710,84 @@ def ingest_coco_archive(
     }
     write_json(resolved_manifest, manifest)
     return manifest | {"manifest_path": portable_path(resolved_manifest)}
+
+
+def _require_ignored_data_output(output_root: Path, *, project_root_path: Path) -> None:
+    try:
+        relative = output_root.resolve().relative_to(project_root_path.resolve())
+    except ValueError as exc:
+        raise DetectionIngestError(
+            "Output root must be inside this project's ignored data directories"
+        ) from exc
+    if (
+        len(relative.parts) < 3
+        or relative.parts[0].casefold() != "data"
+        or relative.parts[1].casefold() not in IGNORED_DATA_ROOTS
+    ):
+        raise DetectionIngestError(
+            "Output root must be a dataset-specific child of data/raw, data/staging, "
+            "data/processed, data/quarantine, or data/cache"
+        )
+    if (project_root_path / ".git").exists():
+        result = subprocess.run(
+            ["git", "check-ignore", "--no-index", "--quiet", "--", str(output_root)],
+            cwd=project_root_path,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise DetectionIngestError(
+                f"Output root is not ignored by the project Git rules: {output_root}"
+            )
+
+
+def ingest_coco_archive(
+    *,
+    archive_path: Path,
+    registry_path: Path,
+    dataset_key: str,
+    ontology_path: Path,
+    output_root: Path,
+    manifest_path: Path | None = None,
+    project_root_path: Path | None = None,
+) -> dict[str, Any]:
+    """Validate in an ignored sibling temp directory, then atomically publish the dataset."""
+    target = output_root.resolve()
+    project_root_path = (
+        project_root_path.resolve()
+        if project_root_path is not None
+        else Path(__file__).resolve().parents[2]
+    )
+    _require_ignored_data_output(target, project_root_path=project_root_path)
+    if target.exists():
+        raise FileExistsError(f"Atomic ingest target must not already exist: {target}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if manifest_path is None:
+        manifest_relative = Path("source_manifest.json")
+    else:
+        try:
+            manifest_relative = manifest_path.resolve().relative_to(target)
+        except ValueError as exc:
+            raise DetectionIngestError(
+                "Custom manifest path must be inside the atomic output root"
+            ) from exc
+        safe_relative_path(manifest_relative.as_posix(), field="manifest path")
+    with tempfile.TemporaryDirectory(
+        prefix=f".{target.name}.validate-", dir=target.parent
+    ) as temporary:
+        stage = Path(temporary).resolve()
+        result = _ingest_coco_archive_staged(
+            archive_path=archive_path,
+            registry_path=registry_path,
+            dataset_key=dataset_key,
+            ontology_path=ontology_path,
+            output_root=stage,
+            manifest_path=stage / manifest_relative,
+        )
+        os.replace(stage, target)
+    result["manifest_path"] = portable_path(target / manifest_relative)
+    return result
 
 
 def build_parser() -> argparse.ArgumentParser:

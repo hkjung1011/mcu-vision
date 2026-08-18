@@ -211,3 +211,29 @@ def test_formal_release_gate_requires_full_seed_matrix_and_dataset_evidence() ->
         item["field"] == "expected_dataset_evidence:class_map_sha256"
         for item in wrong_declared_dataset["release_blockers"]
     )
+
+    optional_locked_fields = [
+        "test_image_list_sha256",
+        "canonical_test_records_sha256",
+        "canonical_annotation_attributes_sha256",
+    ]
+    formal_fields = [*evidence_fields, *optional_locked_fields]
+    expected["dataset"]["locked_test_evidence_enabled"] = True
+    expected["comparison_rules"]["formal_required_dataset_evidence"] = formal_fields
+    expected["dataset"]["evidence"] = {
+        field: f"shared-{field}" for field in formal_fields
+    }
+    for candidate in runs:
+        candidate_dataset = candidate["metadata"]["dataset"]
+        for field in formal_fields:
+            candidate_dataset[field] = f"shared-{field}"
+    locked = _protocol_compatibility(runs, expected)
+    assert locked["release_ready"] is True
+
+    runs[0]["metadata"]["dataset"].pop("test_image_list_sha256")
+    missing_locked_test = _protocol_compatibility(runs, expected)
+    assert missing_locked_test["release_ready"] is False
+    assert any(
+        item["field"] == "dataset_evidence:test_image_list_sha256"
+        for item in missing_locked_test["release_blockers"]
+    )

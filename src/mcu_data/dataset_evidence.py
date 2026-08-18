@@ -4,7 +4,7 @@ import argparse
 import hashlib
 import json
 import unicodedata
-from collections import Counter
+from collections import Counter, defaultdict
 from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
@@ -57,6 +57,47 @@ EVIDENCE_ARTIFACT_KEYS = {
 
 class DatasetEvidenceError(ValueError):
     """Raised when an input cannot be represented without ambiguity."""
+
+
+def resolve_protocol_test_evidence(
+    *,
+    dataset_config: dict[str, Any],
+    coco_root: Path,
+    coco_test_annotations: Path | None,
+    coco_test_image_root: Path | None,
+) -> tuple[Path | None, Path | None, bool]:
+    """Resolve a locked test preflight only when the protocol explicitly opts in."""
+    enabled = dataset_config.get("locked_test_evidence_enabled", False)
+    if not isinstance(enabled, bool):
+        raise DatasetEvidenceError("dataset.locked_test_evidence_enabled must be boolean")
+    include_attributes = dataset_config.get("include_coco_attributes", False)
+    if not isinstance(include_attributes, bool):
+        raise DatasetEvidenceError("dataset.include_coco_attributes must be boolean")
+    if not enabled:
+        if coco_test_annotations is not None or coco_test_image_root is not None:
+            raise DatasetEvidenceError(
+                "COCO test evidence arguments are forbidden unless the protocol opts in"
+            )
+        if include_attributes:
+            raise DatasetEvidenceError(
+                "COCO attribute evidence requires locked_test_evidence_enabled=true"
+            )
+        return None, None, False
+    annotation = (
+        coco_test_annotations.resolve()
+        if coco_test_annotations is not None
+        else (coco_root.resolve() / "annotations" / "instances_test2017.json")
+    )
+    image_root = (
+        coco_test_image_root.resolve()
+        if coco_test_image_root is not None
+        else (coco_root.resolve() / "test2017")
+    )
+    if not annotation.is_file():
+        raise FileNotFoundError(annotation)
+    if not image_root.is_dir():
+        raise FileNotFoundError(image_root)
+    return annotation, image_root, include_attributes
 
 
 def _canonical_json(value: Any) -> str:
@@ -424,7 +465,36 @@ def canonicalize_yolo_dataset(
             class_map=class_map,
             decimals=bbox_decimals,
         )
+    _assert_no_cross_split_exact_sha_duplicates(splits, representation="YOLO")
     return {"class_map": class_map, "splits": splits}
+
+
+def _assert_no_cross_split_exact_sha_duplicates(
+    splits: dict[str, dict[str, Any]], *, representation: str
+) -> None:
+    occurrences: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    for split, content in splits.items():
+        for row in content.get("images", []):
+            occurrences[str(row["image_sha256"])].append(
+                (split, str(row["image_key"]))
+            )
+    conflicts = []
+    for digest, locations in sorted(occurrences.items()):
+        split_names = {split for split, _ in locations}
+        if len(split_names) > 1:
+            conflicts.append(
+                {
+                    "sha256": digest,
+                    "locations": [
+                        f"{split}:{image_key}" for split, image_key in sorted(locations)
+                    ],
+                }
+            )
+    if conflicts:
+        raise DatasetEvidenceError(
+            f"{representation} cross-split exact image SHA-256 duplicates detected: "
+            + _canonical_json(conflicts[:20])
+        )
 
 
 def _coco_class_lookup(
@@ -623,6 +693,7 @@ def canonicalize_coco_dataset(
             decimals=bbox_decimals,
             include_attributes=include_attributes,
         )
+    _assert_no_cross_split_exact_sha_duplicates(splits, representation="COCO")
     return {
         "class_map": class_map,
         "splits": splits,

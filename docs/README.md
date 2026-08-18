@@ -19,7 +19,7 @@
 | [실험 방법론](../reports/methodology/experiment_methodology.md) | YOLOX-S/YOLO11m 알고리즘, 수치 선정 이유, 논문·공식 구현 근거 |
 | [결과·증빙 정책](evidence_and_results_policy.md) | 로그 기반 판단, 비교 가능성 gate, 비생성형 그래프와 SHA-256 규칙 |
 | [라벨링 규정](annotation_protocol.md) | CVAT, pseudo-label, SAHI, 사람 검수와 gold set 보호 |
-| [STM32/SMD P0 반입](smallchip_ingest_p0.md) | 고정 ontology, rights/hash ingest, CVAT round-trip, 승인 승격 gate |
+| [STM32/SMD P0–P2 반입](smallchip_ingest_p0.md) | 고정 ontology, rights/hash ingest, trust registry, CVAT exact round-trip/승격 gate |
 | [Ubuntu 인계](ubuntu_handoff.md) | Git LFS clone, ONNX/TensorRT 원칙, 카메라 현장 시험 항목 |
 
 ## 단일 진실 공급원
@@ -28,6 +28,7 @@
 - 오토라벨 수치: [`configs/annotation/autolabel_v1.yaml`](../configs/annotation/autolabel_v1.yaml)
 - provisional class: [`configs/classes.provisional.yaml`](../configs/classes.provisional.yaml)
 - 공개 데이터 출처: [`configs/datasets.curated.yaml`](../configs/datasets.curated.yaml)
+- 오토라벨 승인 registry: [`configs/data_trust_registry.yaml`](../configs/data_trust_registry.yaml)
 - 검증된 Windows 환경: [`configs/windows_environment.verified.yaml`](../configs/windows_environment.verified.yaml)
 
 README나 보고서에 적힌 값과 config가 다르면 config와 해당 실행의 `run_manifest.json`을 우선합니다.

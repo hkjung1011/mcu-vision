@@ -67,8 +67,6 @@ class Ontology:
         return [self.classes_by_id[index] for index in sorted(self.classes_by_id)]
 
     def source_name(self, dataset_id: str, label: str) -> str:
-        if label in self.classes_by_id.values():
-            return label
         aliases = self.aliases_by_source.get(dataset_id, {})
         if label not in aliases:
             raise ContractError(
