@@ -1,0 +1,16 @@
+
+MODEL COMPARISON — COMMON COCO VALIDATION
+===================================================================================================================================================
+MODEL                    AP50-95     AP50     AP75  APsmall    AR100        P        R       F1      TP      FP      FN   BEST@CONF
+-----------------------------------------------------------------------------------------------------------------------------------
+yolo11m                   1.0000   1.0000   1.0000        -   1.0000   1.0000   1.0000   1.0000     195       0       0        0.01
+
+DEPLOYMENT / RESOURCE MEASUREMENTS
+----------------------------------------------------------------------------------------------------------------------
+MODEL                        PARAMS   CKPT MiB     P50 ms     P95 ms       FPS   TRAIN VRAM   TRAIN min
+-------------------------------------------------------------------------------------------------------
+yolo11m                    20114688      38.63      15.68      16.96     64.13       3999.2      168.15
+NOTE: YOLO11 and YOLOX native loss values have different definitions; compare trends only.
+NOTE: batch=8 is a shared micro-batch. Native gradient accumulation/optimizer dynamics differ.
+PROTOCOL: single-run report; comparison validity is not applicable.
+RELEASE: BLOCKED - model_set, seed_set:yolo11m, seed_set:yoloxs, complete_model_seed_matrix

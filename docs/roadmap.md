@@ -18,8 +18,8 @@ pipeline 검증용이며, 최종 제품군 성능으로 해석하지 않습니�
 | 6. CVAT 검수 경로 | 아직 구현·round-trip 검증 안 됨 | NOT VERIFIED | YOLO/COCO 왕복 시 box/class 손실 0, reviewer 기록 |
 | 7. Autolabel bootstrap | YOLO11 `.pt` tiled pending proposal만 구현 | PARTIAL | domain teacher·locked gold calibration·전량 사람 승인 |
 | 8. Multi-class 학습 경로 | dataset CLI·dynamic class 수·canonical equivalence 구현 | PARTIAL | 승인 multi-class data로 양쪽 smoke |
-| 9. 정식 비교 | 조건이 다른 smoke만 존재 | NOT VERIFIED | 2 models × 3 seeds × 100 epochs, protocol PASS |
-| 10. Git release | promotion·LFS 기반만 준비 | PARTIAL | trained checkpoint·report·SHA-256 승격 및 private push |
+| 9. 정식 비교 | full 3/6 완료, 1/6 중단, 2/6 미시작 | PARTIAL | 2 models × 3 seeds × 100 epochs, protocol PASS |
+| 10. Git release | 2026-08-18 public progress snapshot·LFS weight 게시 | PARTIAL | 6-run trained checkpoint·report·SHA-256 정식 승격 |
 | 11. Ubuntu 시험 | 인계 문서만 존재 | NOT VERIFIED | ONNX 동등성, 카메라 E2E 정확도·p50/p95·FPS 측정 |
 
 ## 데이터 현황과 해석
@@ -41,7 +41,7 @@ specimen ID가 없으므로 이 분할은 새 보드·새 카메라 일반화를
 ### Track A — 기존 RPi로 실험 pipeline 검증
 
 1. v2 manifest·class map·image list·YOLO/COCO label 동등성 hash를 run마다 fail-fast 재검증합니다.
-2. full seed 42를 먼저 완료해 장시간 안정성을 확인하고, 이어서 seed 43/44를 실행합니다.
+2. seed42 두 모델과 YOLO11m seed43은 완료했습니다. YOLOX-S seed43을 재개하고 seed44 두 run을 실행합니다.
 3. 6-run release gate가 PASS한 비교만 Git에 승격합니다.
 4. 이 결과는 RPi bootstrap 시스템 비교로만 표기하고 SMD 성능으로 확장 해석하지 않습니다.
 
@@ -91,10 +91,10 @@ specimen ID가 없으므로 이 분할은 새 보드·새 카메라 일반화를
 | REQ-DATA-02 | canonical record hash·format round-trip report | YOLO와 COCO의 image/class/box가 동일함 | RPi v2 PASS |
 | REQ-LABEL-01 | CVAT export·reviewer·label SHA-256 | gold와 reviewed train label의 출처 추적 가능 | NOT VERIFIED |
 | REQ-MC-01 | 두 run의 resolved config·dataset hash | 동일 canonical multi-class dataset 사용 | 코드 PASS / data 대기 |
-| REQ-TR-01 | 6개 complete run manifest | seed 42/43/44, 2개 모델, 100 epochs | NOT VERIFIED |
-| REQ-EV-01 | common evaluator JSON/CSV | AP50-95/AP50/AP75/AP_small/AR100와 P/R/F1 생성 | 구현 PASS / full run 미실행 |
-| REQ-EV-02 | latency sample·GPU log | 같은 장치에서 batch 1 p50/p95·FPS·VRAM | 구현 PASS / full run 미실행 |
-| REQ-GIT-01 | artifact manifest·LFS·remote commit | 수치·weight SHA-256와 비생성형 그래프 승격 | 기반 PASS / release 없음 |
+| REQ-TR-01 | 6개 complete run manifest | seed 42/43/44, 2개 모델, 100 epochs | 3 PASS / 1 INTERRUPTED / 2 NOT STARTED |
+| REQ-EV-01 | common evaluator JSON/CSV | AP50-95/AP50/AP75/AP_small/AR100와 P/R/F1 생성 | 완료 run 3개 PASS / matrix 미완료 |
+| REQ-EV-02 | latency sample·GPU log | 같은 장치에서 batch 1 p50/p95·FPS·VRAM | 완료 run 3개 PASS / repeat 미완료 |
+| REQ-GIT-01 | artifact manifest·LFS·remote commit | 수치·weight SHA-256와 비생성형 그래프 승격 | progress snapshot 준비 / formal release 없음 |
 | REQ-UB-01 | 새 카메라 test report | 정확도와 E2E 성능을 독립 session에서 확인 | NOT VERIFIED |
 
 ## 앞으로 필요한 사용자 입력

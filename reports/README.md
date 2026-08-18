@@ -5,12 +5,14 @@ GitHub에는 검증 가능한 숫자 원본과 그 파생 보고서만 보존합
 | 경로 | 내용 |
 |---|---|
 | `methodology/` | baseline config에서 자동 생성한 수치 선정 근거와 참고문헌 |
+| `progress/<snapshot>/` | 미완료 campaign의 비식별 로그·수치·그래프·checkpoint hash; 정식 release 아님 |
 | `runs/<release>/` | 완료된 단일 학습 run의 manifest, log, CSV/JSON, 그래프 |
 | `comparisons/<release>/` | 동일 protocol을 통과한 다중 seed 모델 비교 |
 | `deployments/<release>/` | native checkpoint·ONNX·formal val/test를 hash로 묶은 최종 배포 증빙 |
 
-현재는 `methodology/`만 존재합니다. Smoke test나 protocol mismatch 결과는 정식 성능 결과로 올리지
-않습니다.
+현재 `progress/rpi_bootstrap_2026-08-18/`에 full 3개와 interrupted 1개의 실제 학습 진행본이
+있습니다. 6-run matrix가 미완료이므로 `runs/<release>` 정식 결과로 승격하지 않았습니다. Smoke test나
+protocol mismatch 결과도 정식 성능 결과로 올리지 않습니다.
 
 현재 methodology의 task는 `one_class_raspberry_pi_sbc_detection`입니다. MCU/SMD 5-class protocol이나
 trained 결과로 해석하지 않습니다.

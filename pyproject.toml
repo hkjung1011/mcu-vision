@@ -35,6 +35,7 @@ mcu-show-weights = "mcu_data.reporting:weights_main"
 mcu-show-protocol = "mcu_data.methodology:main"
 mcu-autolabel-yolo = "mcu_data.autolabel:main"
 mcu-verify-dataset-equivalence = "mcu_data.dataset_evidence:main"
+mcu-publish-progress = "mcu_data.progress_publishing:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

@@ -1,14 +1,15 @@
 # Third-party notices
 
-확인일: **2026-08-17**
+확인일: **2026-08-18**
 
-이 저장소 자체의 project-level license는 아직 지정되지 않았습니다. 저장소가 private이라는 사실은
-third-party software, pretrained weights, dataset의 라이선스 조건을 변경하지 않습니다. 소유자가 별도
-라이선스를 선택하기 전에는 허가된 저장소 사용자 외부로 프로젝트 코드를 재배포하지 않습니다.
+이 공개 저장소의 project-level license는 [`AGPL-3.0`](LICENSE)입니다. 이는 Ultralytics YOLO 코드와
+fine-tuned model을 공개하는 현재 사용 방식에 맞춘 것입니다. 별도의 유효한 Ultralytics Enterprise
+계약이 있다면 해당 계약 조건이 우선할 수 있습니다. Project-level license는 third-party software,
+pretrained/fine-tuned weights, dataset의 원 라이선스 조건을 없애거나 변경하지 않습니다.
 
 | 구성요소 | 사용/예정 범위 | 라이선스·근거 | 주의 |
 |---|---|---|---|
-| [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX) | 학습 source와 pretrained YOLOX-S | Apache-2.0 | 고정 commit과 upstream weight hash 보존 |
+| [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX) | 학습 source와 pretrained/fine-tuned YOLOX-S | Apache-2.0; [license 사본](LICENSES/Apache-2.0.txt) | 고정 commit과 upstream weight hash 보존 |
 | [Ultralytics](https://github.com/ultralytics/ultralytics) | YOLO11 학습·현재 autolabel backend | AGPL-3.0 또는 Enterprise | private/상용/embedded 이용은 적용 조건 별도 검토 |
 | [PyTorch](https://github.com/pytorch/pytorch) | CUDA 학습 runtime | upstream license 참조 | binary wheel의 bundled component notice 포함 |
 | [ONNX](https://github.com/onnx/onnx) | portable model graph와 구조 검증 | Apache-2.0 | fixed batch-1 FP32 graph로 export |
@@ -32,5 +33,15 @@ third-party software, pretrained weights, dataset의 라이선스 조건을 변�
 ## 모델 artifact
 
 `weights/pretrained/yolox_s.pth`의 source, byte size와 SHA-256은
-[`weights/README.md`](weights/README.md)에 기록되어 있습니다. 향후 trained checkpoint/ONNX를 추가할
-때는 학습에 사용한 framework와 dataset license, config hash, checkpoint SHA-256을 함께 기록합니다.
+[`weights/README.md`](weights/README.md)에 기록되어 있습니다. 2026-08-18 학습 진행 checkpoint는
+[`reports/progress/rpi_bootstrap_2026-08-18`](reports/progress/rpi_bootstrap_2026-08-18/README.md)에
+framework/dataset license, config hash, source/public checkpoint SHA-256과 함께 기록했습니다.
+
+## 학습 데이터 attribution
+
+- Creator: Adam Byerly (`AdamByerly` / Kaggle handle `frettapper`)
+- Dataset: [micro-PCB Images](https://www.kaggle.com/datasets/frettapper/micropcb-images)
+- License: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+- 사용 범위: Raspberry Pi 1 B+, Raspberry Pi 3 B+, Raspberry Pi A+ 합계 1,875장
+- 적용한 변경: bbox 변환, pHash-connected split, resize/augmentation, YOLO11m/YOLOX-S 학습
+- 원본/processed image는 이 GitHub snapshot에 포함하지 않음

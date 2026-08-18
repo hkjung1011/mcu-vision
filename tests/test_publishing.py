@@ -47,6 +47,42 @@ def test_publish_evidence_file_redacts_python_repr_paths(tmp_path: Path) -> None
     assert "<PROJECT_ROOT>" in destination.read_text(encoding="utf-8")
 
 
+def test_publish_evidence_file_redacts_text_nvidia_process_table(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    source = project / "terminal.log"
+    source.parent.mkdir(parents=True)
+    source.write_text(
+        "GPU summary\n"
+        "+----------------+\n"
+        "| Processes:     |\n"
+        "| PID chrome.exe |\n"
+        "+----------------+\n"
+        "metric=0.987654321\n",
+        encoding="utf-8",
+    )
+    destination = project / "published" / "terminal.log"
+
+    record = publish_evidence_file(source, destination, project_root=project)
+    published = destination.read_text(encoding="utf-8")
+
+    assert "chrome.exe" not in published
+    assert "PROCESS LIST OMITTED" in published
+    assert "metric=0.987654321" in published
+    assert record["sanitized_for_repository"] is True
+
+
+def test_publish_evidence_file_accepts_utf8_bom_json(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    source = project / "campaign_plan.json"
+    source.parent.mkdir(parents=True)
+    source.write_text('{"metric": 0.5}', encoding="utf-8-sig")
+    destination = project / "published" / "campaign_plan.json"
+
+    publish_evidence_file(source, destination, project_root=project)
+
+    assert json.loads(destination.read_text(encoding="utf-8-sig"))["metric"] == 0.5
+
+
 def test_validate_comparison_requires_exact_run_manifest(tmp_path: Path) -> None:
     run_id = "full_seed42"
     run_manifest = tmp_path / "run_manifest.json"

@@ -1,0 +1,187 @@
+{
+  "command": [
+    "<PROJECT_ROOT>\\.venv-yolox\\Scripts\\python.exe",
+    "-m",
+    "yolox.tools.train",
+    "-f",
+    "<PROJECT_ROOT>\\configs\\yolox_s_micropcb.py",
+    "-d",
+    "1",
+    "-b",
+    "8",
+    "-c",
+    "<PROJECT_ROOT>\\weights\\pretrained\\yolox_s.pth",
+    "-expn",
+    "yolox_s_seed43",
+    "--fp16"
+  ],
+  "completed_epochs": 70,
+  "dataset": {
+    "canonical_dataset_manifest_sha256": "8039d57c23305b5b37c843abe358401d4ec3cafd2722833fa96acddb799b2e68",
+    "canonical_train_records_sha256": "90c21061eb2facacb95e19757d3b828539a06a4dae05ee92e80adfdd6253ea32",
+    "canonical_val_records_sha256": "75f8bd6f535ca18a27ddb7441161e5424d974b86ab5f39cdabba93841e0ea1bd",
+    "class_map_sha256": "6921d4723044145cfbb6e7092fcead81762cbf8cc23f975cf0a5523adc4bf693",
+    "classes": [
+      "raspberry_pi_sbc"
+    ],
+    "coco_root": "<PROJECT_ROOT>\\data\\processed\\micropcb_rpi_phash_v2_coco",
+    "equivalence_evidence_path": "data/evidence/micropcb_rpi_phash_v2/dataset_evidence.json",
+    "equivalence_evidence_sha256": "bea2fbaddc87f29181596230404c49753926eccd580b0df7aff848a15d8c5617",
+    "independent_test_available": false,
+    "num_classes": 1,
+    "train_annotation_sha256": "7b6cccb07d3217646147052752fa58ad32a98687968cf5679f5ebf2a9e61f3f4",
+    "train_image_list_sha256": "af6126d8b3773083e6cf420cc9dd0e9444b42cb50aa19c5d83191aff0cda6698",
+    "val_annotation_sha256": "a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef",
+    "val_image_list_sha256": "f96e176c8f33a3bc330c4fc1bc078b97fb0f6ce61006c5c9f50e28574e35cbfd",
+    "yolo_dataset_yaml": "<PROJECT_ROOT>\\data\\processed\\micropcb_rpi_phash_v2\\dataset.yaml"
+  },
+  "end_utc": "2026-08-18T05:37:25.0139082+00:00",
+  "environment": {
+    "captured_utc": "2026-08-18T01:10:20.041+00:00",
+    "cpu": "AMD64 Family 26 Model 96 Stepping 0, AuthenticAMD",
+    "cuda_available": true,
+    "cuda_device_count": 1,
+    "cuda_toolkit_nvcc": null,
+    "cudnn": 92000,
+    "gpu_capability": "12.0",
+    "gpu_name": "NVIDIA GeForce RTX 5060 Laptop GPU",
+    "gpu_total_memory_mib": 8150.6,
+    "nvidia_smi": "<OMITTED_FROM_PUBLISHED_REPORT>",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+    "python_executable": "<PROJECT_ROOT>\\.venv-yolox\\Scripts\\python.exe",
+    "torch": "2.12.1+cu130",
+    "torch_cuda_runtime": "13.0"
+  },
+  "experiment_config": {
+    "path": "<PROJECT_ROOT>\\configs\\yolox_s_micropcb.py",
+    "sha256": "c3d6cd8630311a8638a654369f31bdf2dcefe68a4c6c17d096f23fba74e60de9"
+  },
+  "framework": "YOLOX",
+  "framework_commit": "6ddff4824372906469a7fae2dc3206c7aa4bbaee",
+  "framework_version": "0.3.0",
+  "git": {
+    "changed_paths": [],
+    "commit": "63bc679d88d56907433b6586e2a7efacb46a25d6",
+    "dirty": false
+  },
+  "interruption_reason": "user_requested_schedule_save_and_exit",
+  "model": "YOLOX-S",
+  "model_details": {
+    "matched_tensors": 456,
+    "missing_names": 0,
+    "parameters": 8937682,
+    "pretrained_tensors": 462,
+    "shape_mismatch_examples": [
+      "head.cls_preds.0.weight",
+      "head.cls_preds.0.bias",
+      "head.cls_preds.1.weight",
+      "head.cls_preds.1.bias",
+      "head.cls_preds.2.weight",
+      "head.cls_preds.2.bias"
+    ],
+    "shape_mismatch_names": 6,
+    "summary": "Params: 8.94M, Gflops: 26.76",
+    "trainable_parameters": 8937682,
+    "unexpected_names": 0
+  },
+  "pretrained_checkpoint": {
+    "bytes": 72089125,
+    "mib": 68.7495470046997,
+    "path": "<PROJECT_ROOT>\\weights\\pretrained\\yolox_s.pth",
+    "sha256": "f55ded7181e1b0c13285c56e7790b8f0e8f8db590fe4edb37f0b7f345c913a30"
+  },
+  "pretrained_weight_statistics": {
+    "csv": "<PROJECT_ROOT>\\runs\\benchmarks\\micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267\\yolox_s_seed43\\pretrained_weights_summary.csv",
+    "floating_values": 8991359,
+    "global_l2_norm": 17749.924369227818,
+    "parameter_and_buffer_values": 8991433,
+    "tensor_count": 462
+  },
+  "protocol": {
+    "amp": true,
+    "augmentations": {
+      "degrees": 10.0,
+      "enable_mixup": false,
+      "flip_probability": 0.5,
+      "hsv_probability": 1.0,
+      "mixup_scale": [
+        0.5,
+        1.5
+      ],
+      "mosaic_scale": [
+        0.5,
+        1.5
+      ],
+      "shear": 2.0,
+      "translate": 0.1
+    },
+    "base_lr_for_batch": 0.00125,
+    "base_lr_per_image": 0.00015625,
+    "batch": 8,
+    "class_agnostic_nms": false,
+    "common_match_iou": 0.5,
+    "common_operating_confidence": 0.25,
+    "comparison_kind": "framework_native_recipe_system_benchmark",
+    "epochs": 100,
+    "imgsz": 640,
+    "max_detections_for_coco_ap": 100,
+    "minimum_lr": 6.25e-05,
+    "momentum": 0.9,
+    "multiscale_range": 0,
+    "nms_iou": 0.65,
+    "no_aug_epochs": 10,
+    "optimizer": "SGD Nesterov",
+    "prediction_floor": 0.001,
+    "seed": 43,
+    "validation_each_epoch": true,
+    "warmup_epochs": 5,
+    "weight_decay": 0.0005,
+    "workers": 0
+  },
+  "protocol_config": {
+    "path": "<PROJECT_ROOT>\\configs\\experiments\\baseline_v1.yaml",
+    "sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+  },
+  "resolved_training": {
+    "amp": true,
+    "base_lr_for_batch": 0.00125,
+    "minimum_lr": 6.25e-05,
+    "optimizer": "SGD",
+    "optimizer_groups": [
+      {
+        "index": 0,
+        "lr": 0,
+        "momentum": 0.9,
+        "nesterov": true,
+        "parameters": 11552,
+        "weight_decay": 0
+      },
+      {
+        "index": 1,
+        "lr": 0,
+        "momentum": 0.9,
+        "nesterov": true,
+        "parameters": 8914560,
+        "weight_decay": 0.0005
+      },
+      {
+        "index": 2,
+        "lr": 0,
+        "momentum": 0.9,
+        "nesterov": true,
+        "parameters": 11570,
+        "weight_decay": 0
+      }
+    ],
+    "parameters": 8937682,
+    "resolved_batch_size": 8,
+    "steps_per_epoch": 188,
+    "trainable_parameters": 8937682
+  },
+  "run_id": "yolox_s_seed43",
+  "schema_version": 1,
+  "stage": "fine_tune_candidate",
+  "start_utc": "2026-08-18T01:10:19.901+00:00",
+  "status": "interrupted"
+}

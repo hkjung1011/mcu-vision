@@ -1,0 +1,102 @@
+{
+  "decision_policy": "Judgments use terminal logs and numeric CSV/JSON only; PNG files are visualization derivatives.",
+  "derived_images": [
+    {
+      "bytes": 115776,
+      "path": "terminal_summary.png",
+      "sha256": "c13cb33763522976fbf5675841fd94c701044dfca96af126a9110626d32c188c"
+    },
+    {
+      "bytes": 164511,
+      "path": "comparison_dashboard.png",
+      "sha256": "0dda6d084f84a8c607a75bf4bf15b8866d4b5b38939ed993d403acf042992f97"
+    },
+    {
+      "bytes": 160583,
+      "path": "training_curves.png",
+      "sha256": "1983ac4afaea69469c1e9c5c4f2df7f0c473e725e6230b86abddd123b20e06e6"
+    },
+    {
+      "bytes": 804054,
+      "path": "protocol_rationale.png",
+      "sha256": "6dd3b6cba31a044aa052bd182071026b7dc633338c938b56e8a1f5761580abb7"
+    }
+  ],
+  "generative_ai_used_for_images": false,
+  "image_renderer": "matplotlib 3.11.1",
+  "local_absolute_paths_included": false,
+  "schema_version": 2,
+  "source_bundle": "sources_manifest.json",
+  "sources": [
+    {
+      "bytes": 625,
+      "path": "comparison.csv",
+      "sha256": "3c5f4524e072908c5f931dadab5bc4070e7e489a6f3e017f044db670138771f0"
+    },
+    {
+      "bytes": 884,
+      "path": "comparison.json",
+      "sha256": "0275c6113dac2362a0a6fde0a0a7f5a97449fa2f71779d78165530589fc8dc93"
+    },
+    {
+      "bytes": 1402,
+      "path": "comparison_terminal.txt",
+      "sha256": "7113b0c7783db3c400c7421ddc1bd50710f1809a6f30c324159e8095166fa512"
+    },
+    {
+      "bytes": 1506,
+      "path": "protocol_compatibility.json",
+      "sha256": "143cb8fac2fae75bf552b508ce739c0bcd5bf8c77db853732f60397f6ea079a5"
+    },
+    {
+      "bytes": 3510,
+      "path": "sources_manifest.json",
+      "sha256": "7e3fad241de8a0df64fef0b5255369d3001a4aeaf59e38573a79e868137be035"
+    },
+    {
+      "bytes": 19898,
+      "path": "sources/yolo11m_seed43/epoch_metrics.csv",
+      "sha256": "82f5ad2a58408d33eb35388db0b58e5e4f4594372b00860bd2289d0973ea75b3"
+    },
+    {
+      "bytes": 57906,
+      "path": "sources/yolo11m_seed43/epoch_metrics_extra.jsonl",
+      "sha256": "8706dd4a8109c0f1eddf477284a80252b0fa5fa0c6ef1f1fb6f13d42968fefcf"
+    },
+    {
+      "bytes": 2936,
+      "path": "sources/yolo11m_seed43/final_metrics.json",
+      "sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef"
+    },
+    {
+      "bytes": 158,
+      "path": "sources/yolo11m_seed43/gpu_summary.json",
+      "sha256": "9df6329ffeeb79b7e115f3f35ae3e91495506352afba05cc9f7d0cf29b558011"
+    },
+    {
+      "bytes": 441,
+      "path": "sources/yolo11m_seed43/latency.json",
+      "sha256": "705bc246764f375a8830b53ed28140deb8a89246d100b246b2d9cef343ebddd2"
+    },
+    {
+      "bytes": 4167,
+      "path": "sources/yolo11m_seed43/latency_samples.csv",
+      "sha256": "4dbd23449591c1c40b736f68c4d89b67f4cf8a44f13d0586fbc69b5797931dda"
+    },
+    {
+      "bytes": 108,
+      "path": "sources/yolo11m_seed43/per_class_metrics.csv",
+      "sha256": "34102e8418f5c94b925000258f17e9bd10724d9619700e8d37556c802fba30b1"
+    },
+    {
+      "bytes": 7109,
+      "path": "sources/yolo11m_seed43/run_manifest.json",
+      "sha256": "a7ecc9c675626075a6c314f4d98242326c70f57f6c7a623503d7b07eae40b333"
+    },
+    {
+      "bytes": 3063217,
+      "path": "sources/yolo11m_seed43/terminal.log",
+      "sha256": "14007a3ef1216c91fa8a6122dddb3ec6690605be5028db4d9c238db30bed80da"
+    }
+  ]
+}

@@ -15,9 +15,11 @@ TensorRT `.engine` files are intentionally excluded because they should be built
 |---|---|---|
 | `pretrained/yolo11m.pt` | CONFIRMED | Official Ultralytics COCO initialization for YOLO11m fine-tuning |
 | `pretrained/yolox_s.pth` | CONFIRMED | Upstream COCO initialization for YOLOX-S fine-tuning |
+| `progress/rpi_bootstrap_2026-08-18/` | INTERIM_PROGRESS | 완료 best 3개와 중단 best/resume 2개; `release_ready=false` |
 | `trained/` | NOT AVAILABLE | No protocol-matched full training release has been promoted yet |
 
-The pretrained checkpoint is not a trained MCU/SMD detector. A checkpoint is added to `trained/<release>/`
+The pretrained checkpoint is not a trained MCU/SMD detector. Progress checkpoint details are in
+[`progress/rpi_bootstrap_2026-08-18/README.md`](progress/rpi_bootstrap_2026-08-18/README.md). A checkpoint is added to `trained/<release>/`
 only after the run is complete, its SHA-256 matches the run manifest, and the comparison protocol passes.
 
 Binary checkpoints and ONNX files are stored through Git LFS. After cloning, verify them with:

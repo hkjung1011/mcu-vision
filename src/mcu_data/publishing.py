@@ -12,6 +12,9 @@ from .common import sha256_file, write_json
 
 TEXT_SUFFIXES = {".csv", ".log", ".md", ".txt", ".yaml", ".yml"}
 OMITTED_JSON_KEYS = {"nvidia_smi"}
+NVIDIA_PROCESS_TABLE = re.compile(
+    r"(?ms)^\+[-+]+\+\r?\n\| Processes:.*?^\+[-+]+\+\r?\n?"
+)
 
 
 def _replacement_pairs(project_root: Path) -> list[tuple[str, str]]:
@@ -40,6 +43,11 @@ def _scrub_text(value: str, replacements: list[tuple[str, str]]) -> tuple[str, b
         if count:
             value = updated
             changed = True
+    value, process_table_count = NVIDIA_PROCESS_TABLE.subn(
+        "[NVIDIA-SMI PROCESS LIST OMITTED FROM PUBLISHED REPORT]\n",
+        value,
+    )
+    changed = changed or bool(process_table_count)
     return value, changed
 
 
@@ -90,7 +98,7 @@ def publish_evidence_file(
     changed = False
 
     if source.suffix.lower() == ".json":
-        value = json.loads(source.read_text(encoding="utf-8"))
+        value = json.loads(source.read_text(encoding="utf-8-sig"))
         cleaned, changed = _scrub_json_value(value, replacements)
         if changed:
             write_json(destination, cleaned)
@@ -98,7 +106,7 @@ def publish_evidence_file(
             shutil.copy2(source, destination)
     elif source.suffix.lower() == ".jsonl":
         output_lines: list[str] = []
-        for line in source.read_text(encoding="utf-8").splitlines():
+        for line in source.read_text(encoding="utf-8-sig").splitlines():
             if not line.strip():
                 continue
             value = json.loads(line)

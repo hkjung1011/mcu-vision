@@ -1,11 +1,13 @@
 # MCU Vision — YOLOX-S / YOLO11m 실험 작업공간
 
-Windows에서 MCU·소형 전자부품 detector를 학습하고, 로그·수치·가중치를 private GitHub에 보존한 뒤
-Ubuntu 카메라 환경에서 검증하기 위한 저장소입니다.
+Windows에서 MCU·소형 전자부품 detector를 학습하고, 로그·수치·가중치를 공개 GitHub에 재현 가능하게
+보존한 뒤 Ubuntu 카메라 환경에서 검증하기 위한 저장소입니다. 프로젝트 공개본은 `AGPL-3.0`이며
+third-party model·dataset에는 각 원 라이선스가 함께 적용됩니다.
 
-> **현재 판정:** Windows GPU 학습·로그·공통 평가와 condition/pHash leakage-control RPi 분할은 준비됐습니다. 현재
-> 실행 대상은 Raspberry Pi **1-class bootstrap**이며, MCU/SMD 승인 데이터와 독립 컨베이어 test는
-> 아직 없습니다. Smoke 수치로 모델 우열을 판단하지 않습니다.
+> **현재 판정 (2026-08-18):** Raspberry Pi **1-class bootstrap**의 6-run 계획 중 3개는 100 epoch
+> 완료, YOLOX-S seed43은 70/100에서 중단, seed44 두 run은 미시작입니다. 현재 가중치는
+> [공개 진행본](reports/progress/rpi_bootstrap_2026-08-18/README.md)이며 정식 release나 STM32/SMD 모델이
+> 아닙니다. MCU/SMD 승인 데이터와 독립 컨베이어 test도 아직 없습니다.
 
 ## 진행상황 대시보드
 
@@ -18,8 +20,9 @@ Ubuntu 카메라 환경에서 검증하기 위한 저장소입니다.
 | Multi-class 학습 경로 | dataset CLI·YOLOX dynamic class 수·YOLO↔COCO fail-fast 구현 | **PARTIAL** | 실제 multi-class 승인 데이터 smoke |
 | 소형 SMD 실제 데이터 | 승인된 canonical dataset 0장 | **NOT VERIFIED** | provenance·specimen ID가 있는 승인 실사 확보 |
 | 오토라벨 | YOLO11 tiled `pending` proposal까지 구현 | **PARTIAL** | CVAT round-trip·reviewer/hash 승인 gate |
-| 정식 모델 비교 | protocol 불일치 smoke만 존재 | **NOT VERIFIED** | 2 models × 3 seeds × 100 epochs, protocol PASS |
-| 배포용 가중치 | YOLO11m·YOLOX-S 공식 pretrained는 LFS에 고정, fine-tuned weight는 없음 | **NOT VERIFIED** | 검증된 best weight와 SHA-256 승격 |
+| RPi full 학습 | COMPLETE 3/6, INTERRUPTED 1/6, 미시작 2/6 | **PARTIAL** | 2 models × 3 seeds × 100 epochs 완료 |
+| 정식 모델 비교 | 완료 matrix 부족으로 `release_ready=false` | **NOT VERIFIED** | 6-run protocol PASS 및 mean ± SD |
+| 공개 진행 가중치 | 완료 best 3개 + 중단 best/resume 2개를 LFS에 선별 | **INTERIM_PROGRESS** | formal comparison·ONNX·독립 test 후 `weights/trained` 승격 |
 | Ubuntu 카메라 시험 | 문서만 준비 | **NOT VERIFIED** | 새 촬영 session에서 정확도·latency·FPS 측정 |
 
 상세 근거는 [현재 프로젝트 상태](docs/project_status.md)와 [전체 로드맵](docs/roadmap.md)에 있습니다.
@@ -47,7 +50,7 @@ STM32/SMD 데이터를 준비하는 작업은 병행할 수 있지만, 정식 mu
 | 순서 | 작업 | 종료 조건 |
 |---:|---|---|
 | 1 | 검출·인식 범위 확정 | 보드/패키지 검출과 marking OCR·SKU 분류를 구분한 class 규정 승인 |
-| 2 | RPi bootstrap 3-seed 학습 | v2 split에서 2 models × 3 seeds × 100 epochs 완료 |
+| 2 | RPi bootstrap 3-seed 학습 재개 | YOLOX-S seed43 100 epoch, seed44 두 모델 완료 |
 | 3 | STM32·Pico·소형 SMD 수집 및 자체 촬영 | source/license/specimen/session ID와 중복 감사 결과 확보 |
 | 4 | 대표 200장 완전 라벨링 | 각 이미지에 보이는 모든 target instance 승인, locked gold validation 별도 생성 |
 | 5 | CVAT round-trip과 pseudo-label 검수 | import/export 손실 0, `pending`을 사람이 전량 수정·승인 |
@@ -105,16 +108,21 @@ Fresh clone부터 3-seed 실행·승격까지는 [Windows 재현 절차](docs/re
 
 | 결과 항목 | 현재 상태 |
 |---|---|
-| 정식 full comparison | 없음 |
+| full run | YOLO11m seed42/43, YOLOX-S seed42 완료 |
+| interrupted run | YOLOX-S seed43 epoch 70; best·resume checkpoint 보존 |
+| 공개 progress report | [`reports/progress/rpi_bootstrap_2026-08-18`](reports/progress/rpi_bootstrap_2026-08-18/README.md) |
+| 정식 3-seed comparison | matrix 미완료로 없음 |
 | smoke comparison | 배선 검증용; 모델 우열 판단 금지 |
-| promoted trained weight | 없음 |
+| progress weight | [`weights/progress/rpi_bootstrap_2026-08-18`](weights/progress/rpi_bootstrap_2026-08-18/README.md) |
+| promoted trained weight | 없음 (`release_ready=false`) |
 | 독립 컨베이어 test | 없음 |
-| Git에 보존된 증빙 | protocol/config, 환경, 데이터 manifest, 방법론 |
+| Git에 보존된 증빙 | protocol/config, 환경, 데이터 manifest, 방법론, 비식별 학습 로그·수치·그래프·checkpoint SHA |
 
 판단 원본은 `terminal.log`, CSV, JSON, checkpoint SHA-256입니다. 보고서 PNG는 이 숫자를 Python
 `matplotlib`로 그린 **비생성형 파생물**이며 AI가 지어낸 이미지가 아닙니다. `terminal_summary.png`도
 실제 모니터 사진이 아니라 `comparison_terminal.txt`의 글자를 그대로 렌더링한 이미지입니다.
-정식 결과가 생기기 전에는 smoke 그래프를 README 대표 결과로 게시하지 않습니다.
+공개 progress 그래프는 full/interrupted run에서 나온 실제 로그 기반 자료이며 smoke 그래프가 아닙니다.
+다만 6-run 정식 비교가 아니므로 모델 우열의 최종 결론으로 게시하지 않습니다.
 
 ## 문서 지도
 
@@ -134,6 +142,6 @@ Fresh clone부터 3-seed 실행·승격까지는 [Windows 재현 절차](docs/re
 - `*.pt`, `*.pth`, `*.onnx`: Git LFS
 - 원본 이미지·미승인 라벨·전체 `runs/`: Git 제외
 - TensorRT `.engine`: Ubuntu 목표 장비에서 생성하고 Git 제외
-- Private 저장소도 데이터·모델·software 라이선스를 무효화하지 않음
+- 공개 저장소의 project code: `AGPL-3.0`; YOLOX·dataset 등 third-party 조건은 별도 유지
 
 세부 조건은 [Third-party notices](THIRD_PARTY_NOTICES.md)를 확인합니다.

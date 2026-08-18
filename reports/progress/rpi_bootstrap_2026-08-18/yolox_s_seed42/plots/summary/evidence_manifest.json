@@ -1,0 +1,102 @@
+{
+  "decision_policy": "Judgments use terminal logs and numeric CSV/JSON only; PNG files are visualization derivatives.",
+  "derived_images": [
+    {
+      "bytes": 120324,
+      "path": "terminal_summary.png",
+      "sha256": "3827852227dc40458fade09ef54e7e0fbdd1d3b111fa36e0b9d27ffb44b9a75a"
+    },
+    {
+      "bytes": 173650,
+      "path": "comparison_dashboard.png",
+      "sha256": "6b78229fb361ecf90dc773f5e35623cf9aed7f6620a06d235d0cbe7c17d56652"
+    },
+    {
+      "bytes": 172096,
+      "path": "training_curves.png",
+      "sha256": "f685f8a2de92a686ee3e3f04b6cfeb6ddb86c4a99453db2884e1660d7b9b6709"
+    },
+    {
+      "bytes": 803393,
+      "path": "protocol_rationale.png",
+      "sha256": "e7d661c3510db8398e6a888bde0ddf7e7287da72dac74d5bf688ac74a7dbd3c8"
+    }
+  ],
+  "generative_ai_used_for_images": false,
+  "image_renderer": "matplotlib 3.11.1",
+  "local_absolute_paths_included": false,
+  "schema_version": 2,
+  "source_bundle": "sources_manifest.json",
+  "sources": [
+    {
+      "bytes": 669,
+      "path": "comparison.csv",
+      "sha256": "3f5b6282cc7766b329e91df209f492f36105c2597f651f589fdb3fcda9760322"
+    },
+    {
+      "bytes": 928,
+      "path": "comparison.json",
+      "sha256": "579ee07473fe534576fa4c8fe15d15110e43fff4c754ad0a53ebfccf03fe4498"
+    },
+    {
+      "bytes": 1403,
+      "path": "comparison_terminal.txt",
+      "sha256": "6a46da4a1bf521bd4f035dc2b828d21ff893f3cc962a927246c1db8a6ac0aa4a"
+    },
+    {
+      "bytes": 1507,
+      "path": "protocol_compatibility.json",
+      "sha256": "a6e5c00e0f047bb5acc2c7e88ee706daac6b13eb1686cf28fe8292356f7e7ebb"
+    },
+    {
+      "bytes": 3504,
+      "path": "sources_manifest.json",
+      "sha256": "be54f2afb9d700fc75c9ab76a4611ba9e7cd27d25e7a5f0557a91a078590afad"
+    },
+    {
+      "bytes": 28240,
+      "path": "sources/yolox_s_seed42/epoch_metrics.csv",
+      "sha256": "4ca7befb64a7b3ac76c1d210d72f9a8cd43fce702b165b343a20e8aabcc01d2f"
+    },
+    {
+      "bytes": 58213,
+      "path": "sources/yolox_s_seed42/epoch_metrics.jsonl",
+      "sha256": "16d5a71c9138fc3a8f823144e1217e30e1250660a0e633a30d0d3a5e4ecafb0f"
+    },
+    {
+      "bytes": 3044,
+      "path": "sources/yolox_s_seed42/final_metrics.json",
+      "sha256": "c255012a5466fe2e2cfa0b76dca37e0e19ca1c816c9ad2f012dcb2938b9f6f37"
+    },
+    {
+      "bytes": 159,
+      "path": "sources/yolox_s_seed42/gpu_summary.json",
+      "sha256": "511ad6345f6337203d1039e714302aa591099e133a423447a9b43736531ebe26"
+    },
+    {
+      "bytes": 439,
+      "path": "sources/yolox_s_seed42/latency.json",
+      "sha256": "fb1b25d91f03d38bccb337e633ca2bd40d956d7d23d829bce89d3ab3fc46dfc9"
+    },
+    {
+      "bytes": 4150,
+      "path": "sources/yolox_s_seed42/latency_samples.csv",
+      "sha256": "1c3c48bc8c7beeb5a2ac61fe40c930b145f95acad9e67b9f14773cdf7ec4b0ab"
+    },
+    {
+      "bytes": 123,
+      "path": "sources/yolox_s_seed42/per_class_metrics.csv",
+      "sha256": "7c5447e120acba85a0e8e63bab67ab26743cf1b4adbe89f0059339a1ef6f81e7"
+    },
+    {
+      "bytes": 6760,
+      "path": "sources/yolox_s_seed42/run_manifest.json",
+      "sha256": "865fcac6e6586d020e8cfa729be7ba60eb917db5e02fa486f1e048541ff3d8f9"
+    },
+    {
+      "bytes": 1046602,
+      "path": "sources/yolox_s_seed42/terminal.log",
+      "sha256": "db1b427b32d9154b07c8897b4a8b4484dba77272a114e4bc5ebb5c52db0b7d1a"
+    }
+  ]
+}

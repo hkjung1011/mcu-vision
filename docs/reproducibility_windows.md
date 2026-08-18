@@ -1,6 +1,6 @@
 # Windows 재현 절차
 
-이 문서는 private GitHub를 새 PC에 clone한 뒤 현재 Windows 학습 환경과 비교 pipeline을 재현하는
+이 문서는 public GitHub를 새 PC에 clone한 뒤 현재 Windows 학습 환경과 비교 pipeline을 재현하는
 순서를 한 곳에 모은 것입니다. 기준 환경은 Python 3.11과 NVIDIA RTX 5060 Laptop GPU입니다.
 
 ## 1. 사전 조건
@@ -9,7 +9,7 @@
 - Python 3.11 (`py -3.11` 사용 가능)
 - Git과 Git LFS
 - 현재 GPU를 지원하는 NVIDIA driver
-- private GitHub 저장소 접근 권한
+- public GitHub 접근이 가능한 network
 
 별도 CUDA Toolkit은 현재 PyTorch 학습에 필요하지 않습니다. PyTorch CUDA 13.0 wheel이 runtime을
 포함하며, `nvcc`가 필요한 custom extension이나 목표 TensorRT toolchain을 사용할 때만 추가 검토합니다.
@@ -155,14 +155,15 @@ Promotion copy는 로컬 사용자 경로와 raw process list를 제거하고 or
 
 ## 알려진 제한
 
-- 정식 3-seed 결과와 trained weight는 아직 없습니다.
+- 2026-08-18 progress에는 완료 run 3개와 중단 run 1개가 있지만, 정식 3-seed comparison과
+  `weights/trained` release는 아직 없습니다.
 - SMD canonical dataset과 CVAT round-trip은 아직 없습니다.
 - 현재 autolabel CLI는 Ultralytics YOLO11 `.pt`만 지원합니다.
 - ONNX export·전체 val/test 동등성·deployment 승격 도구는 구현됐지만 정식 full-run artifact로는 아직 실행되지 않았습니다.
 - Ubuntu CPU dependency lock은 준비됐지만 실제 목표 Ubuntu 장치 실행은 NOT VERIFIED입니다.
 - Canonical manifest/class/image-list와 YOLO↔COCO box/class 동등성은 RPi v2에서 PASS했습니다.
-- full run 시간과 전체 디스크 사용량은 아직 측정되지 않았으므로 실행 전 여유 공간과 전원/열 조건을
-  직접 확인합니다.
+- full run 실측은 YOLO11m 약 168분/run, YOLOX-S seed42 약 336분/run이지만 laptop 열·전력 상태에
+  따라 달라지므로 재개 전 여유 공간과 전원/열 조건을 직접 확인합니다.
 
 ```powershell
 Get-PSDrive -Name C

@@ -1,0 +1,77 @@
+{
+  "campaign_id": "micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267",
+  "campaign_signature": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5|1350ade4414b288fb31fbf74904a5c4057b84c16b0a441ca387693d071f8c51c|bea2fbaddc87f29181596230404c49753926eccd580b0df7aff848a15d8c5617|7b6cccb07d3217646147052752fa58ad32a98687968cf5679f5ebf2a9e61f3f4|a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef|b7737062671b111699ec360b3bcd7809caf08c4cfc870a355e91514d18c141bf|63bc679d88d56907433b6586e2a7efacb46a25d6|6ddff4824372906469a7fae2dc3206c7aa4bbaee|100|8|640|0|42,43,44|False",
+  "coco_root": {
+    "path": "<PROJECT_ROOT>\\data\\processed\\micropcb_rpi_phash_v2_coco",
+    "train_annotation_sha256": "7b6cccb07d3217646147052752fa58ad32a98687968cf5679f5ebf2a9e61f3f4",
+    "val_annotation_sha256": "a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef"
+  },
+  "comparison_directory": "<PROJECT_ROOT>\\runs\\comparisons\\micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267",
+  "created_utc": "2026-08-17T08:56:38.5321672Z",
+  "dataset_evidence": {
+    "path": "<PROJECT_ROOT>\\data\\evidence\\micropcb_rpi_phash_v2\\dataset_evidence.json",
+    "sha256": "bea2fbaddc87f29181596230404c49753926eccd580b0df7aff848a15d8c5617"
+  },
+  "git": {
+    "clean": true,
+    "head": "63bc679d88d56907433b6586e2a7efacb46a25d6",
+    "upstream": "origin/main",
+    "upstream_head": "63bc679d88d56907433b6586e2a7efacb46a25d6"
+  },
+  "implementation": {
+    "sha256": "b7737062671b111699ec360b3bcd7809caf08c4cfc870a355e91514d18c141bf",
+    "source_files": {
+      "configs/yolox_s_micropcb.py": "c3d6cd8630311a8638a654369f31bdf2dcefe68a4c6c17d096f23fba74e60de9",
+      "scripts/run_compare_seeds.ps1": "ec68a046145b1737564cab791ff91088652d02f1c6bdb15caf1ce7a44de41f50",
+      "scripts/train_yolo11_logged.py": "cd43a9624660e616bd80f8e312eed363f4ae9b7fa95ddc9245e19ad9a2cfea5a",
+      "scripts/train_yolox_logged.py": "28f350683d4e103d533fa2cab57d30f4b6246475386b346d7d90f135421f3f1d",
+      "src/mcu_data/common.py": "bacf8844010146d48e0458c33f874ddf204b176129ef8444a1fadf2f17a8bc4a",
+      "src/mcu_data/dataset_evidence.py": "4dda52f519dc8a24e66a93a4248799afff08c2bb9d7b6db65cb292a2cc176d26",
+      "src/mcu_data/methodology.py": "0c89acc9803ac32a3db6a11d8d3a682d886fbd074afedf1407eeb228d726648c",
+      "src/mcu_data/publishing.py": "fd25299f5f78ecb521f0f6e11b5bee202ed35044da5d7f08426acd24051226ba",
+      "src/mcu_data/reporting.py": "13ff4698fce4036e0cf671670bd139d789a8cdfc81189947d69b84c548963094",
+      "src/mcu_data/runlog.py": "163b29adf59a6d4713ee4e9e8c81d2947f35ddf5790b322ded38c77c16030a34",
+      "src/mcu_data/yolox_metrics.py": "6a21be753947267e165c152ff74ccf553edd53476140425a7b9f9742460d52f0",
+      "weights/pretrained/yolo11m.pt": "d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95",
+      "weights/pretrained/yolox_s.pth": "f55ded7181e1b0c13285c56e7790b8f0e8f8db590fe4edb37f0b7f345c913a30"
+    },
+    "yolo11_pretrained_sha256": "d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95",
+    "yolo11_wrapper_sha256": "cd43a9624660e616bd80f8e312eed363f4ae9b7fa95ddc9245e19ad9a2cfea5a",
+    "yolox_config_sha256": "c3d6cd8630311a8638a654369f31bdf2dcefe68a4c6c17d096f23fba74e60de9",
+    "yolox_pretrained_sha256": "f55ded7181e1b0c13285c56e7790b8f0e8f8db590fe4edb37f0b7f345c913a30",
+    "yolox_wrapper_sha256": "28f350683d4e103d533fa2cab57d30f4b6246475386b346d7d90f135421f3f1d"
+  },
+  "parameters": {
+    "batch": 8,
+    "epochs": 100,
+    "image_size": 640,
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "workers": 0
+  },
+  "protocol": {
+    "path": "<PROJECT_ROOT>\\configs\\experiments\\baseline_v1.yaml",
+    "sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+  },
+  "run_directories": [
+    "<PROJECT_ROOT>\\runs\\benchmarks\\micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267\\yolo11m_seed42",
+    "<PROJECT_ROOT>\\runs\\benchmarks\\micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267\\yolox_s_seed42",
+    "<PROJECT_ROOT>\\runs\\benchmarks\\micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267\\yolo11m_seed43",
+    "<PROJECT_ROOT>\\runs\\benchmarks\\micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267\\yolox_s_seed43",
+    "<PROJECT_ROOT>\\runs\\benchmarks\\micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267\\yolo11m_seed44",
+    "<PROJECT_ROOT>\\runs\\benchmarks\\micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267\\yolox_s_seed44"
+  ],
+  "schema_version": 1,
+  "smoke": false,
+  "yolo_data": {
+    "path": "<PROJECT_ROOT>\\data\\processed\\micropcb_rpi_phash_v2\\dataset.yaml",
+    "sha256": "1350ade4414b288fb31fbf74904a5c4057b84c16b0a441ca387693d071f8c51c"
+  },
+  "yolox_source": {
+    "clean": true,
+    "head": "6ddff4824372906469a7fae2dc3206c7aa4bbaee"
+  }
+}

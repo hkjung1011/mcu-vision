@@ -1,0 +1,875 @@
+{
+  "campaign_id": "micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267",
+  "campaign_progress": {
+    "complete_runs": 3,
+    "completed_formal_epochs": 300,
+    "planned_epochs": 600,
+    "planned_runs": 6,
+    "recorded_epochs_including_interrupted": 370
+  },
+  "checkpoints": [
+    {
+      "bytes": 40547913,
+      "forward_max_abs_difference": 0.0,
+      "metadata_sanitized": true,
+      "path": "weights/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42_best.pt",
+      "published_sha256": "f48e6e662190f0fd650ca55767cc4e32b18803a9ce3ebec240e51e2f54df5a28",
+      "release_eligible": false,
+      "role": "best",
+      "run_id": "yolo11m_seed42",
+      "source_original_sha256": "6045da90e24659e51f3ffb1f0c97e6ed383e8964afee7e59b344a953e7237b3f",
+      "source_relative_to_campaign": "yolo11m_seed42/native/weights/best.pt",
+      "state_dict_bitwise_equal": true,
+      "status": "complete",
+      "ultralytics_load": "PASS"
+    },
+    {
+      "bytes": 40547913,
+      "forward_max_abs_difference": 0.0,
+      "metadata_sanitized": true,
+      "path": "weights/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43_best.pt",
+      "published_sha256": "901b8609ab93b4ed727912bf32f490acabbb397e20bef3ffd30e01b2f8de34ab",
+      "release_eligible": false,
+      "role": "best",
+      "run_id": "yolo11m_seed43",
+      "source_original_sha256": "7afd6e3b0328b9cc236d792f971d3954a9b98e1e8205729a9031569f5acdb85b",
+      "source_relative_to_campaign": "yolo11m_seed43/native/weights/best.pt",
+      "state_dict_bitwise_equal": true,
+      "status": "complete",
+      "ultralytics_load": "PASS"
+    },
+    {
+      "bytes": 71841059,
+      "metadata_sanitized": false,
+      "path": "weights/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42_best.pth",
+      "published_sha256": "345ae7b7d54f49a447d3c6ab5c57d202c5593451a41678440c2ea72e94fb0538",
+      "release_eligible": false,
+      "role": "best",
+      "run_id": "yolox_s_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "345ae7b7d54f49a447d3c6ab5c57d202c5593451a41678440c2ea72e94fb0538",
+      "source_relative_to_campaign": "yolox_s_seed42/best_ckpt.pth",
+      "status": "complete",
+      "torch_load_metadata": {
+        "best_ap": 0.9794094885804289,
+        "curr_ap": 0.9794094885804289,
+        "start_epoch": 100
+      },
+      "yolox_strict_model_load": "PASS"
+    },
+    {
+      "bytes": 71841059,
+      "metadata_sanitized": false,
+      "path": "weights/progress/rpi_bootstrap_2026-08-18/yolox_s_seed43_best.pth",
+      "published_sha256": "ca85c3eb17cbf0619f2345f0547ae67fc7c34f1a81d15db365fd6dff49f31c3b",
+      "release_eligible": false,
+      "role": "best",
+      "run_id": "yolox_s_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "ca85c3eb17cbf0619f2345f0547ae67fc7c34f1a81d15db365fd6dff49f31c3b",
+      "source_relative_to_campaign": "yolox_s_seed43/best_ckpt.pth",
+      "status": "interrupted",
+      "torch_load_metadata": {
+        "best_ap": 0.8574098026800376,
+        "curr_ap": 0.8574098026800376,
+        "start_epoch": 34
+      },
+      "yolox_strict_model_load": "PASS"
+    },
+    {
+      "bytes": 71838163,
+      "metadata_sanitized": false,
+      "path": "weights/progress/rpi_bootstrap_2026-08-18/yolox_s_seed43_resume_epoch_70.pth",
+      "published_sha256": "9783f59224fba8c6bc880ef7cfd553235638686c83e970ad7a6c20d9cdb85dfd",
+      "release_eligible": false,
+      "role": "resume_epoch_70",
+      "run_id": "yolox_s_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "9783f59224fba8c6bc880ef7cfd553235638686c83e970ad7a6c20d9cdb85dfd",
+      "source_relative_to_campaign": "yolox_s_seed43/latest_ckpt.pth",
+      "status": "interrupted",
+      "torch_load_metadata": {
+        "best_ap": 0.8574098026800376,
+        "start_epoch": 70
+      },
+      "yolox_strict_model_load": "PASS"
+    }
+  ],
+  "created_utc": "2026-08-18T06:32:33+00:00",
+  "dataset": {
+    "class_names": [
+      "raspberry_pi_sbc"
+    ],
+    "physical_specimen_independence": "NOT_VERIFIED",
+    "test_images": 180,
+    "train_images": 1500,
+    "validation_images": 195
+  },
+  "dataset_evidence_sha256": "bea2fbaddc87f29181596230404c49753926eccd580b0df7aff848a15d8c5617",
+  "evidence_policy": {
+    "generative_ai_used_for_images": false,
+    "graphs": "Deterministic matplotlib renderings from the published CSV/JSON/log evidence.",
+    "prediction_boxes_included": false,
+    "raw_or_processed_dataset_images_included": false,
+    "terminal_logs": "Local paths and NVIDIA process tables are redacted; numeric training content is unchanged.",
+    "terminal_summary_png": "Rendered text evidence, not a literal monitor screenshot."
+  },
+  "files": [
+    {
+      "bytes": 5225,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/campaign_plan.json",
+      "published_sha256": "ba8c1de45d50dff68303f6b05a541c2cbd6a6e882e849a58440b5fcbf228cf63",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "e3248f1616656f5c8b50310d9da4710ad1f67da67ce50d4d4e5d560a5e13fc9a",
+      "source_relative_to_campaign": "campaign_plan.json"
+    },
+    {
+      "bytes": 1492,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/results.csv",
+      "published_sha256": "dc99221a9f2d69701c1d3ef03c63352660e46ae7933389ea7c6ab97d9c890889",
+      "sanitized_for_repository": false,
+      "source_original_sha256": null,
+      "source_relative_to_campaign": "DERIVED_FROM_PUBLISHED_RUN_EVIDENCE"
+    },
+    {
+      "bytes": 4710,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/confidence_curve.csv",
+      "published_sha256": "d60b1b469fbb94fca870f583fe7ccbcfb5f89466e0bec686048b36d756d7439b",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "d60b1b469fbb94fca870f583fe7ccbcfb5f89466e0bec686048b36d756d7439b",
+      "source_relative_to_campaign": "yolo11m_seed42/confidence_curve.csv"
+    },
+    {
+      "bytes": 42690,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/confidence_curve.png",
+      "published_sha256": "c97bee8dc11a5fca984e51539141464b79f4ac3bf301e4c4efc9ce98eeb66045",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "c97bee8dc11a5fca984e51539141464b79f4ac3bf301e4c4efc9ce98eeb66045",
+      "source_relative_to_campaign": "yolo11m_seed42/confidence_curve.png"
+    },
+    {
+      "bytes": 84,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/confusion_counts.csv",
+      "published_sha256": "ac403a1e40671bdf143cc2cd4ab6a4a4345fbb81e1da8d1b2597d66fdee99e52",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "ac403a1e40671bdf143cc2cd4ab6a4a4345fbb81e1da8d1b2597d66fdee99e52",
+      "source_relative_to_campaign": "yolo11m_seed42/confusion_counts.csv"
+    },
+    {
+      "bytes": 45030,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/confusion_counts.png",
+      "published_sha256": "d066fec57b403c54e059f2e8221efeef4f3e03eade72b2933efeb8d6b4ca2611",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "d066fec57b403c54e059f2e8221efeef4f3e03eade72b2933efeb8d6b4ca2611",
+      "source_relative_to_campaign": "yolo11m_seed42/confusion_counts.png"
+    },
+    {
+      "bytes": 90,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/confusion_normalized.csv",
+      "published_sha256": "816ac8d39361ba59316c6591c4386a1478d42f5cb74a21148389083b7738f327",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "816ac8d39361ba59316c6591c4386a1478d42f5cb74a21148389083b7738f327",
+      "source_relative_to_campaign": "yolo11m_seed42/confusion_normalized.csv"
+    },
+    {
+      "bytes": 48247,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/confusion_normalized.png",
+      "published_sha256": "ca139669ca4d2d9d9fca8cbe1dd1aefe6094e886a9537e4d92c6f8fd09a67855",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "ca139669ca4d2d9d9fca8cbe1dd1aefe6094e886a9537e4d92c6f8fd09a67855",
+      "source_relative_to_campaign": "yolo11m_seed42/confusion_normalized.png"
+    },
+    {
+      "bytes": 19914,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/epoch_metrics.csv",
+      "published_sha256": "6a097035e4c4ac5858b5681d3d0802a556aeeb49ec102e768b3179e74e5585c8",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "6a097035e4c4ac5858b5681d3d0802a556aeeb49ec102e768b3179e74e5585c8",
+      "source_relative_to_campaign": "yolo11m_seed42/epoch_metrics.csv"
+    },
+    {
+      "bytes": 2939,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/final_metrics.json",
+      "published_sha256": "3430febeea78e0a6ee15fb840bf4783a99b53795d408f8656470528f1799921f",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "3430febeea78e0a6ee15fb840bf4783a99b53795d408f8656470528f1799921f",
+      "source_relative_to_campaign": "yolo11m_seed42/final_metrics.json"
+    },
+    {
+      "bytes": 157,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/gpu_summary.json",
+      "published_sha256": "71cc07b714d3dbea8ee36d04c76dd841621e80c7fb64657bf62f1c331375d9ce",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "71cc07b714d3dbea8ee36d04c76dd841621e80c7fb64657bf62f1c331375d9ce",
+      "source_relative_to_campaign": "yolo11m_seed42/gpu_summary.json"
+    },
+    {
+      "bytes": 442,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/latency.json",
+      "published_sha256": "ed8baa61f4fc55e56deab568ce4a1b1af789fb02d46d9ee58e57a61b7130f760",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "ed8baa61f4fc55e56deab568ce4a1b1af789fb02d46d9ee58e57a61b7130f760",
+      "source_relative_to_campaign": "yolo11m_seed42/latency.json"
+    },
+    {
+      "bytes": 4158,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/latency_samples.csv",
+      "published_sha256": "cbe961542012a29c542694418781b950da6e13a8129463c657259423c31244a2",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "cbe961542012a29c542694418781b950da6e13a8129463c657259423c31244a2",
+      "source_relative_to_campaign": "yolo11m_seed42/latency_samples.csv"
+    },
+    {
+      "bytes": 108,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/per_class_metrics.csv",
+      "published_sha256": "34102e8418f5c94b925000258f17e9bd10724d9619700e8d37556c802fba30b1",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "34102e8418f5c94b925000258f17e9bd10724d9619700e8d37556c802fba30b1",
+      "source_relative_to_campaign": "yolo11m_seed42/per_class_metrics.csv"
+    },
+    {
+      "bytes": 1153,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/pip-freeze.txt",
+      "published_sha256": "c358f8159a075e4c50a244add6891b4b11221123a9a56ecde3241fd1526b09b6",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "c358f8159a075e4c50a244add6891b4b11221123a9a56ecde3241fd1526b09b6",
+      "source_relative_to_campaign": "yolo11m_seed42/pip-freeze.txt"
+    },
+    {
+      "bytes": 165306,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/plots/latest_overview.png",
+      "published_sha256": "1460b00a1ca0bc0fc98c278da26a767077005811d636c976b108ff5c7d146093",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "1460b00a1ca0bc0fc98c278da26a767077005811d636c976b108ff5c7d146093",
+      "source_relative_to_campaign": "yolo11m_seed42/plots/latest_overview.png"
+    },
+    {
+      "bytes": 140563,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/plots/summary/comparison_dashboard.png",
+      "published_sha256": "45d23158ba0e02714bb69c90cfc2c4edec515ae634b50f5cbf9152306fa034af",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "45d23158ba0e02714bb69c90cfc2c4edec515ae634b50f5cbf9152306fa034af",
+      "source_relative_to_campaign": "yolo11m_seed42/plots/summary/comparison_dashboard.png"
+    },
+    {
+      "bytes": 1402,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/plots/summary/comparison_terminal.txt",
+      "published_sha256": "c0815e7d524826119fd09e1cb4533d709750aab8572cae511df6a1d90fe609cb",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "c0815e7d524826119fd09e1cb4533d709750aab8572cae511df6a1d90fe609cb",
+      "source_relative_to_campaign": "yolo11m_seed42/plots/summary/comparison_terminal.txt"
+    },
+    {
+      "bytes": 3347,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/plots/summary/evidence_manifest.json",
+      "published_sha256": "8eaa557e45884790c24bac084d92c513700b6fd9283f7268b4381652f0b6fd3f",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "8eaa557e45884790c24bac084d92c513700b6fd9283f7268b4381652f0b6fd3f",
+      "source_relative_to_campaign": "yolo11m_seed42/plots/summary/evidence_manifest.json"
+    },
+    {
+      "bytes": 1506,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/plots/summary/protocol_compatibility.json",
+      "published_sha256": "48b993b7717fd66510ff746e21caef22fce7d926f9c9e686cc7bce4d47d469a9",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "48b993b7717fd66510ff746e21caef22fce7d926f9c9e686cc7bce4d47d469a9",
+      "source_relative_to_campaign": "yolo11m_seed42/plots/summary/protocol_compatibility.json"
+    },
+    {
+      "bytes": 115477,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/plots/summary/terminal_summary.png",
+      "published_sha256": "410b6d2d0730f8385b929fd4e61e0ecf807ffe5117d2559da4fda55cc2d6065c",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "410b6d2d0730f8385b929fd4e61e0ecf807ffe5117d2559da4fda55cc2d6065c",
+      "source_relative_to_campaign": "yolo11m_seed42/plots/summary/terminal_summary.png"
+    },
+    {
+      "bytes": 169145,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/plots/summary/training_curves.png",
+      "published_sha256": "bb81a7f545c9002a99138ad52309730d6d94a3817cef356a068f58fce3bf73ae",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "bb81a7f545c9002a99138ad52309730d6d94a3817cef356a068f58fce3bf73ae",
+      "source_relative_to_campaign": "yolo11m_seed42/plots/summary/training_curves.png"
+    },
+    {
+      "bytes": 7109,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/run_manifest.json",
+      "published_sha256": "7c05e065d668b6c3bc78097835147d4d049d8b16118cd99724ddd564cfe66b9c",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "919313fd9f04b1a1ace6abc302aafd3a551914e1691657746184eed5538dfa7d",
+      "source_relative_to_campaign": "yolo11m_seed42/run_manifest.json"
+    },
+    {
+      "bytes": 3063795,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed42/terminal.log",
+      "published_sha256": "330f9bf82db50b44d97569d47f3dc63bdf3c1e5c5cadecb582342fdaeabf1e6c",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "9a02cf9060b886f3e212c084fab9904c71102b99bb1fd630af6bde039656cdb4",
+      "source_relative_to_campaign": "yolo11m_seed42/terminal.log"
+    },
+    {
+      "bytes": 4648,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/confidence_curve.csv",
+      "published_sha256": "361687bcd3895d283ddf55612f9629374b3fd96c80ee7e2c9cd6c187b41db825",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "361687bcd3895d283ddf55612f9629374b3fd96c80ee7e2c9cd6c187b41db825",
+      "source_relative_to_campaign": "yolo11m_seed43/confidence_curve.csv"
+    },
+    {
+      "bytes": 42492,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/confidence_curve.png",
+      "published_sha256": "a06a9d56d748e827a22197bdd1856f47c8a447a137030fae5ba778368bc8ac1c",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "a06a9d56d748e827a22197bdd1856f47c8a447a137030fae5ba778368bc8ac1c",
+      "source_relative_to_campaign": "yolo11m_seed43/confidence_curve.png"
+    },
+    {
+      "bytes": 84,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/confusion_counts.csv",
+      "published_sha256": "ac403a1e40671bdf143cc2cd4ab6a4a4345fbb81e1da8d1b2597d66fdee99e52",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "ac403a1e40671bdf143cc2cd4ab6a4a4345fbb81e1da8d1b2597d66fdee99e52",
+      "source_relative_to_campaign": "yolo11m_seed43/confusion_counts.csv"
+    },
+    {
+      "bytes": 45030,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/confusion_counts.png",
+      "published_sha256": "d066fec57b403c54e059f2e8221efeef4f3e03eade72b2933efeb8d6b4ca2611",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "d066fec57b403c54e059f2e8221efeef4f3e03eade72b2933efeb8d6b4ca2611",
+      "source_relative_to_campaign": "yolo11m_seed43/confusion_counts.png"
+    },
+    {
+      "bytes": 90,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/confusion_normalized.csv",
+      "published_sha256": "816ac8d39361ba59316c6591c4386a1478d42f5cb74a21148389083b7738f327",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "816ac8d39361ba59316c6591c4386a1478d42f5cb74a21148389083b7738f327",
+      "source_relative_to_campaign": "yolo11m_seed43/confusion_normalized.csv"
+    },
+    {
+      "bytes": 48247,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/confusion_normalized.png",
+      "published_sha256": "ca139669ca4d2d9d9fca8cbe1dd1aefe6094e886a9537e4d92c6f8fd09a67855",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "ca139669ca4d2d9d9fca8cbe1dd1aefe6094e886a9537e4d92c6f8fd09a67855",
+      "source_relative_to_campaign": "yolo11m_seed43/confusion_normalized.png"
+    },
+    {
+      "bytes": 19898,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/epoch_metrics.csv",
+      "published_sha256": "82f5ad2a58408d33eb35388db0b58e5e4f4594372b00860bd2289d0973ea75b3",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "82f5ad2a58408d33eb35388db0b58e5e4f4594372b00860bd2289d0973ea75b3",
+      "source_relative_to_campaign": "yolo11m_seed43/epoch_metrics.csv"
+    },
+    {
+      "bytes": 2936,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/final_metrics.json",
+      "published_sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef",
+      "source_relative_to_campaign": "yolo11m_seed43/final_metrics.json"
+    },
+    {
+      "bytes": 158,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/gpu_summary.json",
+      "published_sha256": "9df6329ffeeb79b7e115f3f35ae3e91495506352afba05cc9f7d0cf29b558011",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "9df6329ffeeb79b7e115f3f35ae3e91495506352afba05cc9f7d0cf29b558011",
+      "source_relative_to_campaign": "yolo11m_seed43/gpu_summary.json"
+    },
+    {
+      "bytes": 441,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/latency.json",
+      "published_sha256": "705bc246764f375a8830b53ed28140deb8a89246d100b246b2d9cef343ebddd2",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "705bc246764f375a8830b53ed28140deb8a89246d100b246b2d9cef343ebddd2",
+      "source_relative_to_campaign": "yolo11m_seed43/latency.json"
+    },
+    {
+      "bytes": 4167,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/latency_samples.csv",
+      "published_sha256": "4dbd23449591c1c40b736f68c4d89b67f4cf8a44f13d0586fbc69b5797931dda",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "4dbd23449591c1c40b736f68c4d89b67f4cf8a44f13d0586fbc69b5797931dda",
+      "source_relative_to_campaign": "yolo11m_seed43/latency_samples.csv"
+    },
+    {
+      "bytes": 108,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/per_class_metrics.csv",
+      "published_sha256": "34102e8418f5c94b925000258f17e9bd10724d9619700e8d37556c802fba30b1",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "34102e8418f5c94b925000258f17e9bd10724d9619700e8d37556c802fba30b1",
+      "source_relative_to_campaign": "yolo11m_seed43/per_class_metrics.csv"
+    },
+    {
+      "bytes": 1153,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/pip-freeze.txt",
+      "published_sha256": "c358f8159a075e4c50a244add6891b4b11221123a9a56ecde3241fd1526b09b6",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "c358f8159a075e4c50a244add6891b4b11221123a9a56ecde3241fd1526b09b6",
+      "source_relative_to_campaign": "yolo11m_seed43/pip-freeze.txt"
+    },
+    {
+      "bytes": 174024,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/plots/latest_overview.png",
+      "published_sha256": "1bc5be847a81c8684238ea4ecd77d14c0568e9fe5c34cd20c107247171c14472",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "1bc5be847a81c8684238ea4ecd77d14c0568e9fe5c34cd20c107247171c14472",
+      "source_relative_to_campaign": "yolo11m_seed43/plots/latest_overview.png"
+    },
+    {
+      "bytes": 164511,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/plots/summary/comparison_dashboard.png",
+      "published_sha256": "0dda6d084f84a8c607a75bf4bf15b8866d4b5b38939ed993d403acf042992f97",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "0dda6d084f84a8c607a75bf4bf15b8866d4b5b38939ed993d403acf042992f97",
+      "source_relative_to_campaign": "yolo11m_seed43/plots/summary/comparison_dashboard.png"
+    },
+    {
+      "bytes": 1402,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/plots/summary/comparison_terminal.txt",
+      "published_sha256": "7113b0c7783db3c400c7421ddc1bd50710f1809a6f30c324159e8095166fa512",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "7113b0c7783db3c400c7421ddc1bd50710f1809a6f30c324159e8095166fa512",
+      "source_relative_to_campaign": "yolo11m_seed43/plots/summary/comparison_terminal.txt"
+    },
+    {
+      "bytes": 3347,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/plots/summary/evidence_manifest.json",
+      "published_sha256": "456e05e164e1bd1fa5e48a525e2333a22808b4ca32caf23159398dcc2a884981",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "456e05e164e1bd1fa5e48a525e2333a22808b4ca32caf23159398dcc2a884981",
+      "source_relative_to_campaign": "yolo11m_seed43/plots/summary/evidence_manifest.json"
+    },
+    {
+      "bytes": 1506,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/plots/summary/protocol_compatibility.json",
+      "published_sha256": "143cb8fac2fae75bf552b508ce739c0bcd5bf8c77db853732f60397f6ea079a5",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "143cb8fac2fae75bf552b508ce739c0bcd5bf8c77db853732f60397f6ea079a5",
+      "source_relative_to_campaign": "yolo11m_seed43/plots/summary/protocol_compatibility.json"
+    },
+    {
+      "bytes": 115776,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/plots/summary/terminal_summary.png",
+      "published_sha256": "c13cb33763522976fbf5675841fd94c701044dfca96af126a9110626d32c188c",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "c13cb33763522976fbf5675841fd94c701044dfca96af126a9110626d32c188c",
+      "source_relative_to_campaign": "yolo11m_seed43/plots/summary/terminal_summary.png"
+    },
+    {
+      "bytes": 160583,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/plots/summary/training_curves.png",
+      "published_sha256": "1983ac4afaea69469c1e9c5c4f2df7f0c473e725e6230b86abddd123b20e06e6",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "1983ac4afaea69469c1e9c5c4f2df7f0c473e725e6230b86abddd123b20e06e6",
+      "source_relative_to_campaign": "yolo11m_seed43/plots/summary/training_curves.png"
+    },
+    {
+      "bytes": 7109,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/run_manifest.json",
+      "published_sha256": "a7ecc9c675626075a6c314f4d98242326c70f57f6c7a623503d7b07eae40b333",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "948a8cfdeb2369117b1b39209d1621d8f7ac74d5804e060f8e19e8718f4af53e",
+      "source_relative_to_campaign": "yolo11m_seed43/run_manifest.json"
+    },
+    {
+      "bytes": 3061441,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolo11m_seed43/terminal.log",
+      "published_sha256": "d214d845430f2322749b77501e15fa83e6111fd1d341736b8b462ae2b6b9ac47",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "5648bf1db66378667223e8527ba71e62f6c5fd4d9e33808bdaa648352200995e",
+      "source_relative_to_campaign": "yolo11m_seed43/terminal.log"
+    },
+    {
+      "bytes": 4697,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/confidence_curve.csv",
+      "published_sha256": "49d77fe1f592b34f08119a65b5ba5126022904e1d383b4e156fbae238847266f",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "49d77fe1f592b34f08119a65b5ba5126022904e1d383b4e156fbae238847266f",
+      "source_relative_to_campaign": "yolox_s_seed42/confidence_curve.csv"
+    },
+    {
+      "bytes": 44656,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/confidence_curve.png",
+      "published_sha256": "b52a8cb91fb750ad8d9ad9392333d95b8171d399c8bf40643d13668088e342f8",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "b52a8cb91fb750ad8d9ad9392333d95b8171d399c8bf40643d13668088e342f8",
+      "source_relative_to_campaign": "yolox_s_seed42/confidence_curve.png"
+    },
+    {
+      "bytes": 84,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/confusion_counts.csv",
+      "published_sha256": "ac403a1e40671bdf143cc2cd4ab6a4a4345fbb81e1da8d1b2597d66fdee99e52",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "ac403a1e40671bdf143cc2cd4ab6a4a4345fbb81e1da8d1b2597d66fdee99e52",
+      "source_relative_to_campaign": "yolox_s_seed42/confusion_counts.csv"
+    },
+    {
+      "bytes": 45030,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/confusion_counts.png",
+      "published_sha256": "d066fec57b403c54e059f2e8221efeef4f3e03eade72b2933efeb8d6b4ca2611",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "d066fec57b403c54e059f2e8221efeef4f3e03eade72b2933efeb8d6b4ca2611",
+      "source_relative_to_campaign": "yolox_s_seed42/confusion_counts.png"
+    },
+    {
+      "bytes": 90,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/confusion_normalized.csv",
+      "published_sha256": "816ac8d39361ba59316c6591c4386a1478d42f5cb74a21148389083b7738f327",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "816ac8d39361ba59316c6591c4386a1478d42f5cb74a21148389083b7738f327",
+      "source_relative_to_campaign": "yolox_s_seed42/confusion_normalized.csv"
+    },
+    {
+      "bytes": 48247,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/confusion_normalized.png",
+      "published_sha256": "ca139669ca4d2d9d9fca8cbe1dd1aefe6094e886a9537e4d92c6f8fd09a67855",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "ca139669ca4d2d9d9fca8cbe1dd1aefe6094e886a9537e4d92c6f8fd09a67855",
+      "source_relative_to_campaign": "yolox_s_seed42/confusion_normalized.png"
+    },
+    {
+      "bytes": 28240,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/epoch_metrics.csv",
+      "published_sha256": "4ca7befb64a7b3ac76c1d210d72f9a8cd43fce702b165b343a20e8aabcc01d2f",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "4ca7befb64a7b3ac76c1d210d72f9a8cd43fce702b165b343a20e8aabcc01d2f",
+      "source_relative_to_campaign": "yolox_s_seed42/epoch_metrics.csv"
+    },
+    {
+      "bytes": 3044,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/final_metrics.json",
+      "published_sha256": "c255012a5466fe2e2cfa0b76dca37e0e19ca1c816c9ad2f012dcb2938b9f6f37",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "c255012a5466fe2e2cfa0b76dca37e0e19ca1c816c9ad2f012dcb2938b9f6f37",
+      "source_relative_to_campaign": "yolox_s_seed42/final_metrics.json"
+    },
+    {
+      "bytes": 159,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/gpu_summary.json",
+      "published_sha256": "511ad6345f6337203d1039e714302aa591099e133a423447a9b43736531ebe26",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "511ad6345f6337203d1039e714302aa591099e133a423447a9b43736531ebe26",
+      "source_relative_to_campaign": "yolox_s_seed42/gpu_summary.json"
+    },
+    {
+      "bytes": 439,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/latency.json",
+      "published_sha256": "fb1b25d91f03d38bccb337e633ca2bd40d956d7d23d829bce89d3ab3fc46dfc9",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "fb1b25d91f03d38bccb337e633ca2bd40d956d7d23d829bce89d3ab3fc46dfc9",
+      "source_relative_to_campaign": "yolox_s_seed42/latency.json"
+    },
+    {
+      "bytes": 4150,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/latency_samples.csv",
+      "published_sha256": "1c3c48bc8c7beeb5a2ac61fe40c930b145f95acad9e67b9f14773cdf7ec4b0ab",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "1c3c48bc8c7beeb5a2ac61fe40c930b145f95acad9e67b9f14773cdf7ec4b0ab",
+      "source_relative_to_campaign": "yolox_s_seed42/latency_samples.csv"
+    },
+    {
+      "bytes": 123,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/per_class_metrics.csv",
+      "published_sha256": "7c5447e120acba85a0e8e63bab67ab26743cf1b4adbe89f0059339a1ef6f81e7",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "7c5447e120acba85a0e8e63bab67ab26743cf1b4adbe89f0059339a1ef6f81e7",
+      "source_relative_to_campaign": "yolox_s_seed42/per_class_metrics.csv"
+    },
+    {
+      "bytes": 1252,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/pip-freeze.txt",
+      "published_sha256": "6aa947c96de5ea6a52d8c782689f5ccabd9e0f6fbd39f7600ccb3bc48c28e25d",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "6aa947c96de5ea6a52d8c782689f5ccabd9e0f6fbd39f7600ccb3bc48c28e25d",
+      "source_relative_to_campaign": "yolox_s_seed42/pip-freeze.txt"
+    },
+    {
+      "bytes": 200771,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/plots/latest_overview.png",
+      "published_sha256": "b18299f20fef7ad4cc00a556ce97bbf339a796cfaf96762a6e570806532b942a",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "b18299f20fef7ad4cc00a556ce97bbf339a796cfaf96762a6e570806532b942a",
+      "source_relative_to_campaign": "yolox_s_seed42/plots/latest_overview.png"
+    },
+    {
+      "bytes": 173650,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/plots/summary/comparison_dashboard.png",
+      "published_sha256": "6b78229fb361ecf90dc773f5e35623cf9aed7f6620a06d235d0cbe7c17d56652",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "6b78229fb361ecf90dc773f5e35623cf9aed7f6620a06d235d0cbe7c17d56652",
+      "source_relative_to_campaign": "yolox_s_seed42/plots/summary/comparison_dashboard.png"
+    },
+    {
+      "bytes": 1403,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/plots/summary/comparison_terminal.txt",
+      "published_sha256": "6a46da4a1bf521bd4f035dc2b828d21ff893f3cc962a927246c1db8a6ac0aa4a",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "6a46da4a1bf521bd4f035dc2b828d21ff893f3cc962a927246c1db8a6ac0aa4a",
+      "source_relative_to_campaign": "yolox_s_seed42/plots/summary/comparison_terminal.txt"
+    },
+    {
+      "bytes": 3341,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/plots/summary/evidence_manifest.json",
+      "published_sha256": "8c161907fefc0293f07aa4c3b778f90d4a71669437ec42273b536abe1e59d931",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "8c161907fefc0293f07aa4c3b778f90d4a71669437ec42273b536abe1e59d931",
+      "source_relative_to_campaign": "yolox_s_seed42/plots/summary/evidence_manifest.json"
+    },
+    {
+      "bytes": 1507,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/plots/summary/protocol_compatibility.json",
+      "published_sha256": "a6e5c00e0f047bb5acc2c7e88ee706daac6b13eb1686cf28fe8292356f7e7ebb",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "a6e5c00e0f047bb5acc2c7e88ee706daac6b13eb1686cf28fe8292356f7e7ebb",
+      "source_relative_to_campaign": "yolox_s_seed42/plots/summary/protocol_compatibility.json"
+    },
+    {
+      "bytes": 120324,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/plots/summary/terminal_summary.png",
+      "published_sha256": "3827852227dc40458fade09ef54e7e0fbdd1d3b111fa36e0b9d27ffb44b9a75a",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "3827852227dc40458fade09ef54e7e0fbdd1d3b111fa36e0b9d27ffb44b9a75a",
+      "source_relative_to_campaign": "yolox_s_seed42/plots/summary/terminal_summary.png"
+    },
+    {
+      "bytes": 172096,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/plots/summary/training_curves.png",
+      "published_sha256": "f685f8a2de92a686ee3e3f04b6cfeb6ddb86c4a99453db2884e1660d7b9b6709",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "f685f8a2de92a686ee3e3f04b6cfeb6ddb86c4a99453db2884e1660d7b9b6709",
+      "source_relative_to_campaign": "yolox_s_seed42/plots/summary/training_curves.png"
+    },
+    {
+      "bytes": 6760,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/run_manifest.json",
+      "published_sha256": "865fcac6e6586d020e8cfa729be7ba60eb917db5e02fa486f1e048541ff3d8f9",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "fedbf3a7f1e83f8b257c76f5b7eb2eda21808e37588f301011f297cf3e8484aa",
+      "source_relative_to_campaign": "yolox_s_seed42/run_manifest.json"
+    },
+    {
+      "bytes": 1044932,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed42/terminal.log",
+      "published_sha256": "fbad492e754a4f9d097aa537d30a5282095f960ca0d80ad2e2aa59d28fc6e945",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "e859b48d9789d9b137deefc49073680af119a9887db7215223184e2b34378077",
+      "source_relative_to_campaign": "yolox_s_seed42/terminal.log"
+    },
+    {
+      "bytes": 19713,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed43/epoch_metrics.csv",
+      "published_sha256": "1432234a723a1c2745359e5cfcef11a3f9565060b1f03a5a32cdce66f628d205",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "1432234a723a1c2745359e5cfcef11a3f9565060b1f03a5a32cdce66f628d205",
+      "source_relative_to_campaign": "yolox_s_seed43/epoch_metrics.csv"
+    },
+    {
+      "bytes": 40626,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed43/epoch_metrics.jsonl",
+      "published_sha256": "fe5be3117a559ed71a428be71999f2594d54c3668e38ecfd988e3559d9a850e7",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "fe5be3117a559ed71a428be71999f2594d54c3668e38ecfd988e3559d9a850e7",
+      "source_relative_to_campaign": "yolox_s_seed43/epoch_metrics.jsonl"
+    },
+    {
+      "bytes": 158,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed43/gpu_summary.json",
+      "published_sha256": "f7f008a2ebe7813e8975bd2a5bb81077f18ae3a8ef6d96df22968999eaa7e062",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "f7f008a2ebe7813e8975bd2a5bb81077f18ae3a8ef6d96df22968999eaa7e062",
+      "source_relative_to_campaign": "yolox_s_seed43/gpu_summary.json"
+    },
+    {
+      "bytes": 371,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed43/native_coco_metrics.json",
+      "published_sha256": "15b14dd2b1166d4b893b072559906dcf0f9bc972d65321648104dfbb40b71791",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "15b14dd2b1166d4b893b072559906dcf0f9bc972d65321648104dfbb40b71791",
+      "source_relative_to_campaign": "yolox_s_seed43/native_coco_metrics.json"
+    },
+    {
+      "bytes": 1252,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed43/pip-freeze.txt",
+      "published_sha256": "6aa947c96de5ea6a52d8c782689f5ccabd9e0f6fbd39f7600ccb3bc48c28e25d",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "6aa947c96de5ea6a52d8c782689f5ccabd9e0f6fbd39f7600ccb3bc48c28e25d",
+      "source_relative_to_campaign": "yolox_s_seed43/pip-freeze.txt"
+    },
+    {
+      "bytes": 209197,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed43/plots/latest_overview.png",
+      "published_sha256": "9eef9a68908ac1091057000ca7f5a8d21fab74f6c493d8f3a43321e96b124115",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "9eef9a68908ac1091057000ca7f5a8d21fab74f6c493d8f3a43321e96b124115",
+      "source_relative_to_campaign": "yolox_s_seed43/plots/latest_overview.png"
+    },
+    {
+      "bytes": 6133,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed43/run_manifest.json",
+      "published_sha256": "63105c5ef7ad49765ad625bcbf08c1a325e5b33a0ec641aa6d7d41a6a00f0b0a",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "1c06f76ec675483b91fef3e9735666c767a78019d1ff902bc1e218029987c0f5",
+      "source_relative_to_campaign": "yolox_s_seed43/run_manifest.json"
+    },
+    {
+      "bytes": 751198,
+      "path": "reports/progress/rpi_bootstrap_2026-08-18/yolox_s_seed43/terminal.log",
+      "published_sha256": "09b06c39d15dba344e5f1716e4cc90367e76099f5c63468411ae4c09766f225d",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "ea9b568cbc0e4f7c03ed0557a8f988ed0f131d03b2a28ff62dc32088473e3700",
+      "source_relative_to_campaign": "yolox_s_seed43/terminal.log"
+    }
+  ],
+  "formal_release": false,
+  "independent_camera_tested": false,
+  "protocol_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+  "publication_stage": "INTERIM_PROGRESS",
+  "release_ready": false,
+  "runs": [
+    {
+      "common_ap50": 1.0,
+      "common_ap50_95": 1.0,
+      "common_ap75": 1.0,
+      "completed_epochs": 100,
+      "f1_at_025": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "framework": "Ultralytics",
+      "gflops": 68.643072,
+      "latency_e2e_p50_ms": 15.682500001275912,
+      "latency_e2e_p95_ms": 16.964435009867884,
+      "metric_source": "common_coco_validation",
+      "model": "yolo11m",
+      "model_summary": null,
+      "native_best_ap50_95": 0.995,
+      "native_best_epoch": 63,
+      "native_last_ap50": 0.995,
+      "native_last_ap50_95": 0.995,
+      "native_last_ap75": null,
+      "native_last_ar100": null,
+      "parameters": 20114688,
+      "planned_epochs": 100,
+      "precision_at_025": 1.0,
+      "recall_at_025": 1.0,
+      "release_eligible": false,
+      "run_id": "yolo11m_seed42",
+      "seed": 42,
+      "status": "complete",
+      "sustained_fps": 64.13396507844062,
+      "tp": 195,
+      "train_peak_allocated_mib": 3999.23193359375,
+      "wall_minutes": 168.50258333333335
+    },
+    {
+      "common_ap50": 1.0,
+      "common_ap50_95": 1.0,
+      "common_ap75": 1.0,
+      "completed_epochs": 100,
+      "f1_at_025": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "framework": "Ultralytics",
+      "gflops": 68.643072,
+      "latency_e2e_p50_ms": 11.51949999621138,
+      "latency_e2e_p95_ms": 12.463920025038533,
+      "metric_source": "common_coco_validation",
+      "model": "yolo11m",
+      "model_summary": null,
+      "native_best_ap50_95": 0.995,
+      "native_best_epoch": 66,
+      "native_last_ap50": 0.995,
+      "native_last_ap50_95": 0.995,
+      "native_last_ap75": null,
+      "native_last_ar100": null,
+      "parameters": 20114688,
+      "planned_epochs": 100,
+      "precision_at_025": 1.0,
+      "recall_at_025": 1.0,
+      "release_eligible": false,
+      "run_id": "yolo11m_seed43",
+      "seed": 43,
+      "status": "complete",
+      "sustained_fps": 84.92033156399027,
+      "tp": 195,
+      "train_peak_allocated_mib": 3999.23193359375,
+      "wall_minutes": 168.07265
+    },
+    {
+      "common_ap50": 1.0,
+      "common_ap50_95": 0.9793731141600794,
+      "common_ap75": 1.0,
+      "completed_epochs": 100,
+      "f1_at_025": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "framework": "YOLOX",
+      "gflops": 26.76,
+      "latency_e2e_p50_ms": 17.75869997800328,
+      "latency_e2e_p95_ms": 20.046049950178713,
+      "metric_source": "common_coco_validation",
+      "model": "YOLOX-S",
+      "model_summary": "Params: 8.94M, Gflops: 26.76",
+      "native_best_ap50_95": 0.9794094885804289,
+      "native_best_epoch": 100,
+      "native_last_ap50": 1.0,
+      "native_last_ap50_95": 0.9794094885804289,
+      "native_last_ap75": 1.0,
+      "native_last_ar100": 0.9846153846153847,
+      "parameters": 8937682,
+      "planned_epochs": 100,
+      "precision_at_025": 1.0,
+      "recall_at_025": 1.0,
+      "release_eligible": false,
+      "run_id": "yolox_s_seed42",
+      "seed": 42,
+      "status": "complete",
+      "sustained_fps": 56.4291318110454,
+      "tp": 195,
+      "train_peak_allocated_mib": 1717.10205078125,
+      "wall_minutes": 335.83646666666664
+    },
+    {
+      "common_ap50": null,
+      "common_ap50_95": null,
+      "common_ap75": null,
+      "completed_epochs": 70,
+      "f1_at_025": null,
+      "fn": null,
+      "fp": null,
+      "framework": "YOLOX",
+      "gflops": 26.76,
+      "latency_e2e_p50_ms": null,
+      "latency_e2e_p95_ms": null,
+      "metric_source": "native_epoch_metrics_interrupted",
+      "model": "YOLOX-S",
+      "model_summary": "Params: 8.94M, Gflops: 26.76",
+      "native_best_ap50_95": 0.8574098026800376,
+      "native_best_epoch": 34,
+      "native_last_ap50": 1.0,
+      "native_last_ap50_95": 0.834206591469915,
+      "native_last_ap75": 1.0,
+      "native_last_ar100": 0.8533333333333333,
+      "parameters": 8937682,
+      "planned_epochs": 100,
+      "precision_at_025": null,
+      "recall_at_025": null,
+      "release_eligible": false,
+      "run_id": "yolox_s_seed43",
+      "seed": 43,
+      "status": "interrupted",
+      "sustained_fps": null,
+      "tp": null,
+      "train_peak_allocated_mib": 1717.24755859375,
+      "wall_minutes": 267.0852151333333
+    }
+  ],
+  "schema_version": 1,
+  "scope_warning": "Not an STM32, small-SMD, OCR, or multi-class model.",
+  "snapshot_name": "rpi_bootstrap_2026-08-18",
+  "source_git_commit": "63bc679d88d56907433b6586e2a7efacb46a25d6",
+  "task": "one_class_raspberry_pi_sbc_detection"
+}

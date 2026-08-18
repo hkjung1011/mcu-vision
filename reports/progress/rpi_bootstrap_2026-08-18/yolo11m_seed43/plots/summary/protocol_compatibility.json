@@ -1,0 +1,69 @@
+{
+  "comparable": false,
+  "critical_mismatches": [],
+  "note": "Comparable PASS only means the supplied runs share critical settings. Release-ready also requires the configured model/seed matrix, full epochs, complete non-smoke runs, and dataset equivalence evidence. Native optimizer, effective batch, augmentation, and loss definitions intentionally remain framework-specific; final accuracy must come from common COCO evaluation.",
+  "release_blockers": [
+    {
+      "actual": [
+        "yolo11m"
+      ],
+      "expected": [
+        "yolo11m",
+        "YOLOX-S"
+      ],
+      "field": "model_set"
+    },
+    {
+      "actual": [
+        43
+      ],
+      "expected": [
+        42,
+        43,
+        44
+      ],
+      "field": "seed_set:yolo11m"
+    },
+    {
+      "actual": [],
+      "expected": [
+        42,
+        43,
+        44
+      ],
+      "field": "seed_set:yoloxs"
+    },
+    {
+      "actual_runs": 1,
+      "expected_runs": 6,
+      "field": "complete_model_seed_matrix"
+    }
+  ],
+  "release_expectations": {
+    "dataset_evidence": [
+      "canonical_dataset_manifest_sha256",
+      "class_map_sha256",
+      "train_image_list_sha256",
+      "val_image_list_sha256",
+      "canonical_train_records_sha256",
+      "canonical_val_records_sha256"
+    ],
+    "models": [
+      "yolo11m",
+      "YOLOX-S"
+    ],
+    "runs": 6,
+    "seeds": [
+      42,
+      43,
+      44
+    ]
+  },
+  "release_ready": false,
+  "run_count": 1,
+  "seed_sets_by_model": {
+    "yolo11m": [
+      43
+    ]
+  }
+}

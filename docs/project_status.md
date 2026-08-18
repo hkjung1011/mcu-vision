@@ -1,11 +1,11 @@
 # 현재 프로젝트 상태
 
-기준일: **2026-08-17**
+기준일: **2026-08-18**
 
 ## 목표
 
 Windows RTX GPU에서 Raspberry Pi/STM32/소형 전자부품 detector를 fine-tune하고, 학습 과정·가중치·평가
-근거를 private GitHub에 보존한 뒤 Ubuntu 목표 장치에서 실제 카메라 입력으로 검증합니다. Exact part
+근거를 공개 GitHub에 보존한 뒤 Ubuntu 목표 장치에서 실제 카메라 입력으로 검증합니다. Exact part
 number나 표면 marking 인식이 필요하면 detector 뒤에 고해상도 crop classifier/OCR 단계를 별도로 둡니다.
 
 ## 상태 요약
@@ -23,26 +23,28 @@ number나 표면 marking 인식이 필요하면 detector 뒤에 고해상도 cro
 | 현재 학습 범위 | Raspberry Pi 1-class bootstrap | PARTIAL | 실제 MCU/SMD 승인 데이터는 아직 없음 |
 | Provisional multi-class 경로 | dataset CLI, dynamic class 수, canonical equivalence gate 구현 | PARTIAL | 실제 multi-class dataset smoke 필요 |
 | 소형 SMD 실제 데이터 | 아직 canonical dataset에 없음 | NOT VERIFIED | 공개 raw 데이터 다운로드·감사 및 자체 촬영 필요 |
-| full 3-seed 비교 | 아직 없음 | NOT VERIFIED | seed 42/43/44, 동일 protocol로 실행 필요 |
+| full 3-seed 학습 | 완료 3/6; YOLOX-S seed43 70/100 중단; seed44 2개 미시작 | PARTIAL | seed 42/43/44 동일 protocol 완료 필요 |
 | 독립 컨베이어 test | 없음 | NOT VERIFIED | Ubuntu 카메라로 새 session을 촬영해 test 고정 필요 |
-| 배포용 trained weight | 없음 | NOT VERIFIED | Git LFS에는 두 모델의 공식 pretrained만 존재 |
+| 공개 progress weight | 완료 best 3개 + 중단 best/resume 2개 | INTERIM_PROGRESS | metadata 비식별·SHA·load 검증, `release_ready=false` |
+| 배포용 trained weight | 없음 | NOT VERIFIED | 6-run formal comparison·ONNX val/test 뒤 승격 |
 | 정식 release gate | 6-run·100-epoch·protocol 고정·canonical dataset/checkpoint hash 강제 | IMPLEMENTED / AWAITING RUNS | YOLO↔COCO 1,500/195 동등성 PASS |
 | Ubuntu 카메라 연동 | 미실행 | NOT VERIFIED | 목표 GPU/CPU, 카메라 해상도, FPS 확정 후 진행 |
 
 ## 현재 결과의 해석
 
-현재 생성된 smoke run은 로깅·학습·평가 배선 검증용입니다. 일부 smoke 비교는 `fraction`, `batch` 등의
-조건이 달라 protocol gate가 `NOT COMPARABLE`이므로 어느 모델이 더 우수하다는 근거로 사용하지 않습니다.
-GitHub의 `reports/`에도 이런 smoke 수치를 정식 성능 결과로 승격하지 않습니다.
+현재 [공개 진행본](../reports/progress/rpi_bootstrap_2026-08-18/README.md)은 smoke가 아니라 full-data
+학습 3개와 중단 run 1개의 실제 기록입니다. 그러나 계획한 6-run matrix가 완료되지 않아
+`release_ready=false`이며 mean ± SD 기반의 정식 모델 비교는 아직 할 수 없습니다. 완료 run의 common
+validation 수치와 중단 run의 native epoch 수치도 직접 같은 성능 열로 비교하지 않습니다.
 
 ## 완료 판정 조건
 
 | REQ ID | 검증 조건 | 현재 판정 |
 |---|---|---|
-| REQ-TR-01 | 두 모델 모두 동일 dataset hash·640·batch 8·100 epochs·seed 42/43/44 완료 | NOT VERIFIED |
-| REQ-EV-01 | common COCO evaluator에서 AP50-95/AP50/AP75/AP_small/AR100 산출 | 구현 PASS, full run NOT VERIFIED |
-| REQ-EV-02 | batch 1 p50/p95 latency, FPS, VRAM을 동일 GPU에서 측정 | 구현 PASS, full run NOT VERIFIED |
-| REQ-EV-03 | `terminal.log`, CSV/JSON, checkpoint SHA-256, config hash 보존 | LOCAL PASS / Git 승격 재검증 필요 |
+| REQ-TR-01 | 두 모델 모두 동일 dataset hash·640·batch 8·100 epochs·seed 42/43/44 완료 | 3/6 PASS, 1 INTERRUPTED, 2 NOT STARTED |
+| REQ-EV-01 | common COCO evaluator에서 AP50-95/AP50/AP75/AP_small/AR100 산출 | 완료 run 3개 PASS / matrix 미완료 |
+| REQ-EV-02 | batch 1 p50/p95 latency, FPS, VRAM을 동일 GPU에서 측정 | 완료 run 3개 PASS / thermal repeat 미완료 |
+| REQ-EV-03 | `terminal.log`, CSV/JSON, checkpoint SHA-256, config hash 보존 | PUBLIC PROGRESS PASS / formal 승격 미완료 |
 | REQ-DATA-01 | class별 승인된 고유 실사 1,000장 목표와 provenance 확보 | NOT VERIFIED |
 | REQ-DATA-02 | physical item/session 기준 split과 YOLO↔COCO label 동등성 hash | 형식 동등성 PASS / physical item NOT VERIFIED |
 | REQ-MC-01 | 임의 canonical dataset/class 수를 두 framework가 동일하게 학습·평가 | 코드 PASS / multi-class data NOT VERIFIED |
@@ -52,8 +54,8 @@ GitHub의 `reports/`에도 이런 smoke 수치를 정식 성능 결과로 승격
 
 ## 다음 실행 순서
 
-1. 고정된 RPi v2 hash로 YOLOX-S와 YOLO11m을 seed 42/43/44에서 순차 학습합니다.
-2. 공통 평가와 release gate가 PASS한 최적 weight·ONNX·로그 기반 보고서만 Git에 승격합니다.
+1. YOLOX-S seed43을 100 epoch까지 재개 또는 clean rerun하고 seed44 두 모델을 완료합니다.
+2. 6-run 공통 평가와 release gate가 PASS한 최적 weight·ONNX·로그 기반 보고서를 정식 승격합니다.
 3. 보드 검출·package 검출·exact marking OCR의 범위와 provisional class 포함/제외 규칙을 동결합니다.
 4. 소형 SMD raw 데이터와 사용자 촬영본을 수집하고 license/중복/specimen/session ID를 감사합니다.
 5. 대표 이미지 200장에 보이는 모든 목표 instance를 수동 라벨링하고 locked gold validation을 만듭니다.

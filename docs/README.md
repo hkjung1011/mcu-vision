@@ -1,13 +1,14 @@
 # 문서 안내
 
 이 저장소는 Windows에서 YOLOX-S/YOLO11 계열 모델을 학습하고, 검증된 가중치와 실험 증빙을
-private GitHub로 전달한 뒤 Ubuntu 카메라 환경에서 시험하기 위한 작업 공간입니다.
+공개 GitHub로 전달한 뒤 Ubuntu 카메라 환경에서 시험하기 위한 작업 공간입니다.
 
 ## 먼저 읽을 문서
 
 | 문서 | 목적 |
 |---|---|
 | [현재 상태](project_status.md) | 완료된 항목, 아직 검증되지 않은 항목, 다음 실행 순서 |
+| [2026-08-18 학습 진행본](../reports/progress/rpi_bootstrap_2026-08-18/README.md) | 완료 3개·중단 1개의 수치, 가중치, 로그 기반 그래프와 한계 |
 | [전체 로드맵](roadmap.md) | 단계별 Gate, 병행 Track, 구현 backlog와 정식 완료 정의 |
 | [Windows 재현 절차](reproducibility_windows.md) | fresh clone부터 3-seed 실행·Git 승격까지 |
 | [데이터 수집 계획](data_plan.md) | class별 1,000장 목표, 공개 데이터 한계, 자체 촬영·split 원칙 |
