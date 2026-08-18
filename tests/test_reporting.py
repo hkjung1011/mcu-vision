@@ -2,9 +2,18 @@ from __future__ import annotations
 
 import csv
 import json
+import os
+import subprocess
 from pathlib import Path
 
-from mcu_data.reporting import _protocol_compatibility, evaluate_predictions, normalize_yolo11_results
+import pytest
+
+from mcu_data.reporting import (
+    _protocol_compatibility,
+    compare_runs,
+    evaluate_predictions,
+    normalize_yolo11_results,
+)
 
 
 def test_normalize_yolo11_results(tmp_path: Path) -> None:
@@ -65,6 +74,73 @@ def test_common_evaluator_handles_no_predictions(tmp_path: Path) -> None:
     assert (tmp_path / "report" / "autolabel_thresholds.csv").exists()
     assert (tmp_path / "report" / "confusion_counts.csv").read_text(encoding="utf-8").splitlines()[1].endswith(",0,1")
     assert (tmp_path / "report" / "confusion_normalized.png").exists()
+
+
+def test_actual_completed_single_run_comparison_is_diagnostic(tmp_path: Path) -> None:
+    raw_run_dir = os.environ.get("MCU_COMPLETED_RUN_DIR")
+    if not raw_run_dir:
+        pytest.skip("Set MCU_COMPLETED_RUN_DIR to exercise a real completed run artifact")
+    run_dir = Path(raw_run_dir).resolve()
+    manifest_path = run_dir / "run_manifest.json"
+    if not manifest_path.is_file():
+        pytest.fail(f"MCU_COMPLETED_RUN_DIR has no run_manifest.json: {run_dir}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    assert manifest.get("status") == "complete"
+
+    output_dir = tmp_path / "single-run-summary"
+    rows = compare_runs([run_dir], output_dir)
+
+    assert len(rows) == 1
+    assert rows[0]["run_id"] == manifest["run_id"]
+    assert (output_dir / "comparison.json").is_file()
+    assert (output_dir / "protocol_compatibility.json").is_file()
+    assert (output_dir / "experiment_report.md").is_file()
+    assert (output_dir / "training_curves.png").is_file()
+    assert (output_dir / "comparison_dashboard.png").is_file()
+    assert (output_dir / "terminal_summary.png").is_file()
+    assert (output_dir / "sources_manifest.json").is_file()
+    assert (output_dir / "evidence_manifest.json").is_file()
+    assert not (output_dir / "formal_validation.json").exists()
+
+
+@pytest.mark.parametrize(
+    ("status", "stage"),
+    (("running", "fine_tune_candidate"), ("complete", "smoke_not_comparable")),
+)
+def test_incomplete_and_smoke_single_run_comparisons_remain_diagnostic(
+    tmp_path: Path,
+    status: str,
+    stage: str,
+) -> None:
+    repository = Path(__file__).resolve().parents[1]
+    commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repository, text=True
+    ).strip()
+    run_dir = tmp_path / f"{stage}-{status}"
+    run_dir.mkdir()
+    (run_dir / "run_manifest.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_dir.name,
+                "model": "yolo11m",
+                "status": status,
+                "stage": stage,
+                "git": {"commit": commit, "dirty": False, "changed_paths": []},
+                "protocol": {"seed": 42},
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / f"summary-{stage}-{status}"
+
+    rows = compare_runs([run_dir], output_dir)
+
+    assert rows[0]["status"] == status
+    assert (output_dir / "comparison.json").is_file()
+    assert (output_dir / "protocol_compatibility.json").is_file()
+    assert (output_dir / "experiment_report.md").is_file()
+    assert (output_dir / "evidence_manifest.json").is_file()
+    assert not (output_dir / "formal_validation.json").exists()
 
 
 def test_formal_release_gate_requires_full_seed_matrix_and_dataset_evidence() -> None:

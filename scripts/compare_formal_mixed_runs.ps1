@@ -45,7 +45,8 @@ $Arguments = @("--runs") + $Runs + @(
     "--output-dir",
     [System.IO.Path]::GetFullPath($OutputDirectory),
     "--provenance-attestation",
-    $Attestation
+    $Attestation,
+    "--formal"
 )
 Push-Location $ProjectRoot
 try {
@@ -65,6 +66,14 @@ try {
         @($Compatibility.critical_mismatches).Count -ne 0
     ) {
         throw "Formal comparison is BLOCKED; inspect protocol_compatibility.json"
+    }
+    $FormalValidationPath = Join-Path ([System.IO.Path]::GetFullPath($OutputDirectory)) "formal_validation.json"
+    if (-not (Test-Path -LiteralPath $FormalValidationPath -PathType Leaf)) {
+        throw "Comparator did not finalize formal_validation.json"
+    }
+    $FormalValidation = Get-Content -LiteralPath $FormalValidationPath -Raw | ConvertFrom-Json
+    if ($FormalValidation.status -ne "PASS" -or $FormalValidation.run_count -ne 6) {
+        throw "Formal comparison validation is not an exact six-run PASS"
     }
 }
 finally {

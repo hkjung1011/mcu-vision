@@ -946,6 +946,7 @@ def compare_runs(
     output_dir: Path,
     *,
     provenance_attestation: Path | None = None,
+    formal: bool = False,
 ) -> list[dict[str, Any]]:
     output_dir.mkdir(parents=True, exist_ok=True)
     runs = [_load_run(path.resolve()) for path in run_dirs]
@@ -1065,7 +1066,14 @@ def compare_runs(
         write_protocol_artifacts(protocol_path, output_dir, print_terminal=False)
     _write_comparison_markdown(output_dir / "experiment_report.md", rows, compatibility, aggregate_rows)
     _bundle_run_evidence(output_dir, runs)
-    create_formal_validation(output_dir)
+    if formal:
+        if compatibility.get("release_ready") is not True:
+            _write_evidence_manifest(output_dir)
+            raise ValueError(
+                "Formal comparison requires an exact, release-ready six-run model/seed matrix; "
+                "inspect protocol_compatibility.json"
+            )
+        create_formal_validation(output_dir)
     _write_evidence_manifest(output_dir)
     print(f"\nComparison artifacts: {output_dir.resolve()}")
     return rows
@@ -1804,11 +1812,20 @@ def compare_main(argv: list[str] | None = None) -> None:
         type=Path,
         help="Required fail-closed attestation when selected run manifests use multiple Git commits",
     )
+    parser.add_argument(
+        "--formal",
+        action="store_true",
+        help=(
+            "Create formal_validation.json only after the exact six-run release gate passes. "
+            "Omit for single-run, smoke, incomplete, and other diagnostic comparisons."
+        ),
+    )
     args = parser.parse_args(argv)
     compare_runs(
         args.runs,
         args.output_dir.resolve(),
         provenance_attestation=args.provenance_attestation,
+        formal=args.formal,
     )
 
 

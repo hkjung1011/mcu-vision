@@ -423,6 +423,14 @@ def test_promote_deployment_rejects_provenance_file_tamper(tmp_path: Path) -> No
         _promote(paths)
 
 
+def test_promote_deployment_rejects_missing_formal_validation(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    (paths["comparison"] / "formal_validation.json").unlink()
+
+    with pytest.raises(FileNotFoundError, match="formal_validation.json"):
+        _promote(paths)
+
+
 def test_promote_deployment_rejects_duplicate_source_bundle_record(tmp_path: Path) -> None:
     paths = _build_release_fixture(tmp_path)
     sources = paths["comparison"] / "sources_manifest.json"
