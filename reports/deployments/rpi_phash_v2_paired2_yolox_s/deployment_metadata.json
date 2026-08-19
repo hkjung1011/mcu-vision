@@ -1,0 +1,351 @@
+{
+  "artifacts": {
+    "checkpoint": {
+      "bytes": 71841059,
+      "file_name": "best_ckpt.pth",
+      "path": "weights/trained/rpi_phash_v2_paired2_yolox_s/best_ckpt.pth",
+      "sha256": "2c0dda7e81c9c664bd870d4ba9e98ea905a4f0186580439a9050f2e1d92f1f4f"
+    },
+    "native_artifact": {
+      "bytes": 86563,
+      "file_name": "artifact_manifest.json",
+      "path": "reports/runs/rpi_phash_v2_paired2_yolox_s/artifact_manifest.json",
+      "sha256": "7b780b74c1ba292c493443b2517fab1aea69d9a219a6506d05d6afa8d9d82819"
+    },
+    "onnx": {
+      "bytes": 35851349,
+      "file_name": "yolox_s_rpi_b1_640.onnx",
+      "path": "weights/trained/rpi_phash_v2_paired2_yolox_s/yolox_s/yolox_s_rpi_b1_640.onnx",
+      "sha256": "589b5c9aec5459473567c1f513649fb309e7440b52122e02682493c02f72c6a1"
+    },
+    "run_manifest": {
+      "bytes": 10632,
+      "file_name": "run_manifest.json",
+      "path": "runs/benchmarks/micropcb_rpi_completion_retry3_b3e4176_20260818/yolox_s_seed43/run_manifest.json",
+      "sha256": "0df463b02af5700ed454df7a275d6d7e4805b61913bd660034774e052ddbdebb"
+    }
+  },
+  "checkpoint_publication": {
+    "proof": {
+      "checkpoint_structure": "YOLOX_MODEL_STATE_DICT_PASS",
+      "cpu_load": "PASS",
+      "forward": {
+        "max_abs_difference": null,
+        "reason": "Architecture construction is not part of checkpoint publication.",
+        "status": "NOT_PERFORMED"
+      },
+      "framework": "yolox",
+      "privacy_scan": "PASS",
+      "publication_transform": "EXACT_FILE_COPY",
+      "schema_version": 1,
+      "state_dict": {
+        "bitwise_equal_after_copy": true,
+        "status": "PASS",
+        "tensor_bytes": 35843736,
+        "tensor_count": 462
+      },
+      "top_level_keys": [
+        "best_ap",
+        "curr_ap",
+        "model",
+        "optimizer",
+        "start_epoch"
+      ]
+    },
+    "published_sha256": "2c0dda7e81c9c664bd870d4ba9e98ea905a4f0186580439a9050f2e1d92f1f4f",
+    "source_original_sha256": "2c0dda7e81c9c664bd870d4ba9e98ea905a4f0186580439a9050f2e1d92f1f4f"
+  },
+  "classes": {
+    "count": 1,
+    "names": [
+      "raspberry_pi_sbc"
+    ],
+    "source": "COCO categories by ID"
+  },
+  "created_utc": "2026-08-19T07:31:19+00:00",
+  "environment": {
+    "export_device": "cpu",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.9",
+    "torch": "2.12.1+cu130"
+  },
+  "export": {
+    "dynamic_axes": false,
+    "graph_opset": 17,
+    "inputs": [
+      {
+        "name": "images",
+        "shape": [
+          1,
+          3,
+          640,
+          640
+        ]
+      }
+    ],
+    "nms_embedded": false,
+    "onnx_version": "1.22.0",
+    "opset": 17,
+    "outputs": [
+      {
+        "name": "output0",
+        "shape": [
+          1,
+          8400,
+          6
+        ]
+      }
+    ]
+  },
+  "framework": "yolox",
+  "framework_metadata": {
+    "framework": "YOLOX",
+    "framework_commit": "6ddff4824372906469a7fae2dc3206c7aa4bbaee",
+    "framework_source_clean": true,
+    "framework_version": "0.3.0",
+    "output_semantics": "[batch, anchors, 5+classes]; decoded xywh pixels + objectness + class probabilities; score=objectness*class probability; NMS external"
+  },
+  "model_input": {
+    "batch": 1,
+    "channels": 3,
+    "dtype": "float32",
+    "height": 640,
+    "name": "images",
+    "width": 640
+  },
+  "postprocessing": {
+    "class_agnostic_nms": false,
+    "confidence": 0.25,
+    "max_detections": 100,
+    "nms_iou": 0.65
+  },
+  "preprocessing": {
+    "color": "OpenCV BGR retained (YOLOX ValTransform convention)",
+    "dtype": "float32",
+    "input_shape": [
+      1,
+      3,
+      640,
+      640
+    ],
+    "layout": "HWC -> NCHW",
+    "normalization": "none; values remain 0..255",
+    "padding_value": 114,
+    "placement": "top-left letterbox",
+    "resize": "preserve aspect ratio; scale=min(input_h/original_h,input_w/original_w)",
+    "resized_dimensions": "int(original_dimension * scale)"
+  },
+  "profile": "fixed_batch1_fp32_onnx",
+  "release_validation": {
+    "base_protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+    "base_protocol_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+    "comparison_id": "rpi_paired_2seed_formal_20260819",
+    "comparison_sha256": "6b48d91c3be5c4b95b2dcec49bdce29b751c34d16bfcecd0d80f2cbe98c52f7d",
+    "evidence_tier": "paired_2seed_descriptive",
+    "formal_release": true,
+    "formal_release_policy_sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27",
+    "formal_validation_sha256": "39b6e9d797975918bc88499cb0f0b6a2d817367404b15d76c6664f1ac39d0332",
+    "native_final_metrics_sha256": "79b0853c75755107ee00180a0082ba9ea499997276bca05a898aa2310ac923cf",
+    "policy_id": "rpi_bootstrap_paired_2seed_release_v1",
+    "policy_sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27",
+    "protocol_compatibility_sha256": "0c4ede09dee1997f6b37b6a2126ccde4d63a887101fbbdad490b36a2c39e5a9e",
+    "run_id": "yolox_s_seed43",
+    "run_manifest_sha256": "0df463b02af5700ed454df7a275d6d7e4805b61913bd660034774e052ddbdebb",
+    "run_provenance_attestation_sha256": "ae4a2bd635a587dbb8b0c16121f530e7b9aaf6b21c1242bf0fb9859142e5aaff",
+    "run_provenance_sha256": "7b182bc3500a1a5b067e98cb9bab1a99d2ce9cb0eeabb8ff72b07857286c72a2",
+    "sources_manifest_sha256": "8306c88b81ce6f99745de142d5f622d31e58b8a7f83f816864f24b2e0f35246b",
+    "status": "PASS",
+    "verified_source_files": [
+      {
+        "bytes": 28056,
+        "filename": "epoch_metrics.csv",
+        "path": "sources/yolox_s_seed43/epoch_metrics.csv",
+        "published_sha256": "a359aae1bed2507c1dc69d67df9633bb7814748d30056cd1f1335b05b884c0f3",
+        "source_original_sha256": "6b85b5522f125732804614b6900fe73d77de09da31b7d188ff091a3fd66b5cae"
+      },
+      {
+        "bytes": 56330,
+        "filename": "epoch_metrics.jsonl",
+        "path": "sources/yolox_s_seed43/epoch_metrics.jsonl",
+        "published_sha256": "84724092326420af4d030c83ed6d844743b72c8b8210a73571a9124a178a9d48",
+        "source_original_sha256": "7590f2d538a6607c7e5b8df3ee49c7c2f02a131c9dceeb911cc418520d0725c0"
+      },
+      {
+        "bytes": 2983,
+        "filename": "final_metrics.json",
+        "path": "sources/yolox_s_seed43/final_metrics.json",
+        "published_sha256": "79b0853c75755107ee00180a0082ba9ea499997276bca05a898aa2310ac923cf",
+        "source_original_sha256": "79b0853c75755107ee00180a0082ba9ea499997276bca05a898aa2310ac923cf"
+      },
+      {
+        "bytes": 158,
+        "filename": "gpu_summary.json",
+        "path": "sources/yolox_s_seed43/gpu_summary.json",
+        "published_sha256": "6b365897a298cc31be96627027bab3c8a929abc237d810ae9984d0c286ae424d",
+        "source_original_sha256": "6b365897a298cc31be96627027bab3c8a929abc237d810ae9984d0c286ae424d"
+      },
+      {
+        "bytes": 441,
+        "filename": "latency.json",
+        "path": "sources/yolox_s_seed43/latency.json",
+        "published_sha256": "ef4939ab946b3e4a32710faf878dfd04840694787e073831fdadfdf5c7549b3b",
+        "source_original_sha256": "ef4939ab946b3e4a32710faf878dfd04840694787e073831fdadfdf5c7549b3b"
+      },
+      {
+        "bytes": 4067,
+        "filename": "latency_samples.csv",
+        "path": "sources/yolox_s_seed43/latency_samples.csv",
+        "published_sha256": "5842571495959300c6fab1d130e9c23ddf6cff18265a84637530257829dfaee4",
+        "source_original_sha256": "907c143a0a39328acf3d8f4f1cb7d4725674fec48719d2fca52bb02225597632"
+      },
+      {
+        "bytes": 121,
+        "filename": "per_class_metrics.csv",
+        "path": "sources/yolox_s_seed43/per_class_metrics.csv",
+        "published_sha256": "3f279d6c3faef98b8b1b49e1a5bd34810526cab6261ebfcd42dc85097d9b493a",
+        "source_original_sha256": "222e6087868454fb58c39370bba3b38cffbef61da34f5ca122fbab8d0201c9fb"
+      },
+      {
+        "bytes": 6578,
+        "filename": "run_manifest.json",
+        "path": "sources/yolox_s_seed43/run_manifest.json",
+        "published_sha256": "a4995682c719ec30c3255e303db88de6727dfb99c1e0d71a43705c7a44c3e7bd",
+        "source_original_sha256": "0df463b02af5700ed454df7a275d6d7e4805b61913bd660034774e052ddbdebb"
+      },
+      {
+        "bytes": 1019349,
+        "filename": "terminal.log",
+        "path": "sources/yolox_s_seed43/terminal.log",
+        "published_sha256": "52b62c834d4dee1b9d8bee31ad7ef718c77ae4663bd3157e7f7d1ee179c9231f",
+        "source_original_sha256": "42aefd4b1cf9945df539163f9d364e32b8056ea6026f110fc7b40569e3bc20af"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "status": "PASS",
+  "training_run": {
+    "dataset": {
+      "canonical_dataset_manifest_sha256": "8039d57c23305b5b37c843abe358401d4ec3cafd2722833fa96acddb799b2e68",
+      "class_map_sha256": "6921d4723044145cfbb6e7092fcead81762cbf8cc23f975cf0a5523adc4bf693",
+      "val_annotation_sha256": "a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef",
+      "val_image_list_sha256": "f96e176c8f33a3bc330c4fc1bc078b97fb0f6ce61006c5c9f50e28574e35cbfd"
+    },
+    "experiment_config": {
+      "path": "configs/yolox_s_micropcb.py",
+      "sha256": "c3d6cd8630311a8638a654369f31bdf2dcefe68a4c6c17d096f23fba74e60de9"
+    },
+    "framework_commit": "6ddff4824372906469a7fae2dc3206c7aa4bbaee",
+    "model": "YOLOX-S",
+    "protocol": {
+      "amp": true,
+      "batch": 8,
+      "common_operating_confidence": 0.25,
+      "epochs": 100,
+      "imgsz": 640,
+      "max_detections_for_coco_ap": 100,
+      "nms_iou": 0.65,
+      "seed": 43
+    },
+    "protocol_config": {
+      "path": "configs/experiments/baseline_v1.yaml",
+      "sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+    },
+    "run_id": "yolox_s_seed43",
+    "stage": "fine_tune_candidate",
+    "status": "complete"
+  },
+  "verification": {
+    "gate": "all raw output elements finite and within atol + rtol*abs(native)",
+    "native_post_nms": {
+      "class_ids": [
+        0
+      ],
+      "count": 1,
+      "first_five": [
+        [
+          251.7595977783203,
+          166.9719696044922,
+          1286.7330322265625,
+          2172.532958984375,
+          0.9756569862365723,
+          0.0
+        ]
+      ],
+      "maximum_score": 0.9756568074226379
+    },
+    "numeric": {
+      "absolute_tolerance": 0.001,
+      "element_count": 50400,
+      "finite": true,
+      "max_absolute_error": 0.00128173828125,
+      "mean_absolute_error": 1.6730138311418868e-05,
+      "native_shape": [
+        1,
+        8400,
+        6
+      ],
+      "onnx_shape": [
+        1,
+        8400,
+        6
+      ],
+      "p99_absolute_error": 0.000213623046875,
+      "reason": "all_elements_within_tolerance",
+      "relative_tolerance": 0.0001,
+      "status": "PASS",
+      "within_tolerance_fraction": 1.0
+    },
+    "onnx_post_nms": {
+      "class_ids": [
+        0
+      ],
+      "count": 1,
+      "first_five": [
+        [
+          251.76010131835938,
+          166.97097778320312,
+          1286.732666015625,
+          2172.53369140625,
+          0.9756569862365723,
+          0.0
+        ]
+      ],
+      "maximum_score": 0.9756568074226379
+    },
+    "post_nms_count_match": true,
+    "runtime": {
+      "input_name": "images",
+      "onnxruntime_version": "1.28.0",
+      "output_name": "output0",
+      "provider": "CPUExecutionProvider"
+    },
+    "status": "PASS"
+  },
+  "verification_image": {
+    "annotation_count": 1,
+    "annotation_path": "data/processed/micropcb_rpi_phash_v2_coco/annotations/instances_val2017.json",
+    "annotation_sha256": "a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef",
+    "file_name": "ACAE1.jpg",
+    "height": 2339,
+    "image_id": 1,
+    "image_path": "data/processed/micropcb_rpi_phash_v2_coco/val2017/ACAE1.jpg",
+    "image_root": "data/processed/micropcb_rpi_phash_v2_coco/val2017",
+    "image_sha256": "af407773e3ccf4d9d8d424fba7d08f5dc912f980db65ec78e8ed64f53ef57197",
+    "preprocessing_observed": {
+      "color_order": "BGR tensor (YOLOX ValTransform convention)",
+      "framework": "yolox",
+      "input_height": 640,
+      "input_width": 640,
+      "normalization": "float32 0..255 (no division)",
+      "original_height": 2339,
+      "original_width": 1544,
+      "pad_left": 0.0,
+      "pad_top": 0.0,
+      "padding_value": 114,
+      "scale": 0.2736212056434374
+    },
+    "selection": "COCO image record; lowest requested/annotated image ID",
+    "synthetic_or_generated": false,
+    "width": 1544
+  }
+}

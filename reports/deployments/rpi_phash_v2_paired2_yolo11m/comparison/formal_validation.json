@@ -1,0 +1,1095 @@
+{
+  "artifact_chain": [
+    {
+      "bytes": 1033,
+      "kind": "sources",
+      "path": "aggregate_comparison.csv",
+      "sha256": "17dc04fddcfd067ea3efad0d6f35c15e11d8e048092c8ab4a75f85fbef03b8f1"
+    },
+    {
+      "bytes": 2027,
+      "kind": "sources",
+      "path": "aggregate_comparison.json",
+      "sha256": "57a6f57ac2933ab4acbd92610554a4b511fe665fff73d25f88f164fb1d6453d0"
+    },
+    {
+      "bytes": 151545,
+      "kind": "derived_images",
+      "path": "aggregate_comparison.png",
+      "sha256": "b6f74e5028b26e1caa62a784b4b692c857a5d491e87fe5c7e625bf450eb6cc4e"
+    },
+    {
+      "bytes": 1740,
+      "kind": "sources",
+      "path": "comparison.csv",
+      "sha256": "fcbf561caba0f7957701ac8dda385c90c50f35542edecb0120b5b78d5888db86"
+    },
+    {
+      "bytes": 3619,
+      "kind": "sources",
+      "path": "comparison.json",
+      "sha256": "6b48d91c3be5c4b95b2dcec49bdce29b751c34d16bfcecd0d80f2cbe98c52f7d"
+    },
+    {
+      "bytes": 306011,
+      "kind": "derived_images",
+      "path": "comparison_dashboard.png",
+      "sha256": "b0eefc8fe9ff578fc0d00e5fcbf94effa6e6f4fb561977a3d75a8e09780f2a35"
+    },
+    {
+      "bytes": 3671,
+      "kind": "sources",
+      "path": "comparison_terminal.txt",
+      "sha256": "ebdeb5ae2cac44fd14f6c70a31ada11b66163fa2548afe63b32cf6431c6ac42a"
+    },
+    {
+      "bytes": 10779,
+      "kind": "artifact_inventory",
+      "path": "evidence_manifest.json",
+      "sha256": "8f8cfd8d02e5a903dc728c89868fae832db6070a0c76c436083c83c4312c9ed6"
+    },
+    {
+      "bytes": 16788,
+      "kind": "sources",
+      "path": "experiment_methodology.md",
+      "sha256": "d345f06f1839e603c40f2f4436eda6226f127a5c4818a294918a988eb9e262f1"
+    },
+    {
+      "bytes": 4526,
+      "kind": "sources",
+      "path": "experiment_report.md",
+      "sha256": "fa7fae32a72139c2209d62c91ee5b0de2c7c868f91af8d4535ef1675df3e0854"
+    },
+    {
+      "bytes": 9414,
+      "kind": "sources",
+      "path": "formal_execution_status.json",
+      "sha256": "d4fbf87058d2010c3a4f93c46c1126e97a84dd154e3d9b19f2daa64e4961225d"
+    },
+    {
+      "bytes": 1601,
+      "kind": "sources",
+      "path": "formal_release_policy.yaml",
+      "sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27"
+    },
+    {
+      "bytes": 9291,
+      "kind": "sources",
+      "path": "onnx_split_evaluation.md",
+      "sha256": "0c0e74e6888c4372fbe50484fffcd623e03a51362379e9a9ea51bae5deae4221"
+    },
+    {
+      "bytes": 9574,
+      "kind": "sources",
+      "path": "parameter_rationale.md",
+      "sha256": "3f6744e934ad81ec9fb3da5b53d531d658e649fcf34847311c101f3a73d758a4"
+    },
+    {
+      "bytes": 12036,
+      "kind": "sources",
+      "path": "protocol_artifacts.json",
+      "sha256": "a62cd27fb60a365b8e9f2e67c45fb28ffb0dd262a8c9e854b67a085b7aad3c03"
+    },
+    {
+      "bytes": 10709,
+      "kind": "sources",
+      "path": "protocol_compatibility.json",
+      "sha256": "0c4ede09dee1997f6b37b6a2126ccde4d63a887101fbbdad490b36a2c39e5a9e"
+    },
+    {
+      "bytes": 8128,
+      "kind": "sources",
+      "path": "protocol_rationale.csv",
+      "sha256": "7ac8f70fcd48ddaf3796ff73e8871fb530037b082f5ffbdc63472b8846091e6b"
+    },
+    {
+      "bytes": 803992,
+      "kind": "derived_images",
+      "path": "protocol_rationale.png",
+      "sha256": "239f3950518bc5ffb4e6414a2f0bf3fc8085ab13c7626f157899b830bfec8765"
+    },
+    {
+      "bytes": 3332,
+      "kind": "sources",
+      "path": "protocol_references.json",
+      "sha256": "2aa53f9615224df85415de82789f1510a226ddb33070a372a93d7652aef408e0"
+    },
+    {
+      "bytes": 17488,
+      "kind": "sources",
+      "path": "protocol_snapshot.yaml",
+      "sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+    },
+    {
+      "bytes": 7030,
+      "kind": "sources",
+      "path": "run_provenance.json",
+      "sha256": "7b182bc3500a1a5b067e98cb9bab1a99d2ce9cb0eeabb8ff72b07857286c72a2"
+    },
+    {
+      "bytes": 2523,
+      "kind": "sources",
+      "path": "run_provenance_attestation.json",
+      "sha256": "ae4a2bd635a587dbb8b0c16121f530e7b9aaf6b21c1242bf0fb9859142e5aaff"
+    },
+    {
+      "bytes": 19813,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed42/epoch_metrics.csv",
+      "sha256": "820af611a2380ead9bfbd051174f57d89af93ef1c1ea70024a3b591937331229"
+    },
+    {
+      "bytes": 55922,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed42/epoch_metrics_extra.jsonl",
+      "sha256": "87939411e77d9886572c63518a0143c64f6dab788bf7d80802c05e1f1ea9ce61"
+    },
+    {
+      "bytes": 2939,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed42/final_metrics.json",
+      "sha256": "3430febeea78e0a6ee15fb840bf4783a99b53795d408f8656470528f1799921f"
+    },
+    {
+      "bytes": 157,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed42/gpu_summary.json",
+      "sha256": "71cc07b714d3dbea8ee36d04c76dd841621e80c7fb64657bf62f1c331375d9ce"
+    },
+    {
+      "bytes": 442,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed42/latency.json",
+      "sha256": "ed8baa61f4fc55e56deab568ce4a1b1af789fb02d46d9ee58e57a61b7130f760"
+    },
+    {
+      "bytes": 4057,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed42/latency_samples.csv",
+      "sha256": "2ec05d0c6259ebd5d5bc77700a254543a5bdbdf0f19996934cbc5b25b55cd21f"
+    },
+    {
+      "bytes": 106,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed42/per_class_metrics.csv",
+      "sha256": "498c03bf57fd8e396a95c9a9e2f1b89f576988d4b8a2f60a569e758d37d32f21"
+    },
+    {
+      "bytes": 7109,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed42/run_manifest.json",
+      "sha256": "7c05e065d668b6c3bc78097835147d4d049d8b16118cd99724ddd564cfe66b9c"
+    },
+    {
+      "bytes": 3063795,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed42/terminal.log",
+      "sha256": "168b02ff53413190272eebe5d22078eb2c727c370cef76ca5e3e44507946a22b"
+    },
+    {
+      "bytes": 19797,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed43/epoch_metrics.csv",
+      "sha256": "dfcd75af696a40ce186ccfe09e07d9eb6e85309bc0930d96c4d97e55d7987a81"
+    },
+    {
+      "bytes": 55906,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed43/epoch_metrics_extra.jsonl",
+      "sha256": "11959ff4d525102c7b945bda2e0d175e0630ef9ecdb28ed5765eaa770285ba3f"
+    },
+    {
+      "bytes": 2936,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed43/final_metrics.json",
+      "sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef"
+    },
+    {
+      "bytes": 158,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed43/gpu_summary.json",
+      "sha256": "9df6329ffeeb79b7e115f3f35ae3e91495506352afba05cc9f7d0cf29b558011"
+    },
+    {
+      "bytes": 441,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed43/latency.json",
+      "sha256": "705bc246764f375a8830b53ed28140deb8a89246d100b246b2d9cef343ebddd2"
+    },
+    {
+      "bytes": 4066,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed43/latency_samples.csv",
+      "sha256": "43565624b12efd9d1c20538d1c00d174ca2a8706eea22668d88340c3838ad795"
+    },
+    {
+      "bytes": 106,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed43/per_class_metrics.csv",
+      "sha256": "498c03bf57fd8e396a95c9a9e2f1b89f576988d4b8a2f60a569e758d37d32f21"
+    },
+    {
+      "bytes": 7109,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed43/run_manifest.json",
+      "sha256": "a7ecc9c675626075a6c314f4d98242326c70f57f6c7a623503d7b07eae40b333"
+    },
+    {
+      "bytes": 3061441,
+      "kind": "sources",
+      "path": "sources/yolo11m_seed43/terminal.log",
+      "sha256": "d928201f0c165f5ec245ac55a1653cfd4f2b84843c3eb0e6bc89a1762a4c95cd"
+    },
+    {
+      "bytes": 28139,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed42/epoch_metrics.csv",
+      "sha256": "bfe8f596f656a0c10cfdbe60748068d3bf9359852cb07b83e4f9e0f19e5dd249"
+    },
+    {
+      "bytes": 56413,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed42/epoch_metrics.jsonl",
+      "sha256": "f994da9ee732968a98822b0efb7c44f87894f89d541efdd5cbdb4b49a6a0013a"
+    },
+    {
+      "bytes": 3044,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed42/final_metrics.json",
+      "sha256": "c255012a5466fe2e2cfa0b76dca37e0e19ca1c816c9ad2f012dcb2938b9f6f37"
+    },
+    {
+      "bytes": 159,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed42/gpu_summary.json",
+      "sha256": "511ad6345f6337203d1039e714302aa591099e133a423447a9b43736531ebe26"
+    },
+    {
+      "bytes": 439,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed42/latency.json",
+      "sha256": "fb1b25d91f03d38bccb337e633ca2bd40d956d7d23d829bce89d3ab3fc46dfc9"
+    },
+    {
+      "bytes": 4049,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed42/latency_samples.csv",
+      "sha256": "000b0bf985bd797dad7b669b57df59d4b0de1a0d4c2f85444364ecc96b66f94b"
+    },
+    {
+      "bytes": 121,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed42/per_class_metrics.csv",
+      "sha256": "d12d77c1b1e082159c94f1e38ed579e462b90cb3cd6ff4a0d1f195ed735faf69"
+    },
+    {
+      "bytes": 6760,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed42/run_manifest.json",
+      "sha256": "865fcac6e6586d020e8cfa729be7ba60eb917db5e02fa486f1e048541ff3d8f9"
+    },
+    {
+      "bytes": 1044625,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed42/terminal.log",
+      "sha256": "e545602ce46f733fd05595ebc3cb42259401cdbd935e4f0eec14b01db0fe5313"
+    },
+    {
+      "bytes": 28056,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed43/epoch_metrics.csv",
+      "sha256": "a359aae1bed2507c1dc69d67df9633bb7814748d30056cd1f1335b05b884c0f3"
+    },
+    {
+      "bytes": 56330,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed43/epoch_metrics.jsonl",
+      "sha256": "84724092326420af4d030c83ed6d844743b72c8b8210a73571a9124a178a9d48"
+    },
+    {
+      "bytes": 2983,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed43/final_metrics.json",
+      "sha256": "79b0853c75755107ee00180a0082ba9ea499997276bca05a898aa2310ac923cf"
+    },
+    {
+      "bytes": 158,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed43/gpu_summary.json",
+      "sha256": "6b365897a298cc31be96627027bab3c8a929abc237d810ae9984d0c286ae424d"
+    },
+    {
+      "bytes": 441,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed43/latency.json",
+      "sha256": "ef4939ab946b3e4a32710faf878dfd04840694787e073831fdadfdf5c7549b3b"
+    },
+    {
+      "bytes": 4067,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed43/latency_samples.csv",
+      "sha256": "5842571495959300c6fab1d130e9c23ddf6cff18265a84637530257829dfaee4"
+    },
+    {
+      "bytes": 121,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed43/per_class_metrics.csv",
+      "sha256": "3f279d6c3faef98b8b1b49e1a5bd34810526cab6261ebfcd42dc85097d9b493a"
+    },
+    {
+      "bytes": 6578,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed43/run_manifest.json",
+      "sha256": "a4995682c719ec30c3255e303db88de6727dfb99c1e0d71a43705c7a44c3e7bd"
+    },
+    {
+      "bytes": 1019349,
+      "kind": "sources",
+      "path": "sources/yolox_s_seed43/terminal.log",
+      "sha256": "52b62c834d4dee1b9d8bee31ad7ef718c77ae4663bd3157e7f7d1ee179c9231f"
+    },
+    {
+      "bytes": 14634,
+      "kind": "sources",
+      "path": "sources_manifest.json",
+      "sha256": "8306c88b81ce6f99745de142d5f622d31e58b8a7f83f816864f24b2e0f35246b"
+    },
+    {
+      "bytes": 370418,
+      "kind": "derived_images",
+      "path": "terminal_summary.png",
+      "sha256": "9220d5392254c1731b708725a4bfbf94a5df506048540b26e1a2afc0e90ccfee"
+    },
+    {
+      "bytes": 318841,
+      "kind": "derived_images",
+      "path": "training_curves.png",
+      "sha256": "6374606421a7e6a07b9ed38838610f343d6c301843b09dc253199af1020e7a90"
+    },
+    {
+      "bytes": 10245,
+      "kind": "sources",
+      "path": "ubuntu_handoff.md",
+      "sha256": "7bc352e724f0606db8bc1126c55bfecc2d314ed6dbc8f38a2162d6b4ae980a76"
+    }
+  ],
+  "artifact_chain_sha256": "0a6e21fa8c21575cfa18dbbb6b95f326d390f8478eb98c07755b77be64c03fa6",
+  "base_protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+  "base_protocol_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+  "claim_boundary": {
+    "allowed": [
+      "per_run_metrics",
+      "model_mean",
+      "sample_standard_deviation",
+      "paired_seed_deltas"
+    ],
+    "prohibited": [
+      "statistical_significance",
+      "population_superiority",
+      "production_ready",
+      "independent_test"
+    ]
+  },
+  "comparison_sha256": "6b48d91c3be5c4b95b2dcec49bdce29b751c34d16bfcecd0d80f2cbe98c52f7d",
+  "degrees_of_freedom": 1,
+  "evidence_manifest_sha256": "8f8cfd8d02e5a903dc728c89868fae832db6070a0c76c436083c83c4312c9ed6",
+  "evidence_tier": "paired_2seed_descriptive",
+  "exact_pairs": [
+    [
+      "yolo11m",
+      42
+    ],
+    [
+      "yolo11m",
+      43
+    ],
+    [
+      "YOLOX-S",
+      42
+    ],
+    [
+      "YOLOX-S",
+      43
+    ]
+  ],
+  "formal_execution_status_sha256": "d4fbf87058d2010c3a4f93c46c1126e97a84dd154e3d9b19f2daa64e4961225d",
+  "formal_release": true,
+  "formal_release_policy": {
+    "base_protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+    "base_protocol_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+    "claims": {
+      "allowed": [
+        "per_run_metrics",
+        "model_mean",
+        "sample_standard_deviation",
+        "paired_seed_deltas"
+      ],
+      "prohibited": [
+        "statistical_significance",
+        "population_superiority",
+        "production_ready",
+        "independent_test"
+      ]
+    },
+    "decision_record": {
+      "excluded_models": [
+        "yolo11m",
+        "YOLOX-S"
+      ],
+      "excluded_seed": 44,
+      "exclusion_rule": "Exclude seed 44 for both models as one paired unit. Do not include the completed YOLO11m seed44 run, the incomplete YOLOX-S retry3/retry4 runs, or any seed44 metric in this comparison.",
+      "included_seed_rule": "Include a seed only when both required models completed exactly 100 epochs with the immutable base protocol and all formal evidence gates pass.",
+      "reason": "The originally planned third paired repeat was judged too costly after training had begun. This policy therefore narrows the release evidence to the already complete, matched seed 42 and seed 43 runs and explicitly limits inference to descriptive statistics.",
+      "selection_decided_after_training": true
+    },
+    "degrees_of_freedom": 1,
+    "epochs_per_run": 100,
+    "evidence_tier": "paired_2seed_descriptive",
+    "exact_pairs": [
+      [
+        "yolo11m",
+        42
+      ],
+      [
+        "yolo11m",
+        43
+      ],
+      [
+        "YOLOX-S",
+        42
+      ],
+      [
+        "YOLOX-S",
+        43
+      ]
+    ],
+    "expected_runs": 4,
+    "interpretation": "descriptive_only",
+    "models": [
+      "yolo11m",
+      "YOLOX-S"
+    ],
+    "n_per_model": 2,
+    "paired_n": 2,
+    "policy_id": "rpi_bootstrap_paired_2seed_release_v1",
+    "policy_sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27",
+    "seeds": [
+      42,
+      43
+    ]
+  },
+  "formal_release_policy_sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27",
+  "image_provenance": {
+    "evidence_manifest_generative_ai_used_for_images": false,
+    "protocol_artifacts_generative_ai_used_for_images": false
+  },
+  "interpretation": "descriptive_only",
+  "model_seed_pairs": [
+    [
+      "yolo11m",
+      42
+    ],
+    [
+      "yolo11m",
+      43
+    ],
+    [
+      "yoloxs",
+      42
+    ],
+    [
+      "yoloxs",
+      43
+    ]
+  ],
+  "n_per_model": 2,
+  "paired_n": 2,
+  "paired_seed_deltas": {
+    "by_metric": {
+      "ap50": {
+        "mean_delta": 0.0,
+        "pairs": [
+          {
+            "delta_model_a_minus_model_b": 0.0,
+            "model_a_value": 1.0,
+            "model_b_value": 1.0,
+            "seed": 42
+          },
+          {
+            "delta_model_a_minus_model_b": 0.0,
+            "model_a_value": 1.0,
+            "model_b_value": 1.0,
+            "seed": 43
+          }
+        ],
+        "sample_sd_delta": 0.0
+      },
+      "ap50_95": {
+        "mean_delta": 0.015394015580410703,
+        "pairs": [
+          {
+            "delta_model_a_minus_model_b": 0.02062688583992056,
+            "model_a_value": 1.0,
+            "model_b_value": 0.9793731141600794,
+            "seed": 42
+          },
+          {
+            "delta_model_a_minus_model_b": 0.010161145320900844,
+            "model_a_value": 1.0,
+            "model_b_value": 0.9898388546790992,
+            "seed": 43
+          }
+        ],
+        "sample_sd_delta": 0.007400396091137659
+      },
+      "ap75": {
+        "mean_delta": 0.0,
+        "pairs": [
+          {
+            "delta_model_a_minus_model_b": 0.0,
+            "model_a_value": 1.0,
+            "model_b_value": 1.0,
+            "seed": 42
+          },
+          {
+            "delta_model_a_minus_model_b": 0.0,
+            "model_a_value": 1.0,
+            "model_b_value": 1.0,
+            "seed": 43
+          }
+        ],
+        "sample_sd_delta": 0.0
+      },
+      "ar100": {
+        "mean_delta": 0.01205128205128203,
+        "pairs": [
+          {
+            "delta_model_a_minus_model_b": 0.01538461538461533,
+            "model_a_value": 1.0,
+            "model_b_value": 0.9846153846153847,
+            "seed": 42
+          },
+          {
+            "delta_model_a_minus_model_b": 0.008717948717948731,
+            "model_a_value": 1.0,
+            "model_b_value": 0.9912820512820513,
+            "seed": 43
+          }
+        ],
+        "sample_sd_delta": 0.004714045207910269
+      },
+      "f1": {
+        "mean_delta": 0.0,
+        "pairs": [
+          {
+            "delta_model_a_minus_model_b": 0.0,
+            "model_a_value": 1.0,
+            "model_b_value": 1.0,
+            "seed": 42
+          },
+          {
+            "delta_model_a_minus_model_b": 0.0,
+            "model_a_value": 1.0,
+            "model_b_value": 1.0,
+            "seed": 43
+          }
+        ],
+        "sample_sd_delta": 0.0
+      },
+      "fps": {
+        "mean_delta": 6.642072972829627,
+        "pairs": [
+          {
+            "delta_model_a_minus_model_b": 7.704833267395223,
+            "model_a_value": 64.13396507844062,
+            "model_b_value": 56.4291318110454,
+            "seed": 42
+          },
+          {
+            "delta_model_a_minus_model_b": 5.579312678264031,
+            "model_a_value": 84.92033156399027,
+            "model_b_value": 79.34101888572624,
+            "seed": 43
+          }
+        ],
+        "sample_sd_delta": 1.5029700221262912
+      },
+      "latency_p50_ms": {
+        "mean_delta": -1.4839749783277512,
+        "pairs": [
+          {
+            "delta_model_a_minus_model_b": -2.0761999767273664,
+            "model_a_value": 15.682500001275912,
+            "model_b_value": 17.75869997800328,
+            "seed": 42
+          },
+          {
+            "delta_model_a_minus_model_b": -0.8917499799281359,
+            "model_a_value": 11.51949999621138,
+            "model_b_value": 12.411249976139516,
+            "seed": 43
+          }
+        ],
+        "sample_sd_delta": 0.8375326247131204
+      },
+      "latency_p95_ms": {
+        "mean_delta": -2.044432467664592,
+        "pairs": [
+          {
+            "delta_model_a_minus_model_b": -3.0816149403108284,
+            "model_a_value": 16.964435009867884,
+            "model_b_value": 20.046049950178713,
+            "seed": 42
+          },
+          {
+            "delta_model_a_minus_model_b": -1.0072499950183555,
+            "model_a_value": 12.463920025038533,
+            "model_b_value": 13.471170020056888,
+            "seed": 43
+          }
+        ],
+        "sample_sd_delta": 1.4667975194719691
+      },
+      "precision": {
+        "mean_delta": 0.0,
+        "pairs": [
+          {
+            "delta_model_a_minus_model_b": 0.0,
+            "model_a_value": 1.0,
+            "model_b_value": 1.0,
+            "seed": 42
+          },
+          {
+            "delta_model_a_minus_model_b": 0.0,
+            "model_a_value": 1.0,
+            "model_b_value": 1.0,
+            "seed": 43
+          }
+        ],
+        "sample_sd_delta": 0.0
+      },
+      "recall": {
+        "mean_delta": 0.0,
+        "pairs": [
+          {
+            "delta_model_a_minus_model_b": 0.0,
+            "model_a_value": 1.0,
+            "model_b_value": 1.0,
+            "seed": 42
+          },
+          {
+            "delta_model_a_minus_model_b": 0.0,
+            "model_a_value": 1.0,
+            "model_b_value": 1.0,
+            "seed": 43
+          }
+        ],
+        "sample_sd_delta": 0.0
+      }
+    },
+    "degrees_of_freedom": 1,
+    "direction": "model_a_minus_model_b",
+    "interpretation": "descriptive_only",
+    "model_a": "yolo11m",
+    "model_b": "YOLOX-S",
+    "paired_n": 2,
+    "seeds": [
+      42,
+      43
+    ]
+  },
+  "policy_id": "rpi_bootstrap_paired_2seed_release_v1",
+  "policy_sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27",
+  "protocol_artifacts_sha256": "a62cd27fb60a365b8e9f2e67c45fb28ffb0dd262a8c9e854b67a085b7aad3c03",
+  "protocol_compatibility_sha256": "0c4ede09dee1997f6b37b6a2126ccde4d63a887101fbbdad490b36a2c39e5a9e",
+  "publication_allowlist": [
+    "aggregate_comparison.csv",
+    "aggregate_comparison.json",
+    "aggregate_comparison.png",
+    "comparison.csv",
+    "comparison.json",
+    "comparison_dashboard.png",
+    "comparison_terminal.txt",
+    "evidence_manifest.json",
+    "experiment_methodology.md",
+    "experiment_report.md",
+    "formal_execution_status.json",
+    "formal_release_policy.yaml",
+    "formal_validation.json",
+    "onnx_split_evaluation.md",
+    "parameter_rationale.md",
+    "protocol_artifacts.json",
+    "protocol_compatibility.json",
+    "protocol_rationale.csv",
+    "protocol_rationale.png",
+    "protocol_references.json",
+    "protocol_snapshot.yaml",
+    "run_provenance.json",
+    "run_provenance_attestation.json",
+    "sources/yolo11m_seed42/epoch_metrics.csv",
+    "sources/yolo11m_seed42/epoch_metrics_extra.jsonl",
+    "sources/yolo11m_seed42/final_metrics.json",
+    "sources/yolo11m_seed42/gpu_summary.json",
+    "sources/yolo11m_seed42/latency.json",
+    "sources/yolo11m_seed42/latency_samples.csv",
+    "sources/yolo11m_seed42/per_class_metrics.csv",
+    "sources/yolo11m_seed42/run_manifest.json",
+    "sources/yolo11m_seed42/terminal.log",
+    "sources/yolo11m_seed43/epoch_metrics.csv",
+    "sources/yolo11m_seed43/epoch_metrics_extra.jsonl",
+    "sources/yolo11m_seed43/final_metrics.json",
+    "sources/yolo11m_seed43/gpu_summary.json",
+    "sources/yolo11m_seed43/latency.json",
+    "sources/yolo11m_seed43/latency_samples.csv",
+    "sources/yolo11m_seed43/per_class_metrics.csv",
+    "sources/yolo11m_seed43/run_manifest.json",
+    "sources/yolo11m_seed43/terminal.log",
+    "sources/yolox_s_seed42/epoch_metrics.csv",
+    "sources/yolox_s_seed42/epoch_metrics.jsonl",
+    "sources/yolox_s_seed42/final_metrics.json",
+    "sources/yolox_s_seed42/gpu_summary.json",
+    "sources/yolox_s_seed42/latency.json",
+    "sources/yolox_s_seed42/latency_samples.csv",
+    "sources/yolox_s_seed42/per_class_metrics.csv",
+    "sources/yolox_s_seed42/run_manifest.json",
+    "sources/yolox_s_seed42/terminal.log",
+    "sources/yolox_s_seed43/epoch_metrics.csv",
+    "sources/yolox_s_seed43/epoch_metrics.jsonl",
+    "sources/yolox_s_seed43/final_metrics.json",
+    "sources/yolox_s_seed43/gpu_summary.json",
+    "sources/yolox_s_seed43/latency.json",
+    "sources/yolox_s_seed43/latency_samples.csv",
+    "sources/yolox_s_seed43/per_class_metrics.csv",
+    "sources/yolox_s_seed43/run_manifest.json",
+    "sources/yolox_s_seed43/terminal.log",
+    "sources_manifest.json",
+    "terminal_summary.png",
+    "training_curves.png",
+    "ubuntu_handoff.md"
+  ],
+  "required_user_artifacts": [
+    "comparison.csv",
+    "comparison.json",
+    "aggregate_comparison.csv",
+    "aggregate_comparison.json",
+    "comparison_terminal.txt",
+    "terminal_summary.png",
+    "comparison_dashboard.png",
+    "training_curves.png",
+    "aggregate_comparison.png",
+    "experiment_report.md",
+    "experiment_methodology.md",
+    "parameter_rationale.md",
+    "protocol_snapshot.yaml",
+    "protocol_rationale.csv",
+    "protocol_rationale.png",
+    "protocol_references.json",
+    "protocol_artifacts.json",
+    "formal_execution_status.json",
+    "ubuntu_handoff.md",
+    "onnx_split_evaluation.md",
+    "protocol_compatibility.json",
+    "run_provenance.json",
+    "sources_manifest.json",
+    "evidence_manifest.json",
+    "formal_release_policy.yaml"
+  ],
+  "run_count": 4,
+  "run_provenance_attestation_sha256": "ae4a2bd635a587dbb8b0c16121f530e7b9aaf6b21c1242bf0fb9859142e5aaff",
+  "run_provenance_sha256": "7b182bc3500a1a5b067e98cb9bab1a99d2ce9cb0eeabb8ff72b07857286c72a2",
+  "schema_version": 2,
+  "source_chain": [
+    {
+      "bytes": 19813,
+      "filename": "epoch_metrics.csv",
+      "numeric_digest": "3a8b53cb77bf5cc18b709fd32625b069d5948d286176afec6b7a4763f3e3fe98",
+      "published_sha256": "820af611a2380ead9bfbd051174f57d89af93ef1c1ea70024a3b591937331229",
+      "run_id": "yolo11m_seed42",
+      "source_original_sha256": "6a097035e4c4ac5858b5681d3d0802a556aeeb49ec102e768b3179e74e5585c8"
+    },
+    {
+      "bytes": 55922,
+      "filename": "epoch_metrics_extra.jsonl",
+      "numeric_digest": "c68bb27d1293af06bfd0c1b27b94fc7b81fca797aca7b487a9fbe75df32f5ef5",
+      "published_sha256": "87939411e77d9886572c63518a0143c64f6dab788bf7d80802c05e1f1ea9ce61",
+      "run_id": "yolo11m_seed42",
+      "source_original_sha256": "0d0d6d5e210139c290f49999f3c1ce6b022bba2fab29b190c3463187a505b47f"
+    },
+    {
+      "bytes": 2939,
+      "filename": "final_metrics.json",
+      "numeric_digest": "0c8233f329917552b2ac79b02c78094d3879620341b3435029a6928ba2b859b7",
+      "published_sha256": "3430febeea78e0a6ee15fb840bf4783a99b53795d408f8656470528f1799921f",
+      "run_id": "yolo11m_seed42",
+      "source_original_sha256": "3430febeea78e0a6ee15fb840bf4783a99b53795d408f8656470528f1799921f"
+    },
+    {
+      "bytes": 157,
+      "filename": "gpu_summary.json",
+      "numeric_digest": "886abed16456fcb18b5b01617070997de3fb8a8413d571a019b410a32ce727e6",
+      "published_sha256": "71cc07b714d3dbea8ee36d04c76dd841621e80c7fb64657bf62f1c331375d9ce",
+      "run_id": "yolo11m_seed42",
+      "source_original_sha256": "71cc07b714d3dbea8ee36d04c76dd841621e80c7fb64657bf62f1c331375d9ce"
+    },
+    {
+      "bytes": 442,
+      "filename": "latency.json",
+      "numeric_digest": "435fae914c845aabc13838693c7887197630aa6e387b916b0e4c6cd4b97a07fb",
+      "published_sha256": "ed8baa61f4fc55e56deab568ce4a1b1af789fb02d46d9ee58e57a61b7130f760",
+      "run_id": "yolo11m_seed42",
+      "source_original_sha256": "ed8baa61f4fc55e56deab568ce4a1b1af789fb02d46d9ee58e57a61b7130f760"
+    },
+    {
+      "bytes": 4057,
+      "filename": "latency_samples.csv",
+      "numeric_digest": "0d8f91a76a482edf83132a7766266220ba791ce25b01a79e2fbcf296b61e8287",
+      "published_sha256": "2ec05d0c6259ebd5d5bc77700a254543a5bdbdf0f19996934cbc5b25b55cd21f",
+      "run_id": "yolo11m_seed42",
+      "source_original_sha256": "cbe961542012a29c542694418781b950da6e13a8129463c657259423c31244a2"
+    },
+    {
+      "bytes": 106,
+      "filename": "per_class_metrics.csv",
+      "numeric_digest": "e5ffdf9a56f0bd7c967b5ca1ec543d594201228f00b43a3fb2b166c615f3eb11",
+      "published_sha256": "498c03bf57fd8e396a95c9a9e2f1b89f576988d4b8a2f60a569e758d37d32f21",
+      "run_id": "yolo11m_seed42",
+      "source_original_sha256": "34102e8418f5c94b925000258f17e9bd10724d9619700e8d37556c802fba30b1"
+    },
+    {
+      "bytes": 7109,
+      "filename": "run_manifest.json",
+      "numeric_digest": "15356e5ab601108c3d97ff29e443d3487a264453af29eb80b9864d29ff7229d8",
+      "published_sha256": "7c05e065d668b6c3bc78097835147d4d049d8b16118cd99724ddd564cfe66b9c",
+      "run_id": "yolo11m_seed42",
+      "source_original_sha256": "919313fd9f04b1a1ace6abc302aafd3a551914e1691657746184eed5538dfa7d"
+    },
+    {
+      "bytes": 3063795,
+      "filename": "terminal.log",
+      "numeric_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "published_sha256": "168b02ff53413190272eebe5d22078eb2c727c370cef76ca5e3e44507946a22b",
+      "run_id": "yolo11m_seed42",
+      "source_original_sha256": "9a02cf9060b886f3e212c084fab9904c71102b99bb1fd630af6bde039656cdb4"
+    },
+    {
+      "bytes": 19797,
+      "filename": "epoch_metrics.csv",
+      "numeric_digest": "1484cab889c8374d773000357d19da0efc7e1927db45dafe31587551fc2ebd77",
+      "published_sha256": "dfcd75af696a40ce186ccfe09e07d9eb6e85309bc0930d96c4d97e55d7987a81",
+      "run_id": "yolo11m_seed43",
+      "source_original_sha256": "82f5ad2a58408d33eb35388db0b58e5e4f4594372b00860bd2289d0973ea75b3"
+    },
+    {
+      "bytes": 55906,
+      "filename": "epoch_metrics_extra.jsonl",
+      "numeric_digest": "221b189b6d8567aa0f4272d4f3466005dc16c35aef60f8b0323c10ae2cc67360",
+      "published_sha256": "11959ff4d525102c7b945bda2e0d175e0630ef9ecdb28ed5765eaa770285ba3f",
+      "run_id": "yolo11m_seed43",
+      "source_original_sha256": "8706dd4a8109c0f1eddf477284a80252b0fa5fa0c6ef1f1fb6f13d42968fefcf"
+    },
+    {
+      "bytes": 2936,
+      "filename": "final_metrics.json",
+      "numeric_digest": "e9fae9299ad81e463944256d4a5dd5a4ef82328f738bdd23ef3e1f1e0a97e227",
+      "published_sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef",
+      "run_id": "yolo11m_seed43",
+      "source_original_sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef"
+    },
+    {
+      "bytes": 158,
+      "filename": "gpu_summary.json",
+      "numeric_digest": "9fefcd24b5162e1461a2a40ac687afcea102b097186f9c39c86786464343d720",
+      "published_sha256": "9df6329ffeeb79b7e115f3f35ae3e91495506352afba05cc9f7d0cf29b558011",
+      "run_id": "yolo11m_seed43",
+      "source_original_sha256": "9df6329ffeeb79b7e115f3f35ae3e91495506352afba05cc9f7d0cf29b558011"
+    },
+    {
+      "bytes": 441,
+      "filename": "latency.json",
+      "numeric_digest": "ac5979492dc570c17e12b471cfd0553e96245854b710c60afd67bbcb9102b77d",
+      "published_sha256": "705bc246764f375a8830b53ed28140deb8a89246d100b246b2d9cef343ebddd2",
+      "run_id": "yolo11m_seed43",
+      "source_original_sha256": "705bc246764f375a8830b53ed28140deb8a89246d100b246b2d9cef343ebddd2"
+    },
+    {
+      "bytes": 4066,
+      "filename": "latency_samples.csv",
+      "numeric_digest": "aa2c751cddf7e916aabf82fc386be10831292fb9158802c2aef3ed03686753a8",
+      "published_sha256": "43565624b12efd9d1c20538d1c00d174ca2a8706eea22668d88340c3838ad795",
+      "run_id": "yolo11m_seed43",
+      "source_original_sha256": "4dbd23449591c1c40b736f68c4d89b67f4cf8a44f13d0586fbc69b5797931dda"
+    },
+    {
+      "bytes": 106,
+      "filename": "per_class_metrics.csv",
+      "numeric_digest": "e5ffdf9a56f0bd7c967b5ca1ec543d594201228f00b43a3fb2b166c615f3eb11",
+      "published_sha256": "498c03bf57fd8e396a95c9a9e2f1b89f576988d4b8a2f60a569e758d37d32f21",
+      "run_id": "yolo11m_seed43",
+      "source_original_sha256": "34102e8418f5c94b925000258f17e9bd10724d9619700e8d37556c802fba30b1"
+    },
+    {
+      "bytes": 7109,
+      "filename": "run_manifest.json",
+      "numeric_digest": "33b79a7d10423df337788867a3b042ba2284dce10657cf78f39a1ab573f32a25",
+      "published_sha256": "a7ecc9c675626075a6c314f4d98242326c70f57f6c7a623503d7b07eae40b333",
+      "run_id": "yolo11m_seed43",
+      "source_original_sha256": "948a8cfdeb2369117b1b39209d1621d8f7ac74d5804e060f8e19e8718f4af53e"
+    },
+    {
+      "bytes": 3061441,
+      "filename": "terminal.log",
+      "numeric_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "published_sha256": "d928201f0c165f5ec245ac55a1653cfd4f2b84843c3eb0e6bc89a1762a4c95cd",
+      "run_id": "yolo11m_seed43",
+      "source_original_sha256": "5648bf1db66378667223e8527ba71e62f6c5fd4d9e33808bdaa648352200995e"
+    },
+    {
+      "bytes": 28139,
+      "filename": "epoch_metrics.csv",
+      "numeric_digest": "45b18f6cde42e53494768e21463b9bc24f7bd39f8777ac85d8f5944e6f2832af",
+      "published_sha256": "bfe8f596f656a0c10cfdbe60748068d3bf9359852cb07b83e4f9e0f19e5dd249",
+      "run_id": "yolox_s_seed42",
+      "source_original_sha256": "4ca7befb64a7b3ac76c1d210d72f9a8cd43fce702b165b343a20e8aabcc01d2f"
+    },
+    {
+      "bytes": 56413,
+      "filename": "epoch_metrics.jsonl",
+      "numeric_digest": "55c6bd2cd497363e889ccd4913fb018d7c1fecbfce8e35b7f04b12d2af845ae0",
+      "published_sha256": "f994da9ee732968a98822b0efb7c44f87894f89d541efdd5cbdb4b49a6a0013a",
+      "run_id": "yolox_s_seed42",
+      "source_original_sha256": "16d5a71c9138fc3a8f823144e1217e30e1250660a0e633a30d0d3a5e4ecafb0f"
+    },
+    {
+      "bytes": 3044,
+      "filename": "final_metrics.json",
+      "numeric_digest": "572691fb25dac3b409ca46c5e78cec9bf26026186cb846e9b53b2926fb1a4cf5",
+      "published_sha256": "c255012a5466fe2e2cfa0b76dca37e0e19ca1c816c9ad2f012dcb2938b9f6f37",
+      "run_id": "yolox_s_seed42",
+      "source_original_sha256": "c255012a5466fe2e2cfa0b76dca37e0e19ca1c816c9ad2f012dcb2938b9f6f37"
+    },
+    {
+      "bytes": 159,
+      "filename": "gpu_summary.json",
+      "numeric_digest": "a2a2cb564660e47d296f7888bec0d5d494c648d00bb04e066ea93687ee5204e8",
+      "published_sha256": "511ad6345f6337203d1039e714302aa591099e133a423447a9b43736531ebe26",
+      "run_id": "yolox_s_seed42",
+      "source_original_sha256": "511ad6345f6337203d1039e714302aa591099e133a423447a9b43736531ebe26"
+    },
+    {
+      "bytes": 439,
+      "filename": "latency.json",
+      "numeric_digest": "860bc9fa52fda731318fb3f210b741b4eeb8b10255ae469ec09d0578f890b38d",
+      "published_sha256": "fb1b25d91f03d38bccb337e633ca2bd40d956d7d23d829bce89d3ab3fc46dfc9",
+      "run_id": "yolox_s_seed42",
+      "source_original_sha256": "fb1b25d91f03d38bccb337e633ca2bd40d956d7d23d829bce89d3ab3fc46dfc9"
+    },
+    {
+      "bytes": 4049,
+      "filename": "latency_samples.csv",
+      "numeric_digest": "187d33256f1a2a0ba58f741a74e907f6395a3afff2ec87134d1f1bf33e776dc8",
+      "published_sha256": "000b0bf985bd797dad7b669b57df59d4b0de1a0d4c2f85444364ecc96b66f94b",
+      "run_id": "yolox_s_seed42",
+      "source_original_sha256": "1c3c48bc8c7beeb5a2ac61fe40c930b145f95acad9e67b9f14773cdf7ec4b0ab"
+    },
+    {
+      "bytes": 121,
+      "filename": "per_class_metrics.csv",
+      "numeric_digest": "4ac07cd6f1677cf41306e54336205fdc25f6c7836949412013141893b666570b",
+      "published_sha256": "d12d77c1b1e082159c94f1e38ed579e462b90cb3cd6ff4a0d1f195ed735faf69",
+      "run_id": "yolox_s_seed42",
+      "source_original_sha256": "7c5447e120acba85a0e8e63bab67ab26743cf1b4adbe89f0059339a1ef6f81e7"
+    },
+    {
+      "bytes": 6760,
+      "filename": "run_manifest.json",
+      "numeric_digest": "409b6a626e57e1b1eb9c478f87ac01011aa7add69e1d26098f116b33bfae40e0",
+      "published_sha256": "865fcac6e6586d020e8cfa729be7ba60eb917db5e02fa486f1e048541ff3d8f9",
+      "run_id": "yolox_s_seed42",
+      "source_original_sha256": "fedbf3a7f1e83f8b257c76f5b7eb2eda21808e37588f301011f297cf3e8484aa"
+    },
+    {
+      "bytes": 1044625,
+      "filename": "terminal.log",
+      "numeric_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "published_sha256": "e545602ce46f733fd05595ebc3cb42259401cdbd935e4f0eec14b01db0fe5313",
+      "run_id": "yolox_s_seed42",
+      "source_original_sha256": "e859b48d9789d9b137deefc49073680af119a9887db7215223184e2b34378077"
+    },
+    {
+      "bytes": 28056,
+      "filename": "epoch_metrics.csv",
+      "numeric_digest": "0a134d6b091379f79c53990d16a220c30bc36d0b1ac7d2d6817418a7b2292199",
+      "published_sha256": "a359aae1bed2507c1dc69d67df9633bb7814748d30056cd1f1335b05b884c0f3",
+      "run_id": "yolox_s_seed43",
+      "source_original_sha256": "6b85b5522f125732804614b6900fe73d77de09da31b7d188ff091a3fd66b5cae"
+    },
+    {
+      "bytes": 56330,
+      "filename": "epoch_metrics.jsonl",
+      "numeric_digest": "77e4411b863840e6d8c779cbd7ad2b9409b6f0a417d72a0fcacb05df6a13fd3a",
+      "published_sha256": "84724092326420af4d030c83ed6d844743b72c8b8210a73571a9124a178a9d48",
+      "run_id": "yolox_s_seed43",
+      "source_original_sha256": "7590f2d538a6607c7e5b8df3ee49c7c2f02a131c9dceeb911cc418520d0725c0"
+    },
+    {
+      "bytes": 2983,
+      "filename": "final_metrics.json",
+      "numeric_digest": "2d057aec467f24325f5f850e0499bbc1ff6d911ebe641f5198fae3e472cde003",
+      "published_sha256": "79b0853c75755107ee00180a0082ba9ea499997276bca05a898aa2310ac923cf",
+      "run_id": "yolox_s_seed43",
+      "source_original_sha256": "79b0853c75755107ee00180a0082ba9ea499997276bca05a898aa2310ac923cf"
+    },
+    {
+      "bytes": 158,
+      "filename": "gpu_summary.json",
+      "numeric_digest": "5b128b215d7fe189f1b62e75f08b4fd4e5e2b388c85e2a3523ec14ad496a89ac",
+      "published_sha256": "6b365897a298cc31be96627027bab3c8a929abc237d810ae9984d0c286ae424d",
+      "run_id": "yolox_s_seed43",
+      "source_original_sha256": "6b365897a298cc31be96627027bab3c8a929abc237d810ae9984d0c286ae424d"
+    },
+    {
+      "bytes": 441,
+      "filename": "latency.json",
+      "numeric_digest": "0bd416d39d8b885dd600587ce85b282c4beb7b7f6cceb1e9c7d5cb2459d2a5ee",
+      "published_sha256": "ef4939ab946b3e4a32710faf878dfd04840694787e073831fdadfdf5c7549b3b",
+      "run_id": "yolox_s_seed43",
+      "source_original_sha256": "ef4939ab946b3e4a32710faf878dfd04840694787e073831fdadfdf5c7549b3b"
+    },
+    {
+      "bytes": 4067,
+      "filename": "latency_samples.csv",
+      "numeric_digest": "ec3b29c75f414e183c0bf8a3304e77b2ae875f49fa9b1143b5ecf20c229e4e28",
+      "published_sha256": "5842571495959300c6fab1d130e9c23ddf6cff18265a84637530257829dfaee4",
+      "run_id": "yolox_s_seed43",
+      "source_original_sha256": "907c143a0a39328acf3d8f4f1cb7d4725674fec48719d2fca52bb02225597632"
+    },
+    {
+      "bytes": 121,
+      "filename": "per_class_metrics.csv",
+      "numeric_digest": "5cf81bbf2c00670d3b87ef99bf7dd7100088938e41fba41582330ce3933f723d",
+      "published_sha256": "3f279d6c3faef98b8b1b49e1a5bd34810526cab6261ebfcd42dc85097d9b493a",
+      "run_id": "yolox_s_seed43",
+      "source_original_sha256": "222e6087868454fb58c39370bba3b38cffbef61da34f5ca122fbab8d0201c9fb"
+    },
+    {
+      "bytes": 6578,
+      "filename": "run_manifest.json",
+      "numeric_digest": "5104aa4fbbc195398c069c947413d8a955f5af9779ca6d9cd2c1180a1199e320",
+      "published_sha256": "a4995682c719ec30c3255e303db88de6727dfb99c1e0d71a43705c7a44c3e7bd",
+      "run_id": "yolox_s_seed43",
+      "source_original_sha256": "0df463b02af5700ed454df7a275d6d7e4805b61913bd660034774e052ddbdebb"
+    },
+    {
+      "bytes": 1019349,
+      "filename": "terminal.log",
+      "numeric_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "published_sha256": "52b62c834d4dee1b9d8bee31ad7ef718c77ae4663bd3157e7f7d1ee179c9231f",
+      "run_id": "yolox_s_seed43",
+      "source_original_sha256": "42aefd4b1cf9945df539163f9d364e32b8056ea6026f110fc7b40569e3bc20af"
+    }
+  ],
+  "source_chain_sha256": "3b75adb3a7c378d65ad354b4c9c96ca22982119597fd6d38650cee4597079bd8",
+  "sources_manifest_sha256": "8306c88b81ce6f99745de142d5f622d31e58b8a7f83f816864f24b2e0f35246b",
+  "status": "PASS",
+  "ubuntu_handoff_sha256": "7bc352e724f0606db8bc1126c55bfecc2d314ed6dbc8f38a2162d6b4ae980a76"
+}

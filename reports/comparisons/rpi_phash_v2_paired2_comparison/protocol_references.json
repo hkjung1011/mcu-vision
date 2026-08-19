@@ -1,0 +1,104 @@
+[
+  {
+    "id": "MICROPCB_SOURCE",
+    "title": "micro-PCB Images source dataset and filename coding README",
+    "type": "dataset_source",
+    "url": "https://www.kaggle.com/datasets/frettapper/micropcb-images"
+  },
+  {
+    "id": "YOLOX_PAPER",
+    "title": "YOLOX: Exceeding YOLO Series in 2021",
+    "type": "paper",
+    "url": "https://arxiv.org/abs/2107.08430"
+  },
+  {
+    "id": "YOLOX_REPO",
+    "title": "Megvii YOLOX custom data and pretrained checkpoints",
+    "type": "official_repository",
+    "url": "https://github.com/Megvii-BaseDetection/YOLOX"
+  },
+  {
+    "id": "YOLOX_SOURCE",
+    "title": "YOLOX base experiment at commit 6ddff482",
+    "type": "pinned_source",
+    "url": "https://github.com/Megvii-BaseDetection/YOLOX/blob/6ddff4824372906469a7fae2dc3206c7aa4bbaee/yolox/exp/yolox_base.py"
+  },
+  {
+    "id": "YOLO11_MODEL",
+    "title": "Ultralytics YOLO11 model documentation (no separate research paper)",
+    "type": "official_documentation",
+    "url": "https://docs.ultralytics.com/models/yolo11/"
+  },
+  {
+    "id": "ULTRALYTICS_TRAIN",
+    "title": "Ultralytics train mode settings",
+    "type": "official_documentation",
+    "url": "https://docs.ultralytics.com/modes/train/"
+  },
+  {
+    "id": "ULTRALYTICS_PREDICT",
+    "title": "Ultralytics predict mode settings",
+    "type": "official_documentation",
+    "url": "https://docs.ultralytics.com/modes/predict/"
+  },
+  {
+    "id": "ULTRALYTICS_DEFAULTS",
+    "title": "Ultralytics v8.4.120 default training configuration",
+    "type": "pinned_source",
+    "url": "https://github.com/ultralytics/ultralytics/blob/v8.4.120/ultralytics/cfg/default.yaml"
+  },
+  {
+    "id": "ULTRALYTICS_AUGMENT",
+    "title": "Ultralytics data augmentation guide",
+    "type": "official_documentation",
+    "url": "https://docs.ultralytics.com/guides/yolo-data-augmentation/"
+  },
+  {
+    "id": "ULTRALYTICS_SOURCE",
+    "title": "Ultralytics v8.4.120 trainer implementation",
+    "type": "pinned_source",
+    "url": "https://github.com/ultralytics/ultralytics/blob/v8.4.120/ultralytics/engine/trainer.py"
+  },
+  {
+    "id": "COCO_PAPER",
+    "title": "Microsoft COCO: Common Objects in Context",
+    "type": "paper",
+    "url": "https://arxiv.org/abs/1405.0312"
+  },
+  {
+    "id": "COCO_API",
+    "title": "pycocotools 2.0.11 package used by the common evaluator",
+    "type": "official_source",
+    "url": "https://pypi.org/project/pycocotools/2.0.11/"
+  },
+  {
+    "id": "MIXED_PRECISION_PAPER",
+    "title": "Mixed Precision Training",
+    "type": "paper",
+    "url": "https://arxiv.org/abs/1710.03740"
+  },
+  {
+    "id": "PYTORCH_AMP",
+    "title": "PyTorch Automatic Mixed Precision",
+    "type": "official_documentation",
+    "url": "https://docs.pytorch.org/docs/stable/amp.html"
+  },
+  {
+    "id": "PYTORCH_REPRO",
+    "title": "PyTorch reproducibility notes",
+    "type": "official_documentation",
+    "url": "https://docs.pytorch.org/docs/stable/notes/randomness.html"
+  },
+  {
+    "id": "PYTORCH_DATA",
+    "title": "PyTorch single- and multi-process data loading",
+    "type": "official_documentation",
+    "url": "https://docs.pytorch.org/docs/stable/data.html"
+  },
+  {
+    "id": "SAHI_PAPER",
+    "title": "Slicing Aided Hyper Inference and Fine-tuning for Small Object Detection",
+    "type": "paper",
+    "url": "https://arxiv.org/abs/2202.06934"
+  }
+]

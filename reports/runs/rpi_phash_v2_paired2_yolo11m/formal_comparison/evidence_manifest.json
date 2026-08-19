@@ -1,0 +1,318 @@
+{
+  "decision_policy": "Judgments use terminal logs and numeric CSV/JSON only; PNG files are visualization derivatives.",
+  "derived_images": [
+    {
+      "bytes": 370418,
+      "path": "terminal_summary.png",
+      "sha256": "9220d5392254c1731b708725a4bfbf94a5df506048540b26e1a2afc0e90ccfee"
+    },
+    {
+      "bytes": 306011,
+      "path": "comparison_dashboard.png",
+      "sha256": "b0eefc8fe9ff578fc0d00e5fcbf94effa6e6f4fb561977a3d75a8e09780f2a35"
+    },
+    {
+      "bytes": 318841,
+      "path": "training_curves.png",
+      "sha256": "6374606421a7e6a07b9ed38838610f343d6c301843b09dc253199af1020e7a90"
+    },
+    {
+      "bytes": 151545,
+      "path": "aggregate_comparison.png",
+      "sha256": "b6f74e5028b26e1caa62a784b4b692c857a5d491e87fe5c7e625bf450eb6cc4e"
+    },
+    {
+      "bytes": 803992,
+      "path": "protocol_rationale.png",
+      "sha256": "239f3950518bc5ffb4e6414a2f0bf3fc8085ab13c7626f157899b830bfec8765"
+    }
+  ],
+  "generative_ai_used_for_images": false,
+  "image_renderer": "matplotlib 3.11.1",
+  "local_absolute_paths_included": false,
+  "schema_version": 3,
+  "self_hash_policy": "evidence_manifest.json and formal_validation.json are excluded to avoid a hash cycle; formal_validation.json binds this manifest.",
+  "source_bundle": "sources_manifest.json",
+  "sources": [
+    {
+      "bytes": 1740,
+      "path": "comparison.csv",
+      "sha256": "fcbf561caba0f7957701ac8dda385c90c50f35542edecb0120b5b78d5888db86"
+    },
+    {
+      "bytes": 3619,
+      "path": "comparison.json",
+      "sha256": "6b48d91c3be5c4b95b2dcec49bdce29b751c34d16bfcecd0d80f2cbe98c52f7d"
+    },
+    {
+      "bytes": 1033,
+      "path": "aggregate_comparison.csv",
+      "sha256": "17dc04fddcfd067ea3efad0d6f35c15e11d8e048092c8ab4a75f85fbef03b8f1"
+    },
+    {
+      "bytes": 2027,
+      "path": "aggregate_comparison.json",
+      "sha256": "57a6f57ac2933ab4acbd92610554a4b511fe665fff73d25f88f164fb1d6453d0"
+    },
+    {
+      "bytes": 3671,
+      "path": "comparison_terminal.txt",
+      "sha256": "ebdeb5ae2cac44fd14f6c70a31ada11b66163fa2548afe63b32cf6431c6ac42a"
+    },
+    {
+      "bytes": 10709,
+      "path": "protocol_compatibility.json",
+      "sha256": "0c4ede09dee1997f6b37b6a2126ccde4d63a887101fbbdad490b36a2c39e5a9e"
+    },
+    {
+      "bytes": 7030,
+      "path": "run_provenance.json",
+      "sha256": "7b182bc3500a1a5b067e98cb9bab1a99d2ce9cb0eeabb8ff72b07857286c72a2"
+    },
+    {
+      "bytes": 2523,
+      "path": "run_provenance_attestation.json",
+      "sha256": "ae4a2bd635a587dbb8b0c16121f530e7b9aaf6b21c1242bf0fb9859142e5aaff"
+    },
+    {
+      "bytes": 1601,
+      "path": "formal_release_policy.yaml",
+      "sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27"
+    },
+    {
+      "bytes": 14634,
+      "path": "sources_manifest.json",
+      "sha256": "8306c88b81ce6f99745de142d5f622d31e58b8a7f83f816864f24b2e0f35246b"
+    },
+    {
+      "bytes": 9414,
+      "path": "formal_execution_status.json",
+      "sha256": "d4fbf87058d2010c3a4f93c46c1126e97a84dd154e3d9b19f2daa64e4961225d"
+    },
+    {
+      "bytes": 4526,
+      "path": "experiment_report.md",
+      "sha256": "fa7fae32a72139c2209d62c91ee5b0de2c7c868f91af8d4535ef1675df3e0854"
+    },
+    {
+      "bytes": 16788,
+      "path": "experiment_methodology.md",
+      "sha256": "d345f06f1839e603c40f2f4436eda6226f127a5c4818a294918a988eb9e262f1"
+    },
+    {
+      "bytes": 9574,
+      "path": "parameter_rationale.md",
+      "sha256": "3f6744e934ad81ec9fb3da5b53d531d658e649fcf34847311c101f3a73d758a4"
+    },
+    {
+      "bytes": 17488,
+      "path": "protocol_snapshot.yaml",
+      "sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+    },
+    {
+      "bytes": 8128,
+      "path": "protocol_rationale.csv",
+      "sha256": "7ac8f70fcd48ddaf3796ff73e8871fb530037b082f5ffbdc63472b8846091e6b"
+    },
+    {
+      "bytes": 3332,
+      "path": "protocol_references.json",
+      "sha256": "2aa53f9615224df85415de82789f1510a226ddb33070a372a93d7652aef408e0"
+    },
+    {
+      "bytes": 12036,
+      "path": "protocol_artifacts.json",
+      "sha256": "a62cd27fb60a365b8e9f2e67c45fb28ffb0dd262a8c9e854b67a085b7aad3c03"
+    },
+    {
+      "bytes": 10245,
+      "path": "ubuntu_handoff.md",
+      "sha256": "7bc352e724f0606db8bc1126c55bfecc2d314ed6dbc8f38a2162d6b4ae980a76"
+    },
+    {
+      "bytes": 9291,
+      "path": "onnx_split_evaluation.md",
+      "sha256": "0c0e74e6888c4372fbe50484fffcd623e03a51362379e9a9ea51bae5deae4221"
+    },
+    {
+      "bytes": 19813,
+      "path": "sources/yolo11m_seed42/epoch_metrics.csv",
+      "sha256": "820af611a2380ead9bfbd051174f57d89af93ef1c1ea70024a3b591937331229"
+    },
+    {
+      "bytes": 55922,
+      "path": "sources/yolo11m_seed42/epoch_metrics_extra.jsonl",
+      "sha256": "87939411e77d9886572c63518a0143c64f6dab788bf7d80802c05e1f1ea9ce61"
+    },
+    {
+      "bytes": 2939,
+      "path": "sources/yolo11m_seed42/final_metrics.json",
+      "sha256": "3430febeea78e0a6ee15fb840bf4783a99b53795d408f8656470528f1799921f"
+    },
+    {
+      "bytes": 157,
+      "path": "sources/yolo11m_seed42/gpu_summary.json",
+      "sha256": "71cc07b714d3dbea8ee36d04c76dd841621e80c7fb64657bf62f1c331375d9ce"
+    },
+    {
+      "bytes": 442,
+      "path": "sources/yolo11m_seed42/latency.json",
+      "sha256": "ed8baa61f4fc55e56deab568ce4a1b1af789fb02d46d9ee58e57a61b7130f760"
+    },
+    {
+      "bytes": 4057,
+      "path": "sources/yolo11m_seed42/latency_samples.csv",
+      "sha256": "2ec05d0c6259ebd5d5bc77700a254543a5bdbdf0f19996934cbc5b25b55cd21f"
+    },
+    {
+      "bytes": 106,
+      "path": "sources/yolo11m_seed42/per_class_metrics.csv",
+      "sha256": "498c03bf57fd8e396a95c9a9e2f1b89f576988d4b8a2f60a569e758d37d32f21"
+    },
+    {
+      "bytes": 7109,
+      "path": "sources/yolo11m_seed42/run_manifest.json",
+      "sha256": "7c05e065d668b6c3bc78097835147d4d049d8b16118cd99724ddd564cfe66b9c"
+    },
+    {
+      "bytes": 3063795,
+      "path": "sources/yolo11m_seed42/terminal.log",
+      "sha256": "168b02ff53413190272eebe5d22078eb2c727c370cef76ca5e3e44507946a22b"
+    },
+    {
+      "bytes": 19797,
+      "path": "sources/yolo11m_seed43/epoch_metrics.csv",
+      "sha256": "dfcd75af696a40ce186ccfe09e07d9eb6e85309bc0930d96c4d97e55d7987a81"
+    },
+    {
+      "bytes": 55906,
+      "path": "sources/yolo11m_seed43/epoch_metrics_extra.jsonl",
+      "sha256": "11959ff4d525102c7b945bda2e0d175e0630ef9ecdb28ed5765eaa770285ba3f"
+    },
+    {
+      "bytes": 2936,
+      "path": "sources/yolo11m_seed43/final_metrics.json",
+      "sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef"
+    },
+    {
+      "bytes": 158,
+      "path": "sources/yolo11m_seed43/gpu_summary.json",
+      "sha256": "9df6329ffeeb79b7e115f3f35ae3e91495506352afba05cc9f7d0cf29b558011"
+    },
+    {
+      "bytes": 441,
+      "path": "sources/yolo11m_seed43/latency.json",
+      "sha256": "705bc246764f375a8830b53ed28140deb8a89246d100b246b2d9cef343ebddd2"
+    },
+    {
+      "bytes": 4066,
+      "path": "sources/yolo11m_seed43/latency_samples.csv",
+      "sha256": "43565624b12efd9d1c20538d1c00d174ca2a8706eea22668d88340c3838ad795"
+    },
+    {
+      "bytes": 106,
+      "path": "sources/yolo11m_seed43/per_class_metrics.csv",
+      "sha256": "498c03bf57fd8e396a95c9a9e2f1b89f576988d4b8a2f60a569e758d37d32f21"
+    },
+    {
+      "bytes": 7109,
+      "path": "sources/yolo11m_seed43/run_manifest.json",
+      "sha256": "a7ecc9c675626075a6c314f4d98242326c70f57f6c7a623503d7b07eae40b333"
+    },
+    {
+      "bytes": 3061441,
+      "path": "sources/yolo11m_seed43/terminal.log",
+      "sha256": "d928201f0c165f5ec245ac55a1653cfd4f2b84843c3eb0e6bc89a1762a4c95cd"
+    },
+    {
+      "bytes": 28139,
+      "path": "sources/yolox_s_seed42/epoch_metrics.csv",
+      "sha256": "bfe8f596f656a0c10cfdbe60748068d3bf9359852cb07b83e4f9e0f19e5dd249"
+    },
+    {
+      "bytes": 56413,
+      "path": "sources/yolox_s_seed42/epoch_metrics.jsonl",
+      "sha256": "f994da9ee732968a98822b0efb7c44f87894f89d541efdd5cbdb4b49a6a0013a"
+    },
+    {
+      "bytes": 3044,
+      "path": "sources/yolox_s_seed42/final_metrics.json",
+      "sha256": "c255012a5466fe2e2cfa0b76dca37e0e19ca1c816c9ad2f012dcb2938b9f6f37"
+    },
+    {
+      "bytes": 159,
+      "path": "sources/yolox_s_seed42/gpu_summary.json",
+      "sha256": "511ad6345f6337203d1039e714302aa591099e133a423447a9b43736531ebe26"
+    },
+    {
+      "bytes": 439,
+      "path": "sources/yolox_s_seed42/latency.json",
+      "sha256": "fb1b25d91f03d38bccb337e633ca2bd40d956d7d23d829bce89d3ab3fc46dfc9"
+    },
+    {
+      "bytes": 4049,
+      "path": "sources/yolox_s_seed42/latency_samples.csv",
+      "sha256": "000b0bf985bd797dad7b669b57df59d4b0de1a0d4c2f85444364ecc96b66f94b"
+    },
+    {
+      "bytes": 121,
+      "path": "sources/yolox_s_seed42/per_class_metrics.csv",
+      "sha256": "d12d77c1b1e082159c94f1e38ed579e462b90cb3cd6ff4a0d1f195ed735faf69"
+    },
+    {
+      "bytes": 6760,
+      "path": "sources/yolox_s_seed42/run_manifest.json",
+      "sha256": "865fcac6e6586d020e8cfa729be7ba60eb917db5e02fa486f1e048541ff3d8f9"
+    },
+    {
+      "bytes": 1044625,
+      "path": "sources/yolox_s_seed42/terminal.log",
+      "sha256": "e545602ce46f733fd05595ebc3cb42259401cdbd935e4f0eec14b01db0fe5313"
+    },
+    {
+      "bytes": 28056,
+      "path": "sources/yolox_s_seed43/epoch_metrics.csv",
+      "sha256": "a359aae1bed2507c1dc69d67df9633bb7814748d30056cd1f1335b05b884c0f3"
+    },
+    {
+      "bytes": 56330,
+      "path": "sources/yolox_s_seed43/epoch_metrics.jsonl",
+      "sha256": "84724092326420af4d030c83ed6d844743b72c8b8210a73571a9124a178a9d48"
+    },
+    {
+      "bytes": 2983,
+      "path": "sources/yolox_s_seed43/final_metrics.json",
+      "sha256": "79b0853c75755107ee00180a0082ba9ea499997276bca05a898aa2310ac923cf"
+    },
+    {
+      "bytes": 158,
+      "path": "sources/yolox_s_seed43/gpu_summary.json",
+      "sha256": "6b365897a298cc31be96627027bab3c8a929abc237d810ae9984d0c286ae424d"
+    },
+    {
+      "bytes": 441,
+      "path": "sources/yolox_s_seed43/latency.json",
+      "sha256": "ef4939ab946b3e4a32710faf878dfd04840694787e073831fdadfdf5c7549b3b"
+    },
+    {
+      "bytes": 4067,
+      "path": "sources/yolox_s_seed43/latency_samples.csv",
+      "sha256": "5842571495959300c6fab1d130e9c23ddf6cff18265a84637530257829dfaee4"
+    },
+    {
+      "bytes": 121,
+      "path": "sources/yolox_s_seed43/per_class_metrics.csv",
+      "sha256": "3f279d6c3faef98b8b1b49e1a5bd34810526cab6261ebfcd42dc85097d9b493a"
+    },
+    {
+      "bytes": 6578,
+      "path": "sources/yolox_s_seed43/run_manifest.json",
+      "sha256": "a4995682c719ec30c3255e303db88de6727dfb99c1e0d71a43705c7a44c3e7bd"
+    },
+    {
+      "bytes": 1019349,
+      "path": "sources/yolox_s_seed43/terminal.log",
+      "sha256": "52b62c834d4dee1b9d8bee31ad7ef718c77ae4663bd3157e7f7d1ee179c9231f"
+    }
+  ]
+}

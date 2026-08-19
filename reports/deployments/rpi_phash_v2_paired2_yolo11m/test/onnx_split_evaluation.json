@@ -1,0 +1,187 @@
+{
+  "artifacts": {
+    "coco_annotations": {
+      "bytes": 54310,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/annotations/instances_test2017.json",
+      "sha256": "61b9c88d8adf6c12757e350dda19be00dc1f2bdbff7bb40e1e27274f74663ab2"
+    },
+    "deployment_metadata": {
+      "bytes": 11600,
+      "path": "weights/trained/rpi_phash_v2_paired2_yolo11m/yolo11m/yolo11m_rpi_b1_640.deployment.json",
+      "sha256": "c35b7ed0c3cb6199a8dd5ea15fc5a2dc9b787febb181a03d425523a1652dfce2"
+    },
+    "final_metrics": {
+      "bytes": 2304,
+      "path": "runs/deployment_eval/rpi_phash_v2_paired2_yolo11m/test/final_metrics.json",
+      "sha256": "ffa6bfdc3d825e634da30161d64ebcd7eb9498fa1f1677bdafd63b56f7b63438"
+    },
+    "image_manifest": {
+      "bytes": 60529,
+      "path": "runs/deployment_eval/rpi_phash_v2_paired2_yolo11m/test/image_manifest.json",
+      "sha256": "179577c730091d6af0d724643d1775742446f05b82a02f215946ecd2000c46b7"
+    },
+    "onnx": {
+      "bytes": 80372365,
+      "path": "weights/trained/rpi_phash_v2_paired2_yolo11m/yolo11m/yolo11m_rpi_b1_640.onnx",
+      "sha256": "ad488f6758af0cb7cfe1937ae128411ab73feeec5f3bdc8377f07ffaebc7ebfc"
+    },
+    "predictions": {
+      "bytes": 36601,
+      "path": "runs/deployment_eval/rpi_phash_v2_paired2_yolo11m/test/predictions.coco.json",
+      "sha256": "2686c181d16d26adf7438831e96e0b185000725d0da214ca183d904215c8283b"
+    }
+  },
+  "created_utc": "2026-08-19T07:33:31+00:00",
+  "environment": {
+    "numpy": "1.26.4",
+    "onnxruntime": "1.28.0",
+    "opencv": "4.11.0",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.9"
+  },
+  "framework": "yolo11",
+  "inference": {
+    "e2e_ms_mean": 223.958770003325,
+    "e2e_ms_p50": 227.10204997565597,
+    "e2e_ms_p95": 232.442824926693,
+    "images": 180,
+    "images_per_second": 3.9313535265590547,
+    "inference_ms_mean": 218.57339333574703,
+    "inference_ms_p50": 221.22644999762997,
+    "inference_ms_p95": 226.3931450084783,
+    "loop_wall_seconds": 45.78575769998133,
+    "postprocess_ms_mean": 0.622683331473834,
+    "predictions": 180,
+    "preprocess_ms_mean": 4.762208891204661
+  },
+  "inputs": {
+    "annotation_count": 180,
+    "category_ids": [
+      1
+    ],
+    "category_names": [
+      "raspberry_pi_sbc"
+    ],
+    "image_count": 180,
+    "image_root": "data/processed/micropcb_rpi_phash_v2_coco/test2017",
+    "protocol_binding": {
+      "artifact": {
+        "bytes": 17488,
+        "path": "configs/experiments/baseline_v1.yaml",
+        "sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+      },
+      "checks": {
+        "image_size": {
+          "actual": 640,
+          "frozen": 640,
+          "status": "PASS"
+        },
+        "max_detections_for_coco_ap": {
+          "actual": 100,
+          "frozen": 100,
+          "status": "PASS"
+        },
+        "nms_iou": {
+          "actual": 0.65,
+          "frozen": 0.65,
+          "status": "PASS"
+        },
+        "operating_confidence": {
+          "actual": 0.25,
+          "frozen": 0.25,
+          "status": "PASS"
+        },
+        "operating_match_iou": {
+          "actual": 0.5,
+          "frozen": 0.5,
+          "status": "PASS"
+        },
+        "prediction_floor": {
+          "actual": 0.001,
+          "frozen": 0.001,
+          "status": "PASS"
+        }
+      },
+      "coco_annotation_sha256": "61b9c88d8adf6c12757e350dda19be00dc1f2bdbff7bb40e1e27274f74663ab2",
+      "image_count": 180,
+      "protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+      "split": "test",
+      "status": "PASS"
+    },
+    "split_binding": {
+      "all_image_sha256_match": true,
+      "artifacts": {
+        "split_manifest": {
+          "bytes": 922445,
+          "path": "data/manifests/micropcb_raspberry_pi_sbc.phash_v2.csv",
+          "sha256": "ed1040f459f0c35459e8d59eda3ce77ab878e84e25e80661c9cd5b6765f00859"
+        },
+        "split_summary": {
+          "bytes": 3389,
+          "path": "data/manifests/micropcb_raspberry_pi_sbc.phash_v2.summary.json",
+          "sha256": "746edf4cfe26ab7392c592f631a82e000d17f3e401abf333503b211e08ab3a5c"
+        }
+      },
+      "assignment_sha256": "5a818e0fd1f264a1a364cfd0cfe2280e72ec52bfbaa35ff425224bbf4a0a4e33",
+      "image_count": 180,
+      "image_set_exact_match": true,
+      "policy": "phash_condition_component_model_balanced_sha256_v2",
+      "split": "test",
+      "status": "PASS"
+    }
+  },
+  "metrics": {
+    "ap50": 1.0,
+    "ap50_95": 1.0,
+    "ap75": 1.0,
+    "ap_large": 1.0,
+    "ap_medium": null,
+    "ap_small": null,
+    "ar1": 1.0,
+    "ar10": 1.0,
+    "ar100": 1.0,
+    "ar_large": 1.0,
+    "ar_medium": null,
+    "ar_small": null,
+    "f1": 1.0,
+    "fn": 0,
+    "fp": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "tp": 180
+  },
+  "mode": "formal",
+  "native_metric_equivalence": {
+    "reason": "--native-final-metrics was not supplied",
+    "status": "NOT_REQUESTED"
+  },
+  "native_reference_binding": {
+    "reason": "only formal validation is bound to the comparison-frozen native metrics",
+    "status": "NOT_APPLICABLE"
+  },
+  "profile": "fixed_batch1_fp32_onnxruntime",
+  "protocol": {
+    "batch": 1,
+    "class_agnostic_nms": false,
+    "image_size": 640,
+    "latency_scope": "preprocess + ONNX Runtime inference + decode/NMS/restore; image I/O and SHA-256 excluded",
+    "max_detections_per_image": 100,
+    "nms_iou": 0.65,
+    "operating_confidence": 0.25,
+    "operating_match_iou": 0.5,
+    "prediction_floor_for_coco_ap": 0.001,
+    "warmup_runs_excluded": 1
+  },
+  "provider_requested": "CPUExecutionProvider",
+  "provider_used": "CPUExecutionProvider",
+  "schema_version": 1,
+  "split": "test",
+  "status": "PASS",
+  "threshold_selection": {
+    "source_split": "test",
+    "status": "NOT_FOR_THRESHOLD_SELECTION",
+    "test_data_used_for_selection": false,
+    "usage": "diagnostic_metrics_only"
+  },
+  "warning": "This is the held-out phash_v2 bootstrap test split, not a new physical-item/session conveyor-camera acceptance set."
+}

@@ -1,0 +1,2 @@
+category_id,category_name,ap50_95,tp,fp,fn,precision,recall,f1
+1,raspberry_pi_sbc,0.9852172240797946,180,0,0,1.0,1.0,1.0

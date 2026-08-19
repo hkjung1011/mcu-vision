@@ -1,0 +1,163 @@
+{
+  "attestation": {
+    "allowed_commits": [
+      "63bc679d88d56907433b6586e2a7efacb46a25d6",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6"
+    ],
+    "path": "mixed_commit_rpi_paired_2seed_v1_attestation.json",
+    "rationale": "The release policy selects only complete matched seed42/43 pairs and prohibits inferential or production-readiness claims. The only changed frozen training-era implementation input remains publishing.py and the exact blob pair is publication-only."
+  },
+  "blockers": [],
+  "commits_by_run": {
+    "yolo11m_seed42": "63bc679d88d56907433b6586e2a7efacb46a25d6",
+    "yolo11m_seed43": "63bc679d88d56907433b6586e2a7efacb46a25d6",
+    "yolox_s_seed42": "63bc679d88d56907433b6586e2a7efacb46a25d6",
+    "yolox_s_seed43": "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6"
+  },
+  "comparator": {
+    "clean": true,
+    "head": "617e22eaca31fa990999b5063bfa748e2342cd36",
+    "implementation_blobs": {
+      "src/mcu_data/reporting.py": "9529b39b968dd7ba72d83bc3ca9a1cbf80a98465",
+      "src/mcu_data/run_provenance.py": "dfe1ef7b3823528544f8121fe1c6db536320a81b"
+    },
+    "status": "PASS"
+  },
+  "formal_release_policy": {
+    "base_protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+    "base_protocol_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+    "evidence_tier": "paired_2seed_descriptive",
+    "expected_runs": 4,
+    "models": [
+      "yolo11m",
+      "YOLOX-S"
+    ],
+    "policy_id": "rpi_bootstrap_paired_2seed_release_v1",
+    "policy_sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27",
+    "seeds": [
+      42,
+      43
+    ]
+  },
+  "implementation_blobs": {
+    "configs/yolox_s_micropcb.py": {
+      "63bc679d88d56907433b6586e2a7efacb46a25d6": "66ea4f2566ccb82be1bc6c3abd5f5672dd7a0c1d",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "66ea4f2566ccb82be1bc6c3abd5f5672dd7a0c1d"
+    },
+    "scripts/run_compare_seeds.ps1": {
+      "63bc679d88d56907433b6586e2a7efacb46a25d6": "98f779862216791587385b1488d277c5e90981f2",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "98f779862216791587385b1488d277c5e90981f2"
+    },
+    "scripts/train_yolo11_logged.py": {
+      "63bc679d88d56907433b6586e2a7efacb46a25d6": "3bd4edfb43c01e57abdd669b6a20b1360cfb4052",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "3bd4edfb43c01e57abdd669b6a20b1360cfb4052"
+    },
+    "scripts/train_yolox_logged.py": {
+      "63bc679d88d56907433b6586e2a7efacb46a25d6": "2ebb4b266e485c3e0847a66abf2c3d4de89d4888",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "2ebb4b266e485c3e0847a66abf2c3d4de89d4888"
+    },
+    "src/mcu_data/common.py": {
+      "63bc679d88d56907433b6586e2a7efacb46a25d6": "6f5f0166553c65ee60ed84b1fa5d4d4680758537",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "6f5f0166553c65ee60ed84b1fa5d4d4680758537"
+    },
+    "src/mcu_data/dataset_evidence.py": {
+      "63bc679d88d56907433b6586e2a7efacb46a25d6": "ba2d17fbec5b22062cd0a38908b9b39802adeb45",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "ba2d17fbec5b22062cd0a38908b9b39802adeb45"
+    },
+    "src/mcu_data/methodology.py": {
+      "63bc679d88d56907433b6586e2a7efacb46a25d6": "e1f95ead610ca320af1eb2b70adf8c60e7189f99",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "e1f95ead610ca320af1eb2b70adf8c60e7189f99"
+    },
+    "src/mcu_data/publishing.py": {
+      "63bc679d88d56907433b6586e2a7efacb46a25d6": "349b1f3fe34a4ce28d02d8dba2749ce4197e4946",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "7016d8bc1bfe9f54ba02ae6c021e85893e02f449"
+    },
+    "src/mcu_data/reporting.py": {
+      "63bc679d88d56907433b6586e2a7efacb46a25d6": "d5bd047ca000de39bfc0ec668db3e08835437980",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "d5bd047ca000de39bfc0ec668db3e08835437980"
+    },
+    "src/mcu_data/runlog.py": {
+      "63bc679d88d56907433b6586e2a7efacb46a25d6": "2c8f6f31a5bb07b805eaf9a7fe1707803454997c",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "2c8f6f31a5bb07b805eaf9a7fe1707803454997c"
+    },
+    "src/mcu_data/yolox_metrics.py": {
+      "63bc679d88d56907433b6586e2a7efacb46a25d6": "be04dcdedc0feebc1f78303ffeb449cc147fe4df",
+      "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "be04dcdedc0feebc1f78303ffeb449cc147fe4df"
+    }
+  },
+  "implementation_scope": [
+    "scripts/run_compare_seeds.ps1",
+    "scripts/train_yolo11_logged.py",
+    "scripts/train_yolox_logged.py",
+    "configs/yolox_s_micropcb.py",
+    "src/mcu_data/common.py",
+    "src/mcu_data/dataset_evidence.py",
+    "src/mcu_data/methodology.py",
+    "src/mcu_data/publishing.py",
+    "src/mcu_data/reporting.py",
+    "src/mcu_data/runlog.py",
+    "src/mcu_data/yolox_metrics.py"
+  ],
+  "mixed_commits": true,
+  "required_scope_version": "formal-training-provenance-v2",
+  "schema_version": 2,
+  "semantic_manifest_fields": {
+    "YOLOX-S:environment.cudnn": {
+      "yolox_s_seed42": 92000,
+      "yolox_s_seed43": 92000
+    },
+    "YOLOX-S:environment.torch": {
+      "yolox_s_seed42": "2.12.1+cu130",
+      "yolox_s_seed43": "2.12.1+cu130"
+    },
+    "YOLOX-S:environment.torch_cuda_runtime": {
+      "yolox_s_seed42": "13.0",
+      "yolox_s_seed43": "13.0"
+    },
+    "YOLOX-S:experiment_config.sha256": {
+      "yolox_s_seed42": "c3d6cd8630311a8638a654369f31bdf2dcefe68a4c6c17d096f23fba74e60de9",
+      "yolox_s_seed43": "c3d6cd8630311a8638a654369f31bdf2dcefe68a4c6c17d096f23fba74e60de9"
+    },
+    "YOLOX-S:framework_commit": {
+      "yolox_s_seed42": "6ddff4824372906469a7fae2dc3206c7aa4bbaee",
+      "yolox_s_seed43": "6ddff4824372906469a7fae2dc3206c7aa4bbaee"
+    },
+    "YOLOX-S:framework_version": {
+      "yolox_s_seed42": "0.3.0",
+      "yolox_s_seed43": "0.3.0"
+    },
+    "YOLOX-S:pretrained_checkpoint.sha256": {
+      "yolox_s_seed42": "f55ded7181e1b0c13285c56e7790b8f0e8f8db590fe4edb37f0b7f345c913a30",
+      "yolox_s_seed43": "f55ded7181e1b0c13285c56e7790b8f0e8f8db590fe4edb37f0b7f345c913a30"
+    },
+    "YOLOX-S:protocol_config.sha256": {
+      "yolox_s_seed42": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+      "yolox_s_seed43": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+    },
+    "yolo11m:environment.cudnn": {
+      "yolo11m_seed42": 92000,
+      "yolo11m_seed43": 92000
+    },
+    "yolo11m:environment.torch": {
+      "yolo11m_seed42": "2.12.1+cu130",
+      "yolo11m_seed43": "2.12.1+cu130"
+    },
+    "yolo11m:environment.torch_cuda_runtime": {
+      "yolo11m_seed42": "13.0",
+      "yolo11m_seed43": "13.0"
+    },
+    "yolo11m:framework_version": {
+      "yolo11m_seed42": "8.4.120",
+      "yolo11m_seed43": "8.4.120"
+    },
+    "yolo11m:pretrained_checkpoint.sha256": {
+      "yolo11m_seed42": "d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95",
+      "yolo11m_seed43": "d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95"
+    },
+    "yolo11m:protocol_config.sha256": {
+      "yolo11m_seed42": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+      "yolo11m_seed43": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+    }
+  },
+  "status": "PASS"
+}

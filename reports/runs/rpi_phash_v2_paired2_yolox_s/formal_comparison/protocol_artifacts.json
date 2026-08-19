@@ -1,0 +1,396 @@
+{
+  "artifacts": [
+    {
+      "bytes": 17488,
+      "kind": "evidence",
+      "path": "protocol_snapshot.yaml",
+      "sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+    },
+    {
+      "bytes": 8128,
+      "kind": "evidence",
+      "path": "protocol_rationale.csv",
+      "sha256": "7ac8f70fcd48ddaf3796ff73e8871fb530037b082f5ffbdc63472b8846091e6b"
+    },
+    {
+      "bytes": 3332,
+      "kind": "evidence",
+      "path": "protocol_references.json",
+      "sha256": "2aa53f9615224df85415de82789f1510a226ddb33070a372a93d7652aef408e0"
+    },
+    {
+      "bytes": 16788,
+      "kind": "evidence",
+      "path": "experiment_methodology.md",
+      "sha256": "d345f06f1839e603c40f2f4436eda6226f127a5c4818a294918a988eb9e262f1"
+    },
+    {
+      "bytes": 9574,
+      "kind": "evidence",
+      "path": "parameter_rationale.md",
+      "sha256": "3f6744e934ad81ec9fb3da5b53d531d658e649fcf34847311c101f3a73d758a4"
+    },
+    {
+      "bytes": 803992,
+      "kind": "derived_visual",
+      "path": "protocol_rationale.png",
+      "sha256": "239f3950518bc5ffb4e6414a2f0bf3fc8085ab13c7626f157899b830bfec8765"
+    },
+    {
+      "bytes": 9414,
+      "kind": "evidence",
+      "path": "formal_execution_status.json",
+      "sha256": "d4fbf87058d2010c3a4f93c46c1126e97a84dd154e3d9b19f2daa64e4961225d"
+    }
+  ],
+  "execution_status": {
+    "base_protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+    "base_protocol_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+    "degrees_of_freedom": 1,
+    "epochs_per_run": 100,
+    "evidence_tier": "paired_2seed_descriptive",
+    "exact_pairs": [
+      [
+        "yolo11m",
+        42
+      ],
+      [
+        "yolo11m",
+        43
+      ],
+      [
+        "YOLOX-S",
+        42
+      ],
+      [
+        "YOLOX-S",
+        43
+      ]
+    ],
+    "formal_release_policy": {
+      "base_protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+      "base_protocol_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+      "claims": {
+        "allowed": [
+          "per_run_metrics",
+          "model_mean",
+          "sample_standard_deviation",
+          "paired_seed_deltas"
+        ],
+        "prohibited": [
+          "statistical_significance",
+          "population_superiority",
+          "production_ready",
+          "independent_test"
+        ]
+      },
+      "decision_record": {
+        "excluded_models": [
+          "yolo11m",
+          "YOLOX-S"
+        ],
+        "excluded_seed": 44,
+        "exclusion_rule": "Exclude seed 44 for both models as one paired unit. Do not include the completed YOLO11m seed44 run, the incomplete YOLOX-S retry3/retry4 runs, or any seed44 metric in this comparison.",
+        "included_seed_rule": "Include a seed only when both required models completed exactly 100 epochs with the immutable base protocol and all formal evidence gates pass.",
+        "reason": "The originally planned third paired repeat was judged too costly after training had begun. This policy therefore narrows the release evidence to the already complete, matched seed 42 and seed 43 runs and explicitly limits inference to descriptive statistics.",
+        "selection_decided_after_training": true
+      },
+      "degrees_of_freedom": 1,
+      "epochs_per_run": 100,
+      "evidence_tier": "paired_2seed_descriptive",
+      "exact_pairs": [
+        [
+          "yolo11m",
+          42
+        ],
+        [
+          "yolo11m",
+          43
+        ],
+        [
+          "YOLOX-S",
+          42
+        ],
+        [
+          "YOLOX-S",
+          43
+        ]
+      ],
+      "expected_runs": 4,
+      "interpretation": "descriptive_only",
+      "models": [
+        "yolo11m",
+        "YOLOX-S"
+      ],
+      "n_per_model": 2,
+      "paired_n": 2,
+      "policy_id": "rpi_bootstrap_paired_2seed_release_v1",
+      "policy_sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27",
+      "seeds": [
+        42,
+        43
+      ]
+    },
+    "interpretation": "descriptive_only",
+    "models": [
+      "yolo11m",
+      "YOLOX-S"
+    ],
+    "n_per_model": 2,
+    "paired_n": 2,
+    "paired_seed_deltas": {
+      "by_metric": {
+        "ap50": {
+          "mean_delta": 0.0,
+          "pairs": [
+            {
+              "delta_model_a_minus_model_b": 0.0,
+              "model_a_value": 1.0,
+              "model_b_value": 1.0,
+              "seed": 42
+            },
+            {
+              "delta_model_a_minus_model_b": 0.0,
+              "model_a_value": 1.0,
+              "model_b_value": 1.0,
+              "seed": 43
+            }
+          ],
+          "sample_sd_delta": 0.0
+        },
+        "ap50_95": {
+          "mean_delta": 0.015394015580410703,
+          "pairs": [
+            {
+              "delta_model_a_minus_model_b": 0.02062688583992056,
+              "model_a_value": 1.0,
+              "model_b_value": 0.9793731141600794,
+              "seed": 42
+            },
+            {
+              "delta_model_a_minus_model_b": 0.010161145320900844,
+              "model_a_value": 1.0,
+              "model_b_value": 0.9898388546790992,
+              "seed": 43
+            }
+          ],
+          "sample_sd_delta": 0.007400396091137659
+        },
+        "ap75": {
+          "mean_delta": 0.0,
+          "pairs": [
+            {
+              "delta_model_a_minus_model_b": 0.0,
+              "model_a_value": 1.0,
+              "model_b_value": 1.0,
+              "seed": 42
+            },
+            {
+              "delta_model_a_minus_model_b": 0.0,
+              "model_a_value": 1.0,
+              "model_b_value": 1.0,
+              "seed": 43
+            }
+          ],
+          "sample_sd_delta": 0.0
+        },
+        "ar100": {
+          "mean_delta": 0.01205128205128203,
+          "pairs": [
+            {
+              "delta_model_a_minus_model_b": 0.01538461538461533,
+              "model_a_value": 1.0,
+              "model_b_value": 0.9846153846153847,
+              "seed": 42
+            },
+            {
+              "delta_model_a_minus_model_b": 0.008717948717948731,
+              "model_a_value": 1.0,
+              "model_b_value": 0.9912820512820513,
+              "seed": 43
+            }
+          ],
+          "sample_sd_delta": 0.004714045207910269
+        },
+        "f1": {
+          "mean_delta": 0.0,
+          "pairs": [
+            {
+              "delta_model_a_minus_model_b": 0.0,
+              "model_a_value": 1.0,
+              "model_b_value": 1.0,
+              "seed": 42
+            },
+            {
+              "delta_model_a_minus_model_b": 0.0,
+              "model_a_value": 1.0,
+              "model_b_value": 1.0,
+              "seed": 43
+            }
+          ],
+          "sample_sd_delta": 0.0
+        },
+        "fps": {
+          "mean_delta": 6.642072972829627,
+          "pairs": [
+            {
+              "delta_model_a_minus_model_b": 7.704833267395223,
+              "model_a_value": 64.13396507844062,
+              "model_b_value": 56.4291318110454,
+              "seed": 42
+            },
+            {
+              "delta_model_a_minus_model_b": 5.579312678264031,
+              "model_a_value": 84.92033156399027,
+              "model_b_value": 79.34101888572624,
+              "seed": 43
+            }
+          ],
+          "sample_sd_delta": 1.5029700221262912
+        },
+        "latency_p50_ms": {
+          "mean_delta": -1.4839749783277512,
+          "pairs": [
+            {
+              "delta_model_a_minus_model_b": -2.0761999767273664,
+              "model_a_value": 15.682500001275912,
+              "model_b_value": 17.75869997800328,
+              "seed": 42
+            },
+            {
+              "delta_model_a_minus_model_b": -0.8917499799281359,
+              "model_a_value": 11.51949999621138,
+              "model_b_value": 12.411249976139516,
+              "seed": 43
+            }
+          ],
+          "sample_sd_delta": 0.8375326247131204
+        },
+        "latency_p95_ms": {
+          "mean_delta": -2.044432467664592,
+          "pairs": [
+            {
+              "delta_model_a_minus_model_b": -3.0816149403108284,
+              "model_a_value": 16.964435009867884,
+              "model_b_value": 20.046049950178713,
+              "seed": 42
+            },
+            {
+              "delta_model_a_minus_model_b": -1.0072499950183555,
+              "model_a_value": 12.463920025038533,
+              "model_b_value": 13.471170020056888,
+              "seed": 43
+            }
+          ],
+          "sample_sd_delta": 1.4667975194719691
+        },
+        "precision": {
+          "mean_delta": 0.0,
+          "pairs": [
+            {
+              "delta_model_a_minus_model_b": 0.0,
+              "model_a_value": 1.0,
+              "model_b_value": 1.0,
+              "seed": 42
+            },
+            {
+              "delta_model_a_minus_model_b": 0.0,
+              "model_a_value": 1.0,
+              "model_b_value": 1.0,
+              "seed": 43
+            }
+          ],
+          "sample_sd_delta": 0.0
+        },
+        "recall": {
+          "mean_delta": 0.0,
+          "pairs": [
+            {
+              "delta_model_a_minus_model_b": 0.0,
+              "model_a_value": 1.0,
+              "model_b_value": 1.0,
+              "seed": 42
+            },
+            {
+              "delta_model_a_minus_model_b": 0.0,
+              "model_a_value": 1.0,
+              "model_b_value": 1.0,
+              "seed": 43
+            }
+          ],
+          "sample_sd_delta": 0.0
+        }
+      },
+      "degrees_of_freedom": 1,
+      "direction": "model_a_minus_model_b",
+      "interpretation": "descriptive_only",
+      "model_a": "yolo11m",
+      "model_b": "YOLOX-S",
+      "paired_n": 2,
+      "seeds": [
+        42,
+        43
+      ]
+    },
+    "policy_id": "rpi_bootstrap_paired_2seed_release_v1",
+    "policy_sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27",
+    "precedence_note": "This execution overlay supersedes authoring-time verification text in the immutable protocol snapshot; it does not rewrite that snapshot.",
+    "protocol_compatibility_sha256": "0c4ede09dee1997f6b37b6a2126ccde4d63a887101fbbdad490b36a2c39e5a9e",
+    "protocol_snapshot_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+    "run_count": 4,
+    "runs": [
+      {
+        "model": "yolo11m",
+        "observed_epoch_rows": 100,
+        "run_id": "yolo11m_seed42",
+        "seed": 42,
+        "status": "complete"
+      },
+      {
+        "model": "yolo11m",
+        "observed_epoch_rows": 100,
+        "run_id": "yolo11m_seed43",
+        "seed": 43,
+        "status": "complete"
+      },
+      {
+        "model": "YOLOX-S",
+        "observed_epoch_rows": 100,
+        "run_id": "yolox_s_seed42",
+        "seed": 42,
+        "status": "complete"
+      },
+      {
+        "model": "YOLOX-S",
+        "observed_epoch_rows": 100,
+        "run_id": "yolox_s_seed43",
+        "seed": 43,
+        "status": "complete"
+      }
+    ],
+    "schema_version": 1,
+    "scope": "formal_paired_2_model_x_2_seed_100_epoch_descriptive_comparison",
+    "seeds": [
+      42,
+      43
+    ],
+    "status": "PASS",
+    "summary": "2 models × 2 paired seeds × 100 epochs — descriptive-only",
+    "validation": {
+      "complete_epoch_evidence": "PASS",
+      "exact_model_seed_matrix": "PASS",
+      "formal_artifact_binding": "PASS",
+      "protocol_compatibility": "PASS"
+    }
+  },
+  "generative_ai_used_for_images": false,
+  "output_dir": ".",
+  "policy": "Judgments use YAML/CSV/JSON numeric evidence; PNG files are visualization derivatives.",
+  "protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+  "rationale_items": 14,
+  "references": 17,
+  "renderer": "matplotlib 3.11.1",
+  "schema_version": 2,
+  "source": "runs/benchmarks/micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267/yolo11m_seed42/protocol_snapshot.yaml",
+  "source_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+}

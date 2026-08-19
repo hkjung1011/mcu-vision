@@ -1,0 +1,330 @@
+{
+  "artifacts": {
+    "checkpoint": {
+      "bytes": 40503404,
+      "file_name": "best.pt",
+      "path": "weights/trained/rpi_phash_v2_paired2_yolo11m/best.pt",
+      "sha256": "54cafd9348bde613945218fb0696e703de76ddef6d09210ab30d092bd1e3f2d4"
+    },
+    "native_artifact": {
+      "bytes": 86038,
+      "file_name": "artifact_manifest.json",
+      "path": "reports/runs/rpi_phash_v2_paired2_yolo11m/artifact_manifest.json",
+      "sha256": "c6fc4100b7739f48e538bab351f28c26b1ad4672b3a87c9c7e3ba051a8307601"
+    },
+    "onnx": {
+      "bytes": 80372365,
+      "file_name": "yolo11m_rpi_b1_640.onnx",
+      "path": "weights/trained/rpi_phash_v2_paired2_yolo11m/yolo11m/yolo11m_rpi_b1_640.onnx",
+      "sha256": "ad488f6758af0cb7cfe1937ae128411ab73feeec5f3bdc8377f07ffaebc7ebfc"
+    },
+    "run_manifest": {
+      "bytes": 10794,
+      "file_name": "run_manifest.json",
+      "path": "runs/benchmarks/micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267/yolo11m_seed43/run_manifest.json",
+      "sha256": "948a8cfdeb2369117b1b39209d1621d8f7ac74d5804e060f8e19e8718f4af53e"
+    }
+  },
+  "checkpoint_publication": {
+    "forward_max_abs_difference": 0.0,
+    "metadata_sanitized": true,
+    "proof": null,
+    "published_sha256": "54cafd9348bde613945218fb0696e703de76ddef6d09210ab30d092bd1e3f2d4",
+    "source_forward_captured_before_scrub": true,
+    "source_original_sha256": "7afd6e3b0328b9cc236d792f971d3954a9b98e1e8205729a9031569f5acdb85b",
+    "state_dict_bitwise_equal": true,
+    "ultralytics_load": "PASS"
+  },
+  "classes": {
+    "checkpoint_names": [
+      "raspberry_pi_sbc"
+    ],
+    "count": 1,
+    "name_match": true,
+    "names": [
+      "raspberry_pi_sbc"
+    ],
+    "source": "COCO categories by ID"
+  },
+  "created_utc": "2026-08-19T07:30:57+00:00",
+  "environment": {
+    "export_device": "cpu",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.9",
+    "torch": "2.12.1+cu130"
+  },
+  "export": {
+    "dynamic_axes": false,
+    "graph_opset": 17,
+    "inputs": [
+      {
+        "name": "images",
+        "shape": [
+          1,
+          3,
+          640,
+          640
+        ]
+      }
+    ],
+    "nms_embedded": false,
+    "onnx_version": "1.22.0",
+    "opset": 17,
+    "outputs": [
+      {
+        "name": "output0",
+        "shape": [
+          1,
+          5,
+          8400
+        ]
+      }
+    ]
+  },
+  "framework": "yolo11",
+  "framework_metadata": {
+    "framework": "Ultralytics",
+    "framework_version": "8.4.120",
+    "output_semantics": "[batch, 4+classes, anchors]; decoded xywh pixels + class probabilities; NMS external"
+  },
+  "model_input": {
+    "batch": 1,
+    "channels": 3,
+    "dtype": "float32",
+    "height": 640,
+    "name": "images",
+    "width": 640
+  },
+  "postprocessing": {
+    "class_agnostic_nms": false,
+    "confidence": 0.25,
+    "max_detections": 100,
+    "nms_iou": 0.65
+  },
+  "preprocessing": {
+    "color": "OpenCV BGR -> RGB",
+    "dtype": "float32",
+    "input_shape": [
+      1,
+      3,
+      640,
+      640
+    ],
+    "layout": "HWC -> NCHW",
+    "normalization": "divide by 255.0",
+    "padding_value": 114,
+    "placement": "centered letterbox",
+    "resize": "preserve aspect ratio; scale=min(input_h/original_h,input_w/original_w)",
+    "resized_dimensions": "round(original_dimension * scale)"
+  },
+  "profile": "fixed_batch1_fp32_onnx",
+  "release_validation": {
+    "base_protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+    "base_protocol_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+    "comparison_id": "rpi_paired_2seed_formal_20260819",
+    "comparison_sha256": "6b48d91c3be5c4b95b2dcec49bdce29b751c34d16bfcecd0d80f2cbe98c52f7d",
+    "evidence_tier": "paired_2seed_descriptive",
+    "formal_release": true,
+    "formal_release_policy_sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27",
+    "formal_validation_sha256": "39b6e9d797975918bc88499cb0f0b6a2d817367404b15d76c6664f1ac39d0332",
+    "native_final_metrics_sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef",
+    "policy_id": "rpi_bootstrap_paired_2seed_release_v1",
+    "policy_sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27",
+    "protocol_compatibility_sha256": "0c4ede09dee1997f6b37b6a2126ccde4d63a887101fbbdad490b36a2c39e5a9e",
+    "run_id": "yolo11m_seed43",
+    "run_manifest_sha256": "948a8cfdeb2369117b1b39209d1621d8f7ac74d5804e060f8e19e8718f4af53e",
+    "run_provenance_attestation_sha256": "ae4a2bd635a587dbb8b0c16121f530e7b9aaf6b21c1242bf0fb9859142e5aaff",
+    "run_provenance_sha256": "7b182bc3500a1a5b067e98cb9bab1a99d2ce9cb0eeabb8ff72b07857286c72a2",
+    "sources_manifest_sha256": "8306c88b81ce6f99745de142d5f622d31e58b8a7f83f816864f24b2e0f35246b",
+    "status": "PASS",
+    "verified_source_files": [
+      {
+        "bytes": 19797,
+        "filename": "epoch_metrics.csv",
+        "path": "sources/yolo11m_seed43/epoch_metrics.csv",
+        "published_sha256": "dfcd75af696a40ce186ccfe09e07d9eb6e85309bc0930d96c4d97e55d7987a81",
+        "source_original_sha256": "82f5ad2a58408d33eb35388db0b58e5e4f4594372b00860bd2289d0973ea75b3"
+      },
+      {
+        "bytes": 55906,
+        "filename": "epoch_metrics_extra.jsonl",
+        "path": "sources/yolo11m_seed43/epoch_metrics_extra.jsonl",
+        "published_sha256": "11959ff4d525102c7b945bda2e0d175e0630ef9ecdb28ed5765eaa770285ba3f",
+        "source_original_sha256": "8706dd4a8109c0f1eddf477284a80252b0fa5fa0c6ef1f1fb6f13d42968fefcf"
+      },
+      {
+        "bytes": 2936,
+        "filename": "final_metrics.json",
+        "path": "sources/yolo11m_seed43/final_metrics.json",
+        "published_sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef",
+        "source_original_sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef"
+      },
+      {
+        "bytes": 158,
+        "filename": "gpu_summary.json",
+        "path": "sources/yolo11m_seed43/gpu_summary.json",
+        "published_sha256": "9df6329ffeeb79b7e115f3f35ae3e91495506352afba05cc9f7d0cf29b558011",
+        "source_original_sha256": "9df6329ffeeb79b7e115f3f35ae3e91495506352afba05cc9f7d0cf29b558011"
+      },
+      {
+        "bytes": 441,
+        "filename": "latency.json",
+        "path": "sources/yolo11m_seed43/latency.json",
+        "published_sha256": "705bc246764f375a8830b53ed28140deb8a89246d100b246b2d9cef343ebddd2",
+        "source_original_sha256": "705bc246764f375a8830b53ed28140deb8a89246d100b246b2d9cef343ebddd2"
+      },
+      {
+        "bytes": 4066,
+        "filename": "latency_samples.csv",
+        "path": "sources/yolo11m_seed43/latency_samples.csv",
+        "published_sha256": "43565624b12efd9d1c20538d1c00d174ca2a8706eea22668d88340c3838ad795",
+        "source_original_sha256": "4dbd23449591c1c40b736f68c4d89b67f4cf8a44f13d0586fbc69b5797931dda"
+      },
+      {
+        "bytes": 106,
+        "filename": "per_class_metrics.csv",
+        "path": "sources/yolo11m_seed43/per_class_metrics.csv",
+        "published_sha256": "498c03bf57fd8e396a95c9a9e2f1b89f576988d4b8a2f60a569e758d37d32f21",
+        "source_original_sha256": "34102e8418f5c94b925000258f17e9bd10724d9619700e8d37556c802fba30b1"
+      },
+      {
+        "bytes": 7109,
+        "filename": "run_manifest.json",
+        "path": "sources/yolo11m_seed43/run_manifest.json",
+        "published_sha256": "a7ecc9c675626075a6c314f4d98242326c70f57f6c7a623503d7b07eae40b333",
+        "source_original_sha256": "948a8cfdeb2369117b1b39209d1621d8f7ac74d5804e060f8e19e8718f4af53e"
+      },
+      {
+        "bytes": 3061441,
+        "filename": "terminal.log",
+        "path": "sources/yolo11m_seed43/terminal.log",
+        "published_sha256": "d928201f0c165f5ec245ac55a1653cfd4f2b84843c3eb0e6bc89a1762a4c95cd",
+        "source_original_sha256": "5648bf1db66378667223e8527ba71e62f6c5fd4d9e33808bdaa648352200995e"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "status": "PASS",
+  "training_run": {
+    "dataset": {
+      "canonical_dataset_manifest_sha256": "8039d57c23305b5b37c843abe358401d4ec3cafd2722833fa96acddb799b2e68",
+      "class_map_sha256": "6921d4723044145cfbb6e7092fcead81762cbf8cc23f975cf0a5523adc4bf693",
+      "val_annotation_sha256": "a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef",
+      "val_image_list_sha256": "f96e176c8f33a3bc330c4fc1bc078b97fb0f6ce61006c5c9f50e28574e35cbfd"
+    },
+    "experiment_config": null,
+    "framework_commit": null,
+    "model": "yolo11m",
+    "protocol": {
+      "amp": true,
+      "batch": 8,
+      "common_operating_confidence": 0.25,
+      "epochs": 100,
+      "imgsz": 640,
+      "max_detections_for_coco_ap": null,
+      "nms_iou": 0.65,
+      "seed": 43
+    },
+    "protocol_config": {
+      "path": "configs/experiments/baseline_v1.yaml",
+      "sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+    },
+    "run_id": "yolo11m_seed43",
+    "stage": "fine_tune_candidate",
+    "status": "complete"
+  },
+  "verification": {
+    "gate": "all raw output elements finite and within atol + rtol*abs(native)",
+    "native_post_nms": {
+      "class_ids": [
+        0
+      ],
+      "count": 1,
+      "first_five": [
+        [
+          247.71226501464844,
+          169.65567016601562,
+          1293.3927001953125,
+          2173.4130859375,
+          0.9772170186042786,
+          0.0
+        ]
+      ],
+      "maximum_score": 0.9772171378135681
+    },
+    "numeric": {
+      "absolute_tolerance": 0.001,
+      "element_count": 42000,
+      "finite": true,
+      "max_absolute_error": 0.000274658203125,
+      "mean_absolute_error": 9.707604508045765e-06,
+      "native_shape": [
+        1,
+        5,
+        8400
+      ],
+      "onnx_shape": [
+        1,
+        5,
+        8400
+      ],
+      "p99_absolute_error": 6.103515625e-05,
+      "reason": "all_elements_within_tolerance",
+      "relative_tolerance": 0.0001,
+      "status": "PASS",
+      "within_tolerance_fraction": 1.0
+    },
+    "onnx_post_nms": {
+      "class_ids": [
+        0
+      ],
+      "count": 1,
+      "first_five": [
+        [
+          247.71226501464844,
+          169.65567016601562,
+          1293.3927001953125,
+          2173.4130859375,
+          0.9772170186042786,
+          0.0
+        ]
+      ],
+      "maximum_score": 0.9772171974182129
+    },
+    "post_nms_count_match": true,
+    "runtime": {
+      "input_name": "images",
+      "onnxruntime_version": "1.28.0",
+      "output_name": "output0",
+      "provider": "CPUExecutionProvider"
+    },
+    "status": "PASS"
+  },
+  "verification_image": {
+    "annotation_count": 1,
+    "annotation_path": "data/processed/micropcb_rpi_phash_v2_coco/annotations/instances_val2017.json",
+    "annotation_sha256": "a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef",
+    "file_name": "ACAE1.jpg",
+    "height": 2339,
+    "image_id": 1,
+    "image_path": "data/processed/micropcb_rpi_phash_v2_coco/val2017/ACAE1.jpg",
+    "image_root": "data/processed/micropcb_rpi_phash_v2_coco/val2017",
+    "image_sha256": "af407773e3ccf4d9d8d424fba7d08f5dc912f980db65ec78e8ed64f53ef57197",
+    "preprocessing_observed": {
+      "color_order": "BGR input -> RGB tensor",
+      "framework": "yolo11",
+      "input_height": 640,
+      "input_width": 640,
+      "normalization": "float32 / 255.0",
+      "original_height": 2339,
+      "original_width": 1544,
+      "pad_left": 109.0,
+      "pad_top": 0.0,
+      "padding_value": 114,
+      "scale": 0.2736212056434374
+    },
+    "selection": "COCO image record; lowest requested/annotated image ID",
+    "synthetic_or_generated": false,
+    "width": 1544
+  }
+}

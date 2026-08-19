@@ -1,0 +1,1813 @@
+{
+  "annotation": {
+    "bytes": 54310,
+    "path": "data/processed/micropcb_rpi_phash_v2_coco/annotations/instances_test2017.json",
+    "sha256": "61b9c88d8adf6c12757e350dda19be00dc1f2bdbff7bb40e1e27274f74663ab2"
+  },
+  "image_count": 180,
+  "image_root": "data/processed/micropcb_rpi_phash_v2_coco/test2017",
+  "images": [
+    {
+      "bytes": 1636530,
+      "file_name": "AAAB1.jpg",
+      "height": 2343,
+      "image_id": 1,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AAAB1.jpg",
+      "sha256": "def5c876b4aae569289b59195eab29caf2b658af0176877c8011030433380ff1",
+      "synthetic_or_generated": false,
+      "width": 2070
+    },
+    {
+      "bytes": 1549937,
+      "file_name": "AAAB2.jpg",
+      "height": 2338,
+      "image_id": 2,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AAAB2.jpg",
+      "sha256": "f58755a36a261eeebb838961579913a20697505564826165aabf87abb82f874f",
+      "synthetic_or_generated": false,
+      "width": 2051
+    },
+    {
+      "bytes": 1528149,
+      "file_name": "AAAB3.jpg",
+      "height": 2332,
+      "image_id": 3,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AAAB3.jpg",
+      "sha256": "2de8fa8ea381820a42d48ecfb171d9254bb6f0d5af0f843aabb87e2e03d9c9d0",
+      "synthetic_or_generated": false,
+      "width": 2051
+    },
+    {
+      "bytes": 1560541,
+      "file_name": "AAAB4.jpg",
+      "height": 2332,
+      "image_id": 4,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AAAB4.jpg",
+      "sha256": "b290289de3012ebd6b6219eb94c503fd4c035ddf35f0f1ee1c9d10af481450e2",
+      "synthetic_or_generated": false,
+      "width": 2058
+    },
+    {
+      "bytes": 1760331,
+      "file_name": "AAAB5.jpg",
+      "height": 2237,
+      "image_id": 5,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AAAB5.jpg",
+      "sha256": "30fa1e994eea4eb7c824d156a7701bff92db3d2995ac32f83bcdcc2fc96593e2",
+      "synthetic_or_generated": false,
+      "width": 2170
+    },
+    {
+      "bytes": 1694066,
+      "file_name": "AAAE1.jpg",
+      "height": 2365,
+      "image_id": 6,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AAAE1.jpg",
+      "sha256": "61563099046969356e25a32f3f3dd69e5284004b922520659413921d34df728a",
+      "synthetic_or_generated": false,
+      "width": 2037
+    },
+    {
+      "bytes": 1658931,
+      "file_name": "AAAE2.jpg",
+      "height": 2366,
+      "image_id": 7,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AAAE2.jpg",
+      "sha256": "c619825ed894369f8a49c59146cb702a92d990e1a60a42175f5bc4d64ff53506",
+      "synthetic_or_generated": false,
+      "width": 2023
+    },
+    {
+      "bytes": 1663582,
+      "file_name": "AAAE3.jpg",
+      "height": 2362,
+      "image_id": 8,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AAAE3.jpg",
+      "sha256": "9d28417e5652b162775ddb5f5c4ad6d4d7beb253d82060c04a9e53fa339d1339",
+      "synthetic_or_generated": false,
+      "width": 2019
+    },
+    {
+      "bytes": 1707492,
+      "file_name": "AAAE4.jpg",
+      "height": 2363,
+      "image_id": 9,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AAAE4.jpg",
+      "sha256": "6c09ee3bb49e62c933a5c04f5647dc609c52119397113f44fbbddf851da1f22a",
+      "synthetic_or_generated": false,
+      "width": 2017
+    },
+    {
+      "bytes": 1293766,
+      "file_name": "AAAE5.jpg",
+      "height": 2166,
+      "image_id": 10,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AAAE5.jpg",
+      "sha256": "0bb53111605d500ece652d88ac199b3272bfbf4f58809af22eaab251d649b605",
+      "synthetic_or_generated": false,
+      "width": 1738
+    },
+    {
+      "bytes": 1694749,
+      "file_name": "AABA1.jpg",
+      "height": 2281,
+      "image_id": 11,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABA1.jpg",
+      "sha256": "3c1f8b208f6bd5e8a8f3310240981081ba7b48c31d2b45c5542ea47345989163",
+      "synthetic_or_generated": false,
+      "width": 2240
+    },
+    {
+      "bytes": 1706547,
+      "file_name": "AABA2.jpg",
+      "height": 2281,
+      "image_id": 12,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABA2.jpg",
+      "sha256": "ed5480d800cda81e6e8ae222ff5c54184794434fd5bf70191a04ceb31152c921",
+      "synthetic_or_generated": false,
+      "width": 2234
+    },
+    {
+      "bytes": 1700084,
+      "file_name": "AABA3.jpg",
+      "height": 2283,
+      "image_id": 13,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABA3.jpg",
+      "sha256": "18a57ff88bc2a7df698c3b13d2f8853576c0eb011b628ebca529b4a464d0a607",
+      "synthetic_or_generated": false,
+      "width": 2232
+    },
+    {
+      "bytes": 1664539,
+      "file_name": "AABA4.jpg",
+      "height": 2287,
+      "image_id": 14,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABA4.jpg",
+      "sha256": "4a8edba9bcebbcf24cdcf47efea1e8e1cf82689a992b95c87961857073d5dbdf",
+      "synthetic_or_generated": false,
+      "width": 2234
+    },
+    {
+      "bytes": 1310027,
+      "file_name": "AABA5.jpg",
+      "height": 2066,
+      "image_id": 15,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABA5.jpg",
+      "sha256": "9d7d08445f1b9deec800b3a6e53306e98bac6c4ed1ffc9c259bd926ecf330868",
+      "synthetic_or_generated": false,
+      "width": 2073
+    },
+    {
+      "bytes": 1692041,
+      "file_name": "AABB1.jpg",
+      "height": 2495,
+      "image_id": 16,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABB1.jpg",
+      "sha256": "0a30e7f7e9a22c3265fa1a2b4095eff998e3603cd2984fcc25c8961ca6556e59",
+      "synthetic_or_generated": false,
+      "width": 2148
+    },
+    {
+      "bytes": 1718288,
+      "file_name": "AABB2.jpg",
+      "height": 2492,
+      "image_id": 17,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABB2.jpg",
+      "sha256": "51085ec9cd3026c1944a29e336a2080a205f6497972913745dfaa88a69504c64",
+      "synthetic_or_generated": false,
+      "width": 2141
+    },
+    {
+      "bytes": 1691257,
+      "file_name": "AABB3.jpg",
+      "height": 2488,
+      "image_id": 18,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABB3.jpg",
+      "sha256": "103687a0254fd5bcd7a95a7ac047b2180ae6d9768827f95e5b24ba232cadf603",
+      "synthetic_or_generated": false,
+      "width": 2131
+    },
+    {
+      "bytes": 1722488,
+      "file_name": "AABB4.jpg",
+      "height": 2494,
+      "image_id": 19,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABB4.jpg",
+      "sha256": "ce7593ceef9e392004a6d9f505e383a0ede4364a1b66db7e181363408cfc98b3",
+      "synthetic_or_generated": false,
+      "width": 2152
+    },
+    {
+      "bytes": 1790955,
+      "file_name": "AABB5.jpg",
+      "height": 2479,
+      "image_id": 20,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABB5.jpg",
+      "sha256": "af63588b15d2d03592b37fb5457b45a891bec409bcb37041fd84fc2ee1616a43",
+      "synthetic_or_generated": false,
+      "width": 2362
+    },
+    {
+      "bytes": 1798809,
+      "file_name": "AABE1.jpg",
+      "height": 2650,
+      "image_id": 21,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABE1.jpg",
+      "sha256": "b0c9edcb3e3617288562acc3ce7804519314266801315d2cda79f5fa5a6e7356",
+      "synthetic_or_generated": false,
+      "width": 2121
+    },
+    {
+      "bytes": 1834958,
+      "file_name": "AABE2.jpg",
+      "height": 2645,
+      "image_id": 22,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABE2.jpg",
+      "sha256": "f82e8f2dc567edb8503d6fd7c339e295bb5d26ff95dbab7666a3454d5cb2c221",
+      "synthetic_or_generated": false,
+      "width": 2082
+    },
+    {
+      "bytes": 1810416,
+      "file_name": "AABE3.jpg",
+      "height": 2648,
+      "image_id": 23,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABE3.jpg",
+      "sha256": "b508eb071ec014c9daa4476894f7f23071250438ee41bb1d74e762d92ffeff71",
+      "synthetic_or_generated": false,
+      "width": 2076
+    },
+    {
+      "bytes": 1810138,
+      "file_name": "AABE4.jpg",
+      "height": 2651,
+      "image_id": 24,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABE4.jpg",
+      "sha256": "7338841e82216f859a8ce5f4c6319677b2e477cf3d908990d2a37c361df02cdb",
+      "synthetic_or_generated": false,
+      "width": 2080
+    },
+    {
+      "bytes": 1551322,
+      "file_name": "AABE5.jpg",
+      "height": 2291,
+      "image_id": 25,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AABE5.jpg",
+      "sha256": "afb3a12a92c9ee6c3086b49aee2fb1ce52d1aff1fecdc7876746a8cfe55af20d",
+      "synthetic_or_generated": false,
+      "width": 1996
+    },
+    {
+      "bytes": 1410293,
+      "file_name": "AACA1.jpg",
+      "height": 2268,
+      "image_id": 26,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACA1.jpg",
+      "sha256": "fda886752f866fefc1dbae7bdd1b0bba5f1f658379816775354f1640a4261ca1",
+      "synthetic_or_generated": false,
+      "width": 1928
+    },
+    {
+      "bytes": 1427028,
+      "file_name": "AACA2.jpg",
+      "height": 2265,
+      "image_id": 27,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACA2.jpg",
+      "sha256": "b2a3470e9e3e3d3139cef6ce77002b192c1f8e8d2bbdd2b2bc40e00b33071378",
+      "synthetic_or_generated": false,
+      "width": 1914
+    },
+    {
+      "bytes": 1371365,
+      "file_name": "AACA3.jpg",
+      "height": 2264,
+      "image_id": 28,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACA3.jpg",
+      "sha256": "106c32983d3dbe8d15bb33bf40226bec01201988448ced0d5fcaf8ef867a6300",
+      "synthetic_or_generated": false,
+      "width": 1905
+    },
+    {
+      "bytes": 1401936,
+      "file_name": "AACA4.jpg",
+      "height": 2265,
+      "image_id": 29,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACA4.jpg",
+      "sha256": "3d75cf0264ea8b0c80b4ee7aec626a5940d27ba11d1bf38542a2d97be142b60a",
+      "synthetic_or_generated": false,
+      "width": 1916
+    },
+    {
+      "bytes": 1619741,
+      "file_name": "AACA5.jpg",
+      "height": 2367,
+      "image_id": 30,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACA5.jpg",
+      "sha256": "1e7b1da89b655be58f3a373d9144cf9b9b700495794964d4d9ebca7bbc082703",
+      "synthetic_or_generated": false,
+      "width": 2073
+    },
+    {
+      "bytes": 2085423,
+      "file_name": "AACD1.jpg",
+      "height": 2765,
+      "image_id": 31,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACD1.jpg",
+      "sha256": "d399837cce8ef8e347fe9a7e060162a43ff1705f76d5a4db266aba1850c1b595",
+      "synthetic_or_generated": false,
+      "width": 2210
+    },
+    {
+      "bytes": 2020043,
+      "file_name": "AACD2.jpg",
+      "height": 2756,
+      "image_id": 32,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACD2.jpg",
+      "sha256": "edc5bd76c43753a2f67a489657d76e94ead388bac60d66d356cb4bbdd4363d1c",
+      "synthetic_or_generated": false,
+      "width": 2188
+    },
+    {
+      "bytes": 1982996,
+      "file_name": "AACD3.jpg",
+      "height": 2751,
+      "image_id": 33,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACD3.jpg",
+      "sha256": "8312c1a691a8cecb25ef1decf0b030d73d164a7f2ec7ba5e0ebd8bce90ba480e",
+      "synthetic_or_generated": false,
+      "width": 2172
+    },
+    {
+      "bytes": 1992550,
+      "file_name": "AACD4.jpg",
+      "height": 2751,
+      "image_id": 34,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACD4.jpg",
+      "sha256": "91e7d2ac8f7b89a3a76fd502d0c3c06dd844fd27fab5f5a7c66df9a9bc947b1e",
+      "synthetic_or_generated": false,
+      "width": 2177
+    },
+    {
+      "bytes": 2295872,
+      "file_name": "AACD5.jpg",
+      "height": 2697,
+      "image_id": 35,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACD5.jpg",
+      "sha256": "5dcffefdff26bbb9d8bee624e5eb247e1c07230f47778b0efc7a1072ea683985",
+      "synthetic_or_generated": false,
+      "width": 2285
+    },
+    {
+      "bytes": 1710539,
+      "file_name": "AACE1.jpg",
+      "height": 2449,
+      "image_id": 36,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACE1.jpg",
+      "sha256": "d3d87ab81b7c399f5238d15ec2e13e9dcd4967d3c32b660df19d20682b8c89fa",
+      "synthetic_or_generated": false,
+      "width": 2063
+    },
+    {
+      "bytes": 1688117,
+      "file_name": "AACE2.jpg",
+      "height": 2445,
+      "image_id": 37,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACE2.jpg",
+      "sha256": "d1b1646316a5d6eed9cc9ae310644760a1231b08fdc3899f540d198fb3cc4312",
+      "synthetic_or_generated": false,
+      "width": 2041
+    },
+    {
+      "bytes": 1651706,
+      "file_name": "AACE3.jpg",
+      "height": 2436,
+      "image_id": 38,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACE3.jpg",
+      "sha256": "4ad0ffb84df8b1a50b7b7a8a1ef39b9fc1a0070fb68153191c6f804eb3e5220b",
+      "synthetic_or_generated": false,
+      "width": 2032
+    },
+    {
+      "bytes": 1621898,
+      "file_name": "AACE4.jpg",
+      "height": 2432,
+      "image_id": 39,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACE4.jpg",
+      "sha256": "6f629cf0f657344444063f0fa2451e5008639d9041325b3d5b0fbe8c73bc3d8b",
+      "synthetic_or_generated": false,
+      "width": 2030
+    },
+    {
+      "bytes": 1540035,
+      "file_name": "AACE5.jpg",
+      "height": 2280,
+      "image_id": 40,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AACE5.jpg",
+      "sha256": "162442d1ce9ba6231956f6c64bb83367725835607026f769b4339c78117e2aa6",
+      "synthetic_or_generated": false,
+      "width": 2041
+    },
+    {
+      "bytes": 1843303,
+      "file_name": "AADD1.jpg",
+      "height": 2658,
+      "image_id": 41,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AADD1.jpg",
+      "sha256": "612dc3ffd15144cb7a5fb17719d0b48e15929cc894a3fc58f62c58cc1ed8df90",
+      "synthetic_or_generated": false,
+      "width": 2216
+    },
+    {
+      "bytes": 1780782,
+      "file_name": "AADD2.jpg",
+      "height": 2646,
+      "image_id": 42,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AADD2.jpg",
+      "sha256": "8a39b1ee834769ac39f59e57d2aee8f830452e259aef67469855b2e5535146cd",
+      "synthetic_or_generated": false,
+      "width": 2190
+    },
+    {
+      "bytes": 1803106,
+      "file_name": "AADD3.jpg",
+      "height": 2646,
+      "image_id": 43,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AADD3.jpg",
+      "sha256": "2bd7d5c42bef2b66554c53c0eef09fb68780f958e5f083821922cdbb88ce212a",
+      "synthetic_or_generated": false,
+      "width": 2193
+    },
+    {
+      "bytes": 1821339,
+      "file_name": "AADD4.jpg",
+      "height": 2648,
+      "image_id": 44,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AADD4.jpg",
+      "sha256": "0eff6d1baf1778536db31a457cc5e0d32b6cc886d10a72f45a53227d3b4591fd",
+      "synthetic_or_generated": false,
+      "width": 2210
+    },
+    {
+      "bytes": 2116549,
+      "file_name": "AADD5.jpg",
+      "height": 2577,
+      "image_id": 45,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/AADD5.jpg",
+      "sha256": "19a881f8a28e7bffafef09f8ec2899964addf78270351f34f016506fd94e2fd2",
+      "synthetic_or_generated": false,
+      "width": 2234
+    },
+    {
+      "bytes": 1384132,
+      "file_name": "ABAB1.jpg",
+      "height": 2312,
+      "image_id": 46,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ABAB1.jpg",
+      "sha256": "ffc136e38ca04c7509ca1bf0f802a6b36f4d405372c520f874fbdbabbe11e18f",
+      "synthetic_or_generated": false,
+      "width": 1851
+    },
+    {
+      "bytes": 1353287,
+      "file_name": "ABAB2.jpg",
+      "height": 2309,
+      "image_id": 47,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ABAB2.jpg",
+      "sha256": "0a18d9c75a3c99c65a2ddc32eea1d04f30af22951893d78f4120f6385162dddb",
+      "synthetic_or_generated": false,
+      "width": 1848
+    },
+    {
+      "bytes": 1356103,
+      "file_name": "ABAB3.jpg",
+      "height": 2308,
+      "image_id": 48,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ABAB3.jpg",
+      "sha256": "dba0369d459055183e0f96f885c63d453e9fdeadddf048a41a129dcba70eafd9",
+      "synthetic_or_generated": false,
+      "width": 1851
+    },
+    {
+      "bytes": 1340638,
+      "file_name": "ABAB4.jpg",
+      "height": 2302,
+      "image_id": 49,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ABAB4.jpg",
+      "sha256": "bf3bcef1201198fd277272d666b569f47b6c9ead72af9b8d83cefc9fe99131f3",
+      "synthetic_or_generated": false,
+      "width": 1846
+    },
+    {
+      "bytes": 1358309,
+      "file_name": "ABAB5.jpg",
+      "height": 2226,
+      "image_id": 50,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ABAB5.jpg",
+      "sha256": "cbf770dab787d04d2330c032ea558bcbf04848f51d175fc9432b3d05bd7716a3",
+      "synthetic_or_generated": false,
+      "width": 1872
+    },
+    {
+      "bytes": 1079914,
+      "file_name": "ADAA1.jpg",
+      "height": 2143,
+      "image_id": 51,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ADAA1.jpg",
+      "sha256": "3f5f00e7a6f53d930c047b3de65437adf157e0c6db526ec8767b05ddb4d0612a",
+      "synthetic_or_generated": false,
+      "width": 1565
+    },
+    {
+      "bytes": 1066587,
+      "file_name": "ADAA2.jpg",
+      "height": 2150,
+      "image_id": 52,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ADAA2.jpg",
+      "sha256": "81930c6acfae39143253761595798632521d592aed57d0c13e4cd9e95824fa74",
+      "synthetic_or_generated": false,
+      "width": 1564
+    },
+    {
+      "bytes": 1066277,
+      "file_name": "ADAA3.jpg",
+      "height": 2147,
+      "image_id": 53,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ADAA3.jpg",
+      "sha256": "21b3449125e002aa4e27ae32d0e16c2a6a9d943d794e678e8320b3536b9d4337",
+      "synthetic_or_generated": false,
+      "width": 1552
+    },
+    {
+      "bytes": 1066081,
+      "file_name": "ADAA4.jpg",
+      "height": 2149,
+      "image_id": 54,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ADAA4.jpg",
+      "sha256": "e86cbeee08e8de486ee621e985f6d90f70328901345a07983c50b8760a2ba7c8",
+      "synthetic_or_generated": false,
+      "width": 1550
+    },
+    {
+      "bytes": 991525,
+      "file_name": "ADAA5.jpg",
+      "height": 2002,
+      "image_id": 55,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ADAA5.jpg",
+      "sha256": "fc460ed57dd6ba9e7a046a979433abad0e4f9257a4947768940eb7cc0d0a6ed4",
+      "synthetic_or_generated": false,
+      "width": 1557
+    },
+    {
+      "bytes": 1619935,
+      "file_name": "ADEC1.jpg",
+      "height": 2428,
+      "image_id": 56,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ADEC1.jpg",
+      "sha256": "c63482cce8e2d041acc9f29f37b95a090461bae1afae4d8497f9d1b92d712860",
+      "synthetic_or_generated": false,
+      "width": 1864
+    },
+    {
+      "bytes": 1572906,
+      "file_name": "ADEC2.jpg",
+      "height": 2425,
+      "image_id": 57,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ADEC2.jpg",
+      "sha256": "cbe55167af88d05edab6929dd31d3534d6ef722ceb463c0cbfa84267d1021e4d",
+      "synthetic_or_generated": false,
+      "width": 1859
+    },
+    {
+      "bytes": 1577779,
+      "file_name": "ADEC3.jpg",
+      "height": 2429,
+      "image_id": 58,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ADEC3.jpg",
+      "sha256": "2b80d03eb679680b69916a4916c5c80a2e47f4c45c7fdc556b85d9fc45736935",
+      "synthetic_or_generated": false,
+      "width": 1876
+    },
+    {
+      "bytes": 1669562,
+      "file_name": "ADEC4.jpg",
+      "height": 2430,
+      "image_id": 59,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ADEC4.jpg",
+      "sha256": "cdd1ae7b84b79f9c9917196abaff20e57359cd84743f926144b6ea977e55494c",
+      "synthetic_or_generated": false,
+      "width": 1874
+    },
+    {
+      "bytes": 1746312,
+      "file_name": "ADEC5.jpg",
+      "height": 2365,
+      "image_id": 60,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ADEC5.jpg",
+      "sha256": "2e885e74df5e3226f049c2b89428ed71724b71d96070153cfe90642f60d0142c",
+      "synthetic_or_generated": false,
+      "width": 1860
+    },
+    {
+      "bytes": 2338380,
+      "file_name": "HABC1.jpg",
+      "height": 2578,
+      "image_id": 61,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HABC1.jpg",
+      "sha256": "61a3935b793d95755a3203726bb6411411af4bceac0cc160249054a22af433ec",
+      "synthetic_or_generated": false,
+      "width": 2437
+    },
+    {
+      "bytes": 2290680,
+      "file_name": "HABC2.jpg",
+      "height": 2576,
+      "image_id": 62,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HABC2.jpg",
+      "sha256": "5bb4e66b9a2d47a0e83f9d8c143e2d8b5f90b57a3ae2c3b5eb8f74ad995591b9",
+      "synthetic_or_generated": false,
+      "width": 2424
+    },
+    {
+      "bytes": 2318155,
+      "file_name": "HABC3.jpg",
+      "height": 2575,
+      "image_id": 63,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HABC3.jpg",
+      "sha256": "65b185d437d9cc3248ee28ab17665a19edc3cdca8bf001ac02b7c6c37e15add8",
+      "synthetic_or_generated": false,
+      "width": 2427
+    },
+    {
+      "bytes": 2308855,
+      "file_name": "HABC4.jpg",
+      "height": 2579,
+      "image_id": 64,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HABC4.jpg",
+      "sha256": "ad261704d6266281c5b8f8c1db585b05fd83d90dad36d54a2a76bc795b342c7a",
+      "synthetic_or_generated": false,
+      "width": 2421
+    },
+    {
+      "bytes": 1935616,
+      "file_name": "HABC5.jpg",
+      "height": 2319,
+      "image_id": 65,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HABC5.jpg",
+      "sha256": "e4075cdeda44b2171bb8650baadeb90d2ac64129dba64ab4ad0a6d3526cbfcff",
+      "synthetic_or_generated": false,
+      "width": 2153
+    },
+    {
+      "bytes": 2838219,
+      "file_name": "HABD1.jpg",
+      "height": 2843,
+      "image_id": 66,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HABD1.jpg",
+      "sha256": "9e088472408c41c01519bab2577658ffd70de5930aae242ad5414fbbac360350",
+      "synthetic_or_generated": false,
+      "width": 2536
+    },
+    {
+      "bytes": 2803619,
+      "file_name": "HABD2.jpg",
+      "height": 2845,
+      "image_id": 67,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HABD2.jpg",
+      "sha256": "3d3a8f58647ad63e2c4522b6dc85e3d9884c44fd0664146c2eb4c6fc6b913c00",
+      "synthetic_or_generated": false,
+      "width": 2534
+    },
+    {
+      "bytes": 2727575,
+      "file_name": "HABD3.jpg",
+      "height": 2844,
+      "image_id": 68,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HABD3.jpg",
+      "sha256": "65fbae8c110e80795fc485f3e0349cd71d5b973f6e17a2668c6fac339dac6c3d",
+      "synthetic_or_generated": false,
+      "width": 2530
+    },
+    {
+      "bytes": 2847387,
+      "file_name": "HABD4.jpg",
+      "height": 2843,
+      "image_id": 69,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HABD4.jpg",
+      "sha256": "61ff1ca35a4edbe56fd2125fc1afb4fdc25acbd185eb56290d34f7e1ef08aeb1",
+      "synthetic_or_generated": false,
+      "width": 2528
+    },
+    {
+      "bytes": 1987617,
+      "file_name": "HABD5.jpg",
+      "height": 2425,
+      "image_id": 70,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HABD5.jpg",
+      "sha256": "217b24e299b4114e96ca6e1e108e9687eba5dc2b0d4b6d84eb04a26ed03ebbd0",
+      "synthetic_or_generated": false,
+      "width": 2223
+    },
+    {
+      "bytes": 1868600,
+      "file_name": "HACB1.jpg",
+      "height": 2311,
+      "image_id": 71,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HACB1.jpg",
+      "sha256": "b0065ef3edfe12233f1cedcaf9415b44774586b59a0c1d30a9ec490d94b528c9",
+      "synthetic_or_generated": false,
+      "width": 2142
+    },
+    {
+      "bytes": 1814817,
+      "file_name": "HACB2.jpg",
+      "height": 2302,
+      "image_id": 72,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HACB2.jpg",
+      "sha256": "cae5f729faf58ccee1863e0208b6c3499e461e79230b1e7c5aef2a8e422d9682",
+      "synthetic_or_generated": false,
+      "width": 2113
+    },
+    {
+      "bytes": 1790753,
+      "file_name": "HACB3.jpg",
+      "height": 2294,
+      "image_id": 73,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HACB3.jpg",
+      "sha256": "9240a366b02e292750dd56d37d5e12a8f55dfe70df314dd9334c24bde8e9daf2",
+      "synthetic_or_generated": false,
+      "width": 2098
+    },
+    {
+      "bytes": 1820172,
+      "file_name": "HACB4.jpg",
+      "height": 2300,
+      "image_id": 74,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HACB4.jpg",
+      "sha256": "2afbe493dfcd25ecbd44156dedfdf879177abf5e448f1f7eaac74d3dd98c8d0a",
+      "synthetic_or_generated": false,
+      "width": 2108
+    },
+    {
+      "bytes": 1751794,
+      "file_name": "HACB5.jpg",
+      "height": 2388,
+      "image_id": 75,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HACB5.jpg",
+      "sha256": "c277eefe03824a26a611b244bc44a419010f63717bfc3a5bdf7a61f6bea7e3a8",
+      "synthetic_or_generated": false,
+      "width": 2282
+    },
+    {
+      "bytes": 1191552,
+      "file_name": "HBCA1.jpg",
+      "height": 1885,
+      "image_id": 76,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HBCA1.jpg",
+      "sha256": "a964c063279fbd190ce1f3a9f7b1fa59814c427cf9e807a696e180724df9e2c9",
+      "synthetic_or_generated": false,
+      "width": 1847
+    },
+    {
+      "bytes": 1207612,
+      "file_name": "HBCA2.jpg",
+      "height": 1875,
+      "image_id": 77,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HBCA2.jpg",
+      "sha256": "312b962e5334cc1019d6decee45f14ff832d84b1f12025612051dd5b1882cc8a",
+      "synthetic_or_generated": false,
+      "width": 1830
+    },
+    {
+      "bytes": 1193847,
+      "file_name": "HBCA3.jpg",
+      "height": 1879,
+      "image_id": 78,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HBCA3.jpg",
+      "sha256": "5ea0f0a5a9002003c854a7081610c511cb71de502aa4ad2af99a5925384d8684",
+      "synthetic_or_generated": false,
+      "width": 1833
+    },
+    {
+      "bytes": 1209833,
+      "file_name": "HBCA4.jpg",
+      "height": 1879,
+      "image_id": 79,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HBCA4.jpg",
+      "sha256": "8a2d61fabb216eb846ec7f09a5389e23831daeaa5dc3ff3ecb020a4ae6c05c44",
+      "synthetic_or_generated": false,
+      "width": 1832
+    },
+    {
+      "bytes": 1739774,
+      "file_name": "HBCA5.jpg",
+      "height": 2251,
+      "image_id": 80,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HBCA5.jpg",
+      "sha256": "5f4f4e7dab551d342b3eeddf5fbb7ae2766baccde453db1a9faf26a9e64ab198",
+      "synthetic_or_generated": false,
+      "width": 1954
+    },
+    {
+      "bytes": 1305016,
+      "file_name": "HBDE1.jpg",
+      "height": 1943,
+      "image_id": 81,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HBDE1.jpg",
+      "sha256": "b40e7b4b0a8a6168c5ea4ee6202971c141a1efd8d4c3e732aa21c110dc8f8d3e",
+      "synthetic_or_generated": false,
+      "width": 1851
+    },
+    {
+      "bytes": 1279189,
+      "file_name": "HBDE2.jpg",
+      "height": 1940,
+      "image_id": 82,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HBDE2.jpg",
+      "sha256": "c1b9f2bda62fa463e4c359720187e9525e6ee0254f5504453df50c030b41c919",
+      "synthetic_or_generated": false,
+      "width": 1833
+    },
+    {
+      "bytes": 1273058,
+      "file_name": "HBDE3.jpg",
+      "height": 1944,
+      "image_id": 83,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HBDE3.jpg",
+      "sha256": "c8743c0f999424bb10de0c853c1bd0a50b84536f752171b0e2212af3c0715a50",
+      "synthetic_or_generated": false,
+      "width": 1840
+    },
+    {
+      "bytes": 1269746,
+      "file_name": "HBDE4.jpg",
+      "height": 1942,
+      "image_id": 84,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HBDE4.jpg",
+      "sha256": "d727c16d2d70603110b11f359929c0feb0d5e7243024a944bfe464913b0357f9",
+      "synthetic_or_generated": false,
+      "width": 1829
+    },
+    {
+      "bytes": 1159827,
+      "file_name": "HBDE5.jpg",
+      "height": 1870,
+      "image_id": 85,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HBDE5.jpg",
+      "sha256": "8baaf358981b33887a59d8de1c91d6c2bc00cde586fd2e8c62e06697b4641d14",
+      "synthetic_or_generated": false,
+      "width": 1807
+    },
+    {
+      "bytes": 1054459,
+      "file_name": "HCAB1.jpg",
+      "height": 2032,
+      "image_id": 86,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCAB1.jpg",
+      "sha256": "f22672785524bc8c4aedab34afa9e0ce444281821ee759568332aece1f35f67e",
+      "synthetic_or_generated": false,
+      "width": 1609
+    },
+    {
+      "bytes": 1077993,
+      "file_name": "HCAB2.jpg",
+      "height": 2028,
+      "image_id": 87,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCAB2.jpg",
+      "sha256": "be11e6a031afd8e3520bf2fb1e692ebc383309214ad9519f3278b95b1f34088a",
+      "synthetic_or_generated": false,
+      "width": 1612
+    },
+    {
+      "bytes": 1068520,
+      "file_name": "HCAB3.jpg",
+      "height": 2014,
+      "image_id": 88,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCAB3.jpg",
+      "sha256": "cd05659964b9e07f919919710941f77176483aa06640f46225ab19efa96a6dc0",
+      "synthetic_or_generated": false,
+      "width": 1620
+    },
+    {
+      "bytes": 1065059,
+      "file_name": "HCAB4.jpg",
+      "height": 2018,
+      "image_id": 89,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCAB4.jpg",
+      "sha256": "9c7e55bba00218485b72485a14f6e3b463a5da8ce51d9bdedd0a5d8be4f7d553",
+      "synthetic_or_generated": false,
+      "width": 1625
+    },
+    {
+      "bytes": 1030444,
+      "file_name": "HCAB5.jpg",
+      "height": 1911,
+      "image_id": 90,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCAB5.jpg",
+      "sha256": "aace3cf42921453000798e92ad1f4441a2eb54c48a06c103d4bc332f52668ef5",
+      "synthetic_or_generated": false,
+      "width": 1553
+    },
+    {
+      "bytes": 1268241,
+      "file_name": "HCBB1.jpg",
+      "height": 2038,
+      "image_id": 91,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCBB1.jpg",
+      "sha256": "8ee46c218fb3c6295b2a53686231bd11827ebc2e2184d24887b15b86ad6182b6",
+      "synthetic_or_generated": false,
+      "width": 1738
+    },
+    {
+      "bytes": 1297688,
+      "file_name": "HCBB2.jpg",
+      "height": 2032,
+      "image_id": 92,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCBB2.jpg",
+      "sha256": "dccc626dc98de820c9d2ad46e4f800cb30889ef0d2736761975017671a7f1d9e",
+      "synthetic_or_generated": false,
+      "width": 1732
+    },
+    {
+      "bytes": 1263541,
+      "file_name": "HCBB3.jpg",
+      "height": 2045,
+      "image_id": 93,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCBB3.jpg",
+      "sha256": "d6d5f14e45000abc10408bebf3b517c4331a5380daf926968cc08d1ac01a1461",
+      "synthetic_or_generated": false,
+      "width": 1728
+    },
+    {
+      "bytes": 1266975,
+      "file_name": "HCBB4.jpg",
+      "height": 2040,
+      "image_id": 94,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCBB4.jpg",
+      "sha256": "28497baf66ee8bdd24dd7e4b3de25961560c27be75520adadd60cfe770b29b7a",
+      "synthetic_or_generated": false,
+      "width": 1728
+    },
+    {
+      "bytes": 1464681,
+      "file_name": "HCBB5.jpg",
+      "height": 2068,
+      "image_id": 95,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCBB5.jpg",
+      "sha256": "9c3c0027325ecaaf7ccd876dd927a9a0989c27751f398f7dfab577057b6b1af7",
+      "synthetic_or_generated": false,
+      "width": 1728
+    },
+    {
+      "bytes": 1388827,
+      "file_name": "HCDA1.jpg",
+      "height": 2104,
+      "image_id": 96,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCDA1.jpg",
+      "sha256": "178110864d789077fb9057c54409ebd221c1842278613a400c5ae2b70eac8677",
+      "synthetic_or_generated": false,
+      "width": 1842
+    },
+    {
+      "bytes": 1368417,
+      "file_name": "HCDA2.jpg",
+      "height": 2099,
+      "image_id": 97,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCDA2.jpg",
+      "sha256": "eb5d391014102cb2ffcd62e0c5ee020c28f960f25114fe087a44bdb0e82fa6ac",
+      "synthetic_or_generated": false,
+      "width": 1846
+    },
+    {
+      "bytes": 1391339,
+      "file_name": "HCDA3.jpg",
+      "height": 2098,
+      "image_id": 98,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCDA3.jpg",
+      "sha256": "a9b3128c7557ce281d050684cdb68f1b25844b3de2537d250138eb25eb4a4850",
+      "synthetic_or_generated": false,
+      "width": 1852
+    },
+    {
+      "bytes": 1387542,
+      "file_name": "HCDA4.jpg",
+      "height": 2104,
+      "image_id": 99,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCDA4.jpg",
+      "sha256": "88d41575669fa7110b801fa2331b2d75d3a901011c285b14affdcd7d22c71c2f",
+      "synthetic_or_generated": false,
+      "width": 1845
+    },
+    {
+      "bytes": 988407,
+      "file_name": "HCDA5.jpg",
+      "height": 1788,
+      "image_id": 100,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCDA5.jpg",
+      "sha256": "0bb62efe3310a9fc6f188e88792dadb9f33fa1277d24c9353938565f2851725b",
+      "synthetic_or_generated": false,
+      "width": 1623
+    },
+    {
+      "bytes": 1023030,
+      "file_name": "HCED1.jpg",
+      "height": 2106,
+      "image_id": 101,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCED1.jpg",
+      "sha256": "cd0ab16b69705794b047196a0e291c88c9e47c241d49b26e604972fcd3e913ff",
+      "synthetic_or_generated": false,
+      "width": 1529
+    },
+    {
+      "bytes": 992473,
+      "file_name": "HCED2.jpg",
+      "height": 2101,
+      "image_id": 102,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCED2.jpg",
+      "sha256": "7e71c7c8e96ef52273eded1b9edce4b5397ee0350d132d81d0e72e11d4bbd433",
+      "synthetic_or_generated": false,
+      "width": 1529
+    },
+    {
+      "bytes": 995674,
+      "file_name": "HCED3.jpg",
+      "height": 2104,
+      "image_id": 103,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCED3.jpg",
+      "sha256": "cab6b5801740c7945e436cfbbac9c1a7138098c2008623a614f67fa8a8cc4992",
+      "synthetic_or_generated": false,
+      "width": 1531
+    },
+    {
+      "bytes": 986476,
+      "file_name": "HCED4.jpg",
+      "height": 2105,
+      "image_id": 104,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCED4.jpg",
+      "sha256": "9cbdbb861fbc8df8cd721f7cda0945cd4af6a50d5c75c6c722107279c4392a93",
+      "synthetic_or_generated": false,
+      "width": 1530
+    },
+    {
+      "bytes": 950605,
+      "file_name": "HCED5.jpg",
+      "height": 1964,
+      "image_id": 105,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HCED5.jpg",
+      "sha256": "132ee0537f82e122eeecfc027bb8e55d54d1e5100a64d6be05b8f1a4309fc6d9",
+      "synthetic_or_generated": false,
+      "width": 1504
+    },
+    {
+      "bytes": 1683983,
+      "file_name": "HDCD1.jpg",
+      "height": 2420,
+      "image_id": 106,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDCD1.jpg",
+      "sha256": "2742690df514951077cfdc4ad8cd8b6a199a99feb32b528f193b42a63f98059f",
+      "synthetic_or_generated": false,
+      "width": 2009
+    },
+    {
+      "bytes": 1802412,
+      "file_name": "HDCD2.jpg",
+      "height": 2412,
+      "image_id": 107,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDCD2.jpg",
+      "sha256": "1086213d4c59953c36e1e5413f8d78b97be3d8434831759b7db5fc190616ac9f",
+      "synthetic_or_generated": false,
+      "width": 1999
+    },
+    {
+      "bytes": 1763172,
+      "file_name": "HDCD3.jpg",
+      "height": 2413,
+      "image_id": 108,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDCD3.jpg",
+      "sha256": "a64e739d8ed753eba37eb986c65cd73001a3b416fb186b0f3618c4177c243b6c",
+      "synthetic_or_generated": false,
+      "width": 1995
+    },
+    {
+      "bytes": 1750483,
+      "file_name": "HDCD4.jpg",
+      "height": 2403,
+      "image_id": 109,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDCD4.jpg",
+      "sha256": "33dbf8e694dc8cc643e79b465bfe401ce8e91f94b4730a0c19487c1257edb34c",
+      "synthetic_or_generated": false,
+      "width": 1977
+    },
+    {
+      "bytes": 1991045,
+      "file_name": "HDCD5.jpg",
+      "height": 2419,
+      "image_id": 110,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDCD5.jpg",
+      "sha256": "e48f461e5826e06bcdd20fb52d19175b59385f90e4c84bbf3dddab70ce2ff1d5",
+      "synthetic_or_generated": false,
+      "width": 2065
+    },
+    {
+      "bytes": 1431794,
+      "file_name": "HDCE1.jpg",
+      "height": 2161,
+      "image_id": 111,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDCE1.jpg",
+      "sha256": "e0e113be1f8b6e354df17e3ec8abb959a66638d1ec598e73ff1a9590e72f3119",
+      "synthetic_or_generated": false,
+      "width": 1880
+    },
+    {
+      "bytes": 1455573,
+      "file_name": "HDCE2.jpg",
+      "height": 2160,
+      "image_id": 112,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDCE2.jpg",
+      "sha256": "4f2961c57f66ca9b4529acc4c428e809ec2bad09557352b01e470ea6f918ca1e",
+      "synthetic_or_generated": false,
+      "width": 1878
+    },
+    {
+      "bytes": 1421748,
+      "file_name": "HDCE3.jpg",
+      "height": 2163,
+      "image_id": 113,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDCE3.jpg",
+      "sha256": "1c80bb99ab7554167ee8c5fe8b9c72b7851ecc488787638f3b1c12ef9589b157",
+      "synthetic_or_generated": false,
+      "width": 1878
+    },
+    {
+      "bytes": 1399596,
+      "file_name": "HDCE4.jpg",
+      "height": 2153,
+      "image_id": 114,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDCE4.jpg",
+      "sha256": "31e42915826c7a65c58a022e55437e012060a01880fa658530a740498ac5dbfe",
+      "synthetic_or_generated": false,
+      "width": 1858
+    },
+    {
+      "bytes": 1304342,
+      "file_name": "HDCE5.jpg",
+      "height": 2056,
+      "image_id": 115,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDCE5.jpg",
+      "sha256": "bcb1addf0533dd5046eccbf3515248b5b89f0e9be36339f33c8ad3cd08edce3d",
+      "synthetic_or_generated": false,
+      "width": 1818
+    },
+    {
+      "bytes": 1456388,
+      "file_name": "HDED1.jpg",
+      "height": 2270,
+      "image_id": 116,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDED1.jpg",
+      "sha256": "5fe7b27d043cfafcec3fd7bf3a14fc7ba78751752d25b1b490b242726ee7ed21",
+      "synthetic_or_generated": false,
+      "width": 1850
+    },
+    {
+      "bytes": 1358903,
+      "file_name": "HDED2.jpg",
+      "height": 2270,
+      "image_id": 117,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDED2.jpg",
+      "sha256": "7ce6122efda29f4161b4e8c5c1c845d0fd94f5eee516f0eb4b67fd3680b9ba62",
+      "synthetic_or_generated": false,
+      "width": 1757
+    },
+    {
+      "bytes": 1378125,
+      "file_name": "HDED3.jpg",
+      "height": 2269,
+      "image_id": 118,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDED3.jpg",
+      "sha256": "afe829375d54193c75e1e4e7542585da52d7c20bfb0b7d495cdce4fe4ed35ce4",
+      "synthetic_or_generated": false,
+      "width": 1756
+    },
+    {
+      "bytes": 1345368,
+      "file_name": "HDED4.jpg",
+      "height": 2269,
+      "image_id": 119,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDED4.jpg",
+      "sha256": "587ea68fe209613bcae64f24fd20be1288c1ae2343d7365944156c31c5ef6186",
+      "synthetic_or_generated": false,
+      "width": 1751
+    },
+    {
+      "bytes": 1480037,
+      "file_name": "HDED5.jpg",
+      "height": 2153,
+      "image_id": 120,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/HDED5.jpg",
+      "sha256": "020fb69c9e767beb91f5263f5d18fbbe71cb9b5aa0b83e4a298ba6bdff432f73",
+      "synthetic_or_generated": false,
+      "width": 1810
+    },
+    {
+      "bytes": 1305246,
+      "file_name": "IABE1.jpg",
+      "height": 1931,
+      "image_id": 121,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IABE1.jpg",
+      "sha256": "91e43084212deb78398ce3042516436983c9fccf8f1936002a01ec88adee8215",
+      "synthetic_or_generated": false,
+      "width": 2077
+    },
+    {
+      "bytes": 1274564,
+      "file_name": "IABE2.jpg",
+      "height": 1937,
+      "image_id": 122,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IABE2.jpg",
+      "sha256": "d13f3f76f6b546745ec17780268d19bd961b0e2988570f798e61609a472bd1f2",
+      "synthetic_or_generated": false,
+      "width": 2071
+    },
+    {
+      "bytes": 1279271,
+      "file_name": "IABE3.jpg",
+      "height": 1933,
+      "image_id": 123,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IABE3.jpg",
+      "sha256": "84b5ae7911c56a2620366e33c421d38fd87067ebdbcb188e08582414b942e568",
+      "synthetic_or_generated": false,
+      "width": 2065
+    },
+    {
+      "bytes": 1259691,
+      "file_name": "IABE4.jpg",
+      "height": 1927,
+      "image_id": 124,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IABE4.jpg",
+      "sha256": "a0c19f926cd3393656dec784106635b979884eebd0e00a1421ed5dde08d27296",
+      "synthetic_or_generated": false,
+      "width": 2060
+    },
+    {
+      "bytes": 1048623,
+      "file_name": "IABE5.jpg",
+      "height": 1681,
+      "image_id": 125,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IABE5.jpg",
+      "sha256": "298de4883fdd85fe2829d56e090ab8caf9b42f25d68fc3532678dd81e976f34e",
+      "synthetic_or_generated": false,
+      "width": 1823
+    },
+    {
+      "bytes": 994475,
+      "file_name": "IACE1.jpg",
+      "height": 1697,
+      "image_id": 126,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IACE1.jpg",
+      "sha256": "f85f817e3e1fb4588adfcabe5a4f800d5032a9534aa7e869974251ae2a530bf6",
+      "synthetic_or_generated": false,
+      "width": 1859
+    },
+    {
+      "bytes": 983905,
+      "file_name": "IACE2.jpg",
+      "height": 1694,
+      "image_id": 127,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IACE2.jpg",
+      "sha256": "80e8dcdbb9e927f14e2566659cb8509ca77aa51db109e3dead03c5ca35357d6f",
+      "synthetic_or_generated": false,
+      "width": 1851
+    },
+    {
+      "bytes": 993382,
+      "file_name": "IACE3.jpg",
+      "height": 1699,
+      "image_id": 128,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IACE3.jpg",
+      "sha256": "558d8010d05a97400552017b005dd2c3779038e7a4ba5200328699817b3a2771",
+      "synthetic_or_generated": false,
+      "width": 1856
+    },
+    {
+      "bytes": 980320,
+      "file_name": "IACE4.jpg",
+      "height": 1704,
+      "image_id": 129,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IACE4.jpg",
+      "sha256": "1c5521e3c1929a75b0d99718f7fa59c93f28f71e1144cd26b6c55918f419a2bb",
+      "synthetic_or_generated": false,
+      "width": 1864
+    },
+    {
+      "bytes": 1048613,
+      "file_name": "IACE5.jpg",
+      "height": 1631,
+      "image_id": 130,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IACE5.jpg",
+      "sha256": "348a0a46cb08ef1fd4d1bd6c9d2579f1c11246e57696e65f6fd06dbe12ee4b59",
+      "synthetic_or_generated": false,
+      "width": 1887
+    },
+    {
+      "bytes": 719833,
+      "file_name": "IBAA1.jpg",
+      "height": 1434,
+      "image_id": 131,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IBAA1.jpg",
+      "sha256": "5e021cf08867cbfab7133488ce6e9a6d3ff30f710c9472a74705ee9c77d29027",
+      "synthetic_or_generated": false,
+      "width": 1702
+    },
+    {
+      "bytes": 703500,
+      "file_name": "IBAA2.jpg",
+      "height": 1436,
+      "image_id": 132,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IBAA2.jpg",
+      "sha256": "04a4e08cf25b60c2a82f400091c7b51b742d0c579fbbd6247d3c90ad857e4d0f",
+      "synthetic_or_generated": false,
+      "width": 1697
+    },
+    {
+      "bytes": 704261,
+      "file_name": "IBAA3.jpg",
+      "height": 1434,
+      "image_id": 133,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IBAA3.jpg",
+      "sha256": "85442754c202b862aac56cb72e4a534036bfc6ffcc14605c56dfb7ac758df0c4",
+      "synthetic_or_generated": false,
+      "width": 1698
+    },
+    {
+      "bytes": 692343,
+      "file_name": "IBAA4.jpg",
+      "height": 1433,
+      "image_id": 134,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IBAA4.jpg",
+      "sha256": "b770cdaeb903960eae6e949b617f6eed02a364ad914f3101dd779c7361227d48",
+      "synthetic_or_generated": false,
+      "width": 1698
+    },
+    {
+      "bytes": 669760,
+      "file_name": "IBAA5.jpg",
+      "height": 1361,
+      "image_id": 135,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IBAA5.jpg",
+      "sha256": "083d0d395193a3c862b2ea3857671a6b63b25114298512a574f9c84fdb90b013",
+      "synthetic_or_generated": false,
+      "width": 1617
+    },
+    {
+      "bytes": 1348594,
+      "file_name": "IBCB1.jpg",
+      "height": 1873,
+      "image_id": 136,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IBCB1.jpg",
+      "sha256": "91976090a732bd3cf2d7ace122bafbaaf1a61b09eb347eef4af97ce61521eac4",
+      "synthetic_or_generated": false,
+      "width": 1848
+    },
+    {
+      "bytes": 1356674,
+      "file_name": "IBCB2.jpg",
+      "height": 1861,
+      "image_id": 137,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IBCB2.jpg",
+      "sha256": "4783960b6e73b9151d7ca27afa57273c4d6277f962044b2ce74793eade88ad0c",
+      "synthetic_or_generated": false,
+      "width": 1834
+    },
+    {
+      "bytes": 1295933,
+      "file_name": "IBCB3.jpg",
+      "height": 1857,
+      "image_id": 138,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IBCB3.jpg",
+      "sha256": "bd6e0eab0714a9ed0fdeb3f1fb83078efea1be766951d5802e2aac4bfab872ce",
+      "synthetic_or_generated": false,
+      "width": 1831
+    },
+    {
+      "bytes": 1281236,
+      "file_name": "IBCB4.jpg",
+      "height": 1853,
+      "image_id": 139,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IBCB4.jpg",
+      "sha256": "19212e8aeefc7c0420dcb17349849449440eeecd016ff506d3ca67b576d58fd9",
+      "synthetic_or_generated": false,
+      "width": 1826
+    },
+    {
+      "bytes": 1384234,
+      "file_name": "IBCB5.jpg",
+      "height": 1921,
+      "image_id": 140,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IBCB5.jpg",
+      "sha256": "ae1cafad7a5406ad1952322f5b54c2107278a12c6101bcda106b61409b73b590",
+      "synthetic_or_generated": false,
+      "width": 1897
+    },
+    {
+      "bytes": 911381,
+      "file_name": "ICAE1.jpg",
+      "height": 1707,
+      "image_id": 141,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ICAE1.jpg",
+      "sha256": "c9a9dd132f7671db9364a79355dbac9965c659f5b89e103a6ba62f33281d87d5",
+      "synthetic_or_generated": false,
+      "width": 1546
+    },
+    {
+      "bytes": 918013,
+      "file_name": "ICAE2.jpg",
+      "height": 1703,
+      "image_id": 142,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ICAE2.jpg",
+      "sha256": "bd089f5364c71e6e740b47527fd699b8702bac09dea902216a2ae50943bb83a3",
+      "synthetic_or_generated": false,
+      "width": 1547
+    },
+    {
+      "bytes": 903469,
+      "file_name": "ICAE3.jpg",
+      "height": 1704,
+      "image_id": 143,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ICAE3.jpg",
+      "sha256": "4a97a555b52e7f1bcdc0dab20eab2b29d0be9b2c109a14ad64785c37629fd4b9",
+      "synthetic_or_generated": false,
+      "width": 1555
+    },
+    {
+      "bytes": 933628,
+      "file_name": "ICAE4.jpg",
+      "height": 1711,
+      "image_id": 144,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ICAE4.jpg",
+      "sha256": "b33f9665c5915a9b674cff1f138f183fd198cead09178ca62aefc1bf930e8812",
+      "synthetic_or_generated": false,
+      "width": 1556
+    },
+    {
+      "bytes": 733570,
+      "file_name": "ICAE5.jpg",
+      "height": 1502,
+      "image_id": 145,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ICAE5.jpg",
+      "sha256": "767ce096c39129a0fd286173a484aed8a4ac528d447b24f7fdbf1a40a9087c33",
+      "synthetic_or_generated": false,
+      "width": 1416
+    },
+    {
+      "bytes": 925949,
+      "file_name": "ICDE1.jpg",
+      "height": 1631,
+      "image_id": 146,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ICDE1.jpg",
+      "sha256": "469336a2a060833eb37bd722e0972164037ac82a09e1f7267187a207aab37515",
+      "synthetic_or_generated": false,
+      "width": 1598
+    },
+    {
+      "bytes": 923009,
+      "file_name": "ICDE2.jpg",
+      "height": 1630,
+      "image_id": 147,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ICDE2.jpg",
+      "sha256": "4065afa554b0d847b5ab75107ab4b0757a938f70b733c133df27a983d8c3d16f",
+      "synthetic_or_generated": false,
+      "width": 1598
+    },
+    {
+      "bytes": 890242,
+      "file_name": "ICDE3.jpg",
+      "height": 1633,
+      "image_id": 148,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ICDE3.jpg",
+      "sha256": "090ef08f3047efcd63d9bef6c76cdde20294249ba09f1a0fd4b05756073547ef",
+      "synthetic_or_generated": false,
+      "width": 1592
+    },
+    {
+      "bytes": 896956,
+      "file_name": "ICDE4.jpg",
+      "height": 1633,
+      "image_id": 149,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ICDE4.jpg",
+      "sha256": "4441e431fce866d9b624d2ef4d475a5d421ce311309303c0863f5f0dc294385d",
+      "synthetic_or_generated": false,
+      "width": 1593
+    },
+    {
+      "bytes": 793551,
+      "file_name": "ICDE5.jpg",
+      "height": 1617,
+      "image_id": 150,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/ICDE5.jpg",
+      "sha256": "de78b9aec94cc112b843827b93b34d2f26fdd00b14cac6258ee2e195725bbe40",
+      "synthetic_or_generated": false,
+      "width": 1496
+    },
+    {
+      "bytes": 1664029,
+      "file_name": "IDDB1.jpg",
+      "height": 2217,
+      "image_id": 151,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDDB1.jpg",
+      "sha256": "ce5548ee177c14fc3292cdc4e41ae8e3354e36870bb66b6a5a16b152fdb0262a",
+      "synthetic_or_generated": false,
+      "width": 2205
+    },
+    {
+      "bytes": 1650754,
+      "file_name": "IDDB2.jpg",
+      "height": 2202,
+      "image_id": 152,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDDB2.jpg",
+      "sha256": "f10bc8fe377440549ead8e5cacd913e7ab5793be54122b9ef6a28344700b263c",
+      "synthetic_or_generated": false,
+      "width": 2185
+    },
+    {
+      "bytes": 1575372,
+      "file_name": "IDDB3.jpg",
+      "height": 2199,
+      "image_id": 153,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDDB3.jpg",
+      "sha256": "06270899c7c5793c86fa662b0e25a8115bf2acf9327ee79325fc1c5cb06f25fa",
+      "synthetic_or_generated": false,
+      "width": 2183
+    },
+    {
+      "bytes": 1567890,
+      "file_name": "IDDB4.jpg",
+      "height": 2203,
+      "image_id": 154,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDDB4.jpg",
+      "sha256": "8f1d09b4c294b389da0cf1561fb09a287f07d1663ea0c47756736fb04762e14a",
+      "synthetic_or_generated": false,
+      "width": 2191
+    },
+    {
+      "bytes": 1447674,
+      "file_name": "IDDB5.jpg",
+      "height": 1873,
+      "image_id": 155,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDDB5.jpg",
+      "sha256": "b6b62c260ce6bf7d16ea07a45306029f3790d4bbba178bce893dd897fd169acc",
+      "synthetic_or_generated": false,
+      "width": 1921
+    },
+    {
+      "bytes": 1283719,
+      "file_name": "IDDD1.jpg",
+      "height": 1948,
+      "image_id": 156,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDDD1.jpg",
+      "sha256": "5d742a4015a20ca8f72f96ff5702fa588072d03689bbb04d93497cfc21870eb7",
+      "synthetic_or_generated": false,
+      "width": 1752
+    },
+    {
+      "bytes": 1295782,
+      "file_name": "IDDD2.jpg",
+      "height": 1942,
+      "image_id": 157,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDDD2.jpg",
+      "sha256": "097a85fd7d9487f146a1a18752649dc715ecddb0767691acf0868cd774b30398",
+      "synthetic_or_generated": false,
+      "width": 1740
+    },
+    {
+      "bytes": 1246826,
+      "file_name": "IDDD3.jpg",
+      "height": 1939,
+      "image_id": 158,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDDD3.jpg",
+      "sha256": "03aa34232558a777f061adb74df89d3e9b61f77bad551ca7c14cd988e612af82",
+      "synthetic_or_generated": false,
+      "width": 1728
+    },
+    {
+      "bytes": 1255117,
+      "file_name": "IDDD4.jpg",
+      "height": 1938,
+      "image_id": 159,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDDD4.jpg",
+      "sha256": "2e0ef233a0743fb5b33a051d41f9ac6f5e2d774556128260568ceded45032ab2",
+      "synthetic_or_generated": false,
+      "width": 1723
+    },
+    {
+      "bytes": 1442713,
+      "file_name": "IDDD5.jpg",
+      "height": 1962,
+      "image_id": 160,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDDD5.jpg",
+      "sha256": "292f3d2c990adbb25a973dc46c8d7d839e4c2f4a8b6976b6c6facc18344ae7cc",
+      "synthetic_or_generated": false,
+      "width": 1822
+    },
+    {
+      "bytes": 995556,
+      "file_name": "IDEC1.jpg",
+      "height": 1849,
+      "image_id": 161,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDEC1.jpg",
+      "sha256": "3f8a624a8193d111ba2ea4851636cbd194e0eae594e94132ed21af3789f64e53",
+      "synthetic_or_generated": false,
+      "width": 1704
+    },
+    {
+      "bytes": 970429,
+      "file_name": "IDEC2.jpg",
+      "height": 1843,
+      "image_id": 162,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDEC2.jpg",
+      "sha256": "8cb9e45dc222c8ebbcc9a8d6fb165fc46c237eeb454bd118b79934e84ac2e939",
+      "synthetic_or_generated": false,
+      "width": 1698
+    },
+    {
+      "bytes": 923671,
+      "file_name": "IDEC3.jpg",
+      "height": 1840,
+      "image_id": 163,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDEC3.jpg",
+      "sha256": "6f1fc9a91c6791271fdc73a195a620162787a50f7a38b337a5976544c92b7c2a",
+      "synthetic_or_generated": false,
+      "width": 1680
+    },
+    {
+      "bytes": 912492,
+      "file_name": "IDEC4.jpg",
+      "height": 1834,
+      "image_id": 164,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDEC4.jpg",
+      "sha256": "ee0d7fcd8ab1b8d624a62d17458e098bbb7b98082ebfa1c8a62bf72afdd28e36",
+      "synthetic_or_generated": false,
+      "width": 1674
+    },
+    {
+      "bytes": 938034,
+      "file_name": "IDEC5.jpg",
+      "height": 1734,
+      "image_id": 165,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IDEC5.jpg",
+      "sha256": "275f957877cdccc16824742611c3e566184691c881ac8a03d7c7c930c044d86a",
+      "synthetic_or_generated": false,
+      "width": 1612
+    },
+    {
+      "bytes": 1197965,
+      "file_name": "IEAE1.jpg",
+      "height": 1727,
+      "image_id": 166,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEAE1.jpg",
+      "sha256": "707acfd8fefa3342e96754eaf69b7c8fb66e9806c97d87686b98b433c08277f1",
+      "synthetic_or_generated": false,
+      "width": 2049
+    },
+    {
+      "bytes": 1247897,
+      "file_name": "IEAE2.jpg",
+      "height": 1729,
+      "image_id": 167,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEAE2.jpg",
+      "sha256": "1ed001062daec6d4b89b4a426876dcae4e823b7c9998df86753d9493f0b7beca",
+      "synthetic_or_generated": false,
+      "width": 2050
+    },
+    {
+      "bytes": 1245774,
+      "file_name": "IEAE3.jpg",
+      "height": 1734,
+      "image_id": 168,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEAE3.jpg",
+      "sha256": "e6998c249174fa995567ab313a8e0a3e12fb372a80003d87cf5d5d2c308591b5",
+      "synthetic_or_generated": false,
+      "width": 2052
+    },
+    {
+      "bytes": 1088910,
+      "file_name": "IEAE4.jpg",
+      "height": 1734,
+      "image_id": 169,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEAE4.jpg",
+      "sha256": "4bb3f131020383c82ad7bf73e2737f58b54fd1826b1944aa678f3ea5a56e7cb1",
+      "synthetic_or_generated": false,
+      "width": 2047
+    },
+    {
+      "bytes": 1019663,
+      "file_name": "IEAE5.jpg",
+      "height": 1589,
+      "image_id": 170,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEAE5.jpg",
+      "sha256": "cbfb8afeaa83db6e406bad5003521a2d9a0855820ea72a1cb6bdcc0fd1896543",
+      "synthetic_or_generated": false,
+      "width": 1832
+    },
+    {
+      "bytes": 1120314,
+      "file_name": "IEEC1.jpg",
+      "height": 1906,
+      "image_id": 171,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEEC1.jpg",
+      "sha256": "17cc93df16c73cb6e2d5ee084bb9d3ee9344656a09f2345d90200d9ed788a3da",
+      "synthetic_or_generated": false,
+      "width": 1812
+    },
+    {
+      "bytes": 1140477,
+      "file_name": "IEEC2.jpg",
+      "height": 1904,
+      "image_id": 172,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEEC2.jpg",
+      "sha256": "baeefbd1150d2d3f2d72a7dae4d1a2affc439be0ac411f39fb260eb47fc2e365",
+      "synthetic_or_generated": false,
+      "width": 1810
+    },
+    {
+      "bytes": 1116249,
+      "file_name": "IEEC3.jpg",
+      "height": 1897,
+      "image_id": 173,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEEC3.jpg",
+      "sha256": "a56b1de27f18fb45f81f2fce882aeaf55913258640a0a9afeddbaa68c41f813c",
+      "synthetic_or_generated": false,
+      "width": 1797
+    },
+    {
+      "bytes": 1128234,
+      "file_name": "IEEC4.jpg",
+      "height": 1900,
+      "image_id": 174,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEEC4.jpg",
+      "sha256": "be156cf85600f1dd3c3a872b77351404df754e69d793d83044bc8a627765958f",
+      "synthetic_or_generated": false,
+      "width": 1800
+    },
+    {
+      "bytes": 1050076,
+      "file_name": "IEEC5.jpg",
+      "height": 1820,
+      "image_id": 175,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEEC5.jpg",
+      "sha256": "953af147d3f8721b3cd73c8f1a19b5a62dc257a21853cb96051af7629e30fcbc",
+      "synthetic_or_generated": false,
+      "width": 1745
+    },
+    {
+      "bytes": 936397,
+      "file_name": "IEEE1.jpg",
+      "height": 1792,
+      "image_id": 176,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEEE1.jpg",
+      "sha256": "1fefb8b16a747cfab78847831fc454f2ba15222e6da28697bc2e249184eae0c4",
+      "synthetic_or_generated": false,
+      "width": 1598
+    },
+    {
+      "bytes": 936287,
+      "file_name": "IEEE2.jpg",
+      "height": 1789,
+      "image_id": 177,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEEE2.jpg",
+      "sha256": "adb67a09a0b92148d4e91c95c6fd762111031ba9559f6626c405f89fc2b42af5",
+      "synthetic_or_generated": false,
+      "width": 1598
+    },
+    {
+      "bytes": 951954,
+      "file_name": "IEEE3.jpg",
+      "height": 1790,
+      "image_id": 178,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEEE3.jpg",
+      "sha256": "c5bfaf58ae9f0d8937e4db9931b9e0e40bf7deefc6554467d1ba6d9316a8072d",
+      "synthetic_or_generated": false,
+      "width": 1602
+    },
+    {
+      "bytes": 959141,
+      "file_name": "IEEE4.jpg",
+      "height": 1789,
+      "image_id": 179,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEEE4.jpg",
+      "sha256": "9668da16d02f22b0f2536c2987876c1781af00eb011ca1d2a2a0f1c01d79104f",
+      "synthetic_or_generated": false,
+      "width": 1604
+    },
+    {
+      "bytes": 874266,
+      "file_name": "IEEE5.jpg",
+      "height": 1678,
+      "image_id": 180,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/test2017/IEEE5.jpg",
+      "sha256": "da081fb154143a1666a7adc14217ae2ec24f452b6fb676882967c53374b85b43",
+      "synthetic_or_generated": false,
+      "width": 1532
+    }
+  ],
+  "schema_version": 1,
+  "split": "test"
+}

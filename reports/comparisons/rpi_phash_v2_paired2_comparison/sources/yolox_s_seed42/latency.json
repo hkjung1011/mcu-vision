@@ -1,0 +1,14 @@
+{
+  "batch": 1,
+  "e2e_p50_ms": 17.75869997800328,
+  "e2e_p95_ms": 20.046049950178713,
+  "gpu_p50_ms": 17.718528747558594,
+  "gpu_p95_ms": 19.820340061187743,
+  "measured_iterations": 100,
+  "note": "preloaded BGR frame; preprocess + transfer + inference + NMS, display excluded",
+  "peak_allocated_mib": 41.41748046875,
+  "peak_reserved_mib": 278.0,
+  "precision": "FP16",
+  "sustained_fps": 56.4291318110454,
+  "warmup_iterations": 20
+}

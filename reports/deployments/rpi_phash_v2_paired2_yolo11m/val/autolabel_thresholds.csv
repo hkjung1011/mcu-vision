@@ -1,0 +1,2 @@
+category_id,category_name,status,target_precision,minimum_precision_wilson_lower_95,confidence,precision,precision_wilson_lower_95,recall,f1,tp,fp,fn,note
+1,raspberry_pi_sbc,VALIDATION_DERIVED_PENDING_HUMAN_REVIEW,0.98,0.95,0.0,1.0,0.980680795426279,1.0,1.0,195,0,0,Use only as a high-confidence pseudo-label candidate threshold. Every proposal and every empty image still requires human review; freeze before independent test.

@@ -1,0 +1,82 @@
+{
+  "area_ground_truth_counts": {
+    "large": 180,
+    "medium": 0,
+    "small": 0
+  },
+  "evaluation_set": "test",
+  "ground_truth": {
+    "annotations": 180,
+    "images": 180,
+    "path": "data/processed/micropcb_rpi_phash_v2_coco/annotations/instances_test2017.json",
+    "sha256": "61b9c88d8adf6c12757e350dda19be00dc1f2bdbff7bb40e1e27274f74663ab2"
+  },
+  "metrics": {
+    "ap50": 1.0,
+    "ap50_95": 0.9852172240797946,
+    "ap75": 1.0,
+    "ap_large": 0.9852172240797946,
+    "ap_medium": null,
+    "ap_small": null,
+    "ar1": 0.9872222222222222,
+    "ar10": 0.9872222222222222,
+    "ar100": 0.9872222222222222,
+    "ar_large": 0.9872222222222222,
+    "ar_medium": null,
+    "ar_small": null,
+    "f1": 1.0,
+    "fn": 0,
+    "fp": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "tp": 180
+  },
+  "per_class": [
+    {
+      "ap50_95": 0.9852172240797946,
+      "category_id": 1,
+      "category_name": "raspberry_pi_sbc",
+      "f1": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "tp": 180
+    }
+  ],
+  "predictions": {
+    "count_after_operating_max_dets": 212,
+    "count_raw": 212,
+    "path": "runs/deployment_eval/rpi_phash_v2_paired2_yolox_s/test/predictions.coco.json",
+    "sha256": "331d8e47365f8869645746f98cd3c00db5bcc95d2a226120f177275cd425678c"
+  },
+  "protocol": {
+    "coco_ap_max_dets": 100,
+    "operating_confidence": 0.25,
+    "operating_match_iou": 0.5,
+    "operating_matcher": "score_sorted_class_aware_greedy_one_to_one",
+    "operating_max_dets_per_image": 100
+  },
+  "pseudo_label_calibration": {
+    "confidence": null,
+    "reason": "Test observations are diagnostic-only and must not select or revise operating, pseudo-label, or autolabel thresholds.",
+    "status": "NOT_FOR_THRESHOLD_SELECTION"
+  },
+  "pseudo_label_calibration_by_class": [
+    {
+      "category_id": 1,
+      "category_name": "raspberry_pi_sbc",
+      "confidence": null,
+      "reason": "Test observations are diagnostic-only; threshold selection is forbidden.",
+      "status": "NOT_FOR_THRESHOLD_SELECTION"
+    }
+  ],
+  "schema_version": 2,
+  "threshold_selection": {
+    "source_split": "test",
+    "status": "NOT_FOR_THRESHOLD_SELECTION",
+    "test_data_used_for_selection": false,
+    "usage": "diagnostic_metrics_only"
+  },
+  "warning": "This is the held-out phash_v2 bootstrap test split, not a new physical-item/session conveyor-camera acceptance set."
+}

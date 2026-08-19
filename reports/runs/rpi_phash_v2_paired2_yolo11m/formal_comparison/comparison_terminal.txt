@@ -1,0 +1,37 @@
+
+MODEL COMPARISON — COMMON COCO VALIDATION
+==============================================================================================================================================================================================
+MODEL / SEED / RUN_ID                                            AP50-95     AP50     AP75  APsmall    AR100        P        R       F1      TP      FP      FN   BEST@CONF
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+yolo11m seed=42 run_id=yolo11m_seed42                             1.0000   1.0000   1.0000        -   1.0000   1.0000   1.0000   1.0000     195       0       0        0.01
+yolo11m seed=43 run_id=yolo11m_seed43                             1.0000   1.0000   1.0000        -   1.0000   1.0000   1.0000   1.0000     195       0       0        0.00
+YOLOX-S seed=42 run_id=yolox_s_seed42                             0.9794   1.0000   1.0000        -   0.9846   1.0000   1.0000   1.0000     195       0       0        0.02
+YOLOX-S seed=43 run_id=yolox_s_seed43                             0.9898   1.0000   1.0000        -   0.9913   1.0000   1.0000   1.0000     195       0       0        0.01
+
+DEPLOYMENT / RESOURCE MEASUREMENTS
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+MODEL / SEED / RUN_ID                                                PARAMS   CKPT MiB     P50 ms     P95 ms       FPS   TRAIN VRAM   TRAIN min
+-----------------------------------------------------------------------------------------------------------------------------------------------
+yolo11m seed=42 run_id=yolo11m_seed42                              20114688      38.63      15.68      16.96     64.13       3999.2      168.15
+yolo11m seed=43 run_id=yolo11m_seed43                              20114688      38.63      11.52      12.46     84.92       3999.2      167.73
+YOLOX-S seed=42 run_id=yolox_s_seed42                               8937682      68.51      17.76      20.05     56.43       1717.1      335.61
+YOLOX-S seed=43 run_id=yolox_s_seed43                               8937682      68.51      12.41      13.47     79.34       1716.7      312.87
+NOTE: YOLO11 and YOLOX native loss values have different definitions; compare trends only.
+NOTE: batch=8 is a shared micro-batch. Native gradient accumulation/optimizer dynamics differ.
+PROTOCOL: PASS - critical data and training settings match.
+RELEASE: FORMAL MATRIX PASS - user-facing artifact hash validation is required next.
+RELEASE POLICY: rpi_bootstrap_paired_2seed_release_v1 | SHA256=1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27
+BASE PROTOCOL: micropcb_rpi_phash_component_bootstrap_v2 | SHA256=02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5
+EVIDENCE TIER: paired_2seed_descriptive | n=2 per model | paired n=2 | df=1 | DESCRIPTIVE-ONLY
+CLAIM LIMIT: no significance, population superiority, production-ready, or independent-test claim.
+
+SEED AGGREGATE (mean ± sample standard deviation)
+----------------------------------------------------------------------------
+yolo11m                  n=2   AP50-95=1.0000 ± 0.0000 P50ms=13.60 ± 2.94
+YOLOX-S                  n=2   AP50-95=0.9846 ± 0.0074 P50ms=15.08 ± 3.78
+
+PAIRED AP50-95 DELTAS (yolo11m - YOLOX-S; descriptive-only)
+----------------------------------------------------------------------------------------------------
+seed=42: 0.0206 (A=1.0000, B=0.9794)
+seed=43: 0.0102 (A=1.0000, B=0.9898)
+mean delta=0.0154; sample SD=0.0074; n=2; df=1

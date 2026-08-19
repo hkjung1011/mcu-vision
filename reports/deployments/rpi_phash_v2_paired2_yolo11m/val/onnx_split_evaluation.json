@@ -1,0 +1,294 @@
+{
+  "artifacts": {
+    "coco_annotations": {
+      "bytes": 58818,
+      "path": "data/processed/micropcb_rpi_phash_v2_coco/annotations/instances_val2017.json",
+      "sha256": "a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef"
+    },
+    "deployment_metadata": {
+      "bytes": 11600,
+      "path": "weights/trained/rpi_phash_v2_paired2_yolo11m/yolo11m/yolo11m_rpi_b1_640.deployment.json",
+      "sha256": "c35b7ed0c3cb6199a8dd5ea15fc5a2dc9b787febb181a03d425523a1652dfce2"
+    },
+    "final_metrics": {
+      "bytes": 3059,
+      "path": "runs/deployment_eval/rpi_phash_v2_paired2_yolo11m/val/final_metrics.json",
+      "sha256": "87a01ae0b1825dc463ebf953eced1b8519d5fcf6ad8117ebf0d0022699c7d387"
+    },
+    "image_manifest": {
+      "bytes": 65359,
+      "path": "runs/deployment_eval/rpi_phash_v2_paired2_yolo11m/val/image_manifest.json",
+      "sha256": "1113889890698b33d3713dacdbf12e0a41d5a5dc2eadd91f287e746f592bb821"
+    },
+    "native_final_metrics": {
+      "bytes": 2936,
+      "path": "runs/benchmarks/micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267/yolo11m_seed43/final_metrics.json",
+      "sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef"
+    },
+    "onnx": {
+      "bytes": 80372365,
+      "path": "weights/trained/rpi_phash_v2_paired2_yolo11m/yolo11m/yolo11m_rpi_b1_640.onnx",
+      "sha256": "ad488f6758af0cb7cfe1937ae128411ab73feeec5f3bdc8377f07ffaebc7ebfc"
+    },
+    "predictions": {
+      "bytes": 39712,
+      "path": "runs/deployment_eval/rpi_phash_v2_paired2_yolo11m/val/predictions.coco.json",
+      "sha256": "6aed4f4b05170d50cef8d924708d91854cbab30a0b02c28a502f6348a53394ad"
+    }
+  },
+  "created_utc": "2026-08-19T07:32:33+00:00",
+  "environment": {
+    "numpy": "1.26.4",
+    "onnxruntime": "1.28.0",
+    "opencv": "4.11.0",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.9"
+  },
+  "framework": "yolo11",
+  "inference": {
+    "e2e_ms_mean": 221.54176102664607,
+    "e2e_ms_p50": 220.24450008757412,
+    "e2e_ms_p95": 233.57571001397446,
+    "images": 195,
+    "images_per_second": 3.9981310644023607,
+    "inference_ms_mean": 216.96012205241297,
+    "inference_ms_p50": 215.6978000421077,
+    "inference_ms_p95": 228.28700002282858,
+    "loop_wall_seconds": 48.77278830006253,
+    "postprocess_ms_mean": 0.6239912777136152,
+    "predictions": 195,
+    "preprocess_ms_mean": 3.9568943640169425
+  },
+  "inputs": {
+    "annotation_count": 195,
+    "category_ids": [
+      1
+    ],
+    "category_names": [
+      "raspberry_pi_sbc"
+    ],
+    "image_count": 195,
+    "image_root": "data/processed/micropcb_rpi_phash_v2_coco/val2017",
+    "protocol_binding": {
+      "artifact": {
+        "bytes": 17488,
+        "path": "configs/experiments/baseline_v1.yaml",
+        "sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+      },
+      "checks": {
+        "image_size": {
+          "actual": 640,
+          "frozen": 640,
+          "status": "PASS"
+        },
+        "max_detections_for_coco_ap": {
+          "actual": 100,
+          "frozen": 100,
+          "status": "PASS"
+        },
+        "nms_iou": {
+          "actual": 0.65,
+          "frozen": 0.65,
+          "status": "PASS"
+        },
+        "operating_confidence": {
+          "actual": 0.25,
+          "frozen": 0.25,
+          "status": "PASS"
+        },
+        "operating_match_iou": {
+          "actual": 0.5,
+          "frozen": 0.5,
+          "status": "PASS"
+        },
+        "prediction_floor": {
+          "actual": 0.001,
+          "frozen": 0.001,
+          "status": "PASS"
+        }
+      },
+      "coco_annotation_sha256": "a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef",
+      "image_count": 195,
+      "protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+      "split": "val",
+      "status": "PASS"
+    },
+    "split_binding": {
+      "all_image_sha256_match": true,
+      "artifacts": {
+        "split_manifest": {
+          "bytes": 922445,
+          "path": "data/manifests/micropcb_raspberry_pi_sbc.phash_v2.csv",
+          "sha256": "ed1040f459f0c35459e8d59eda3ce77ab878e84e25e80661c9cd5b6765f00859"
+        },
+        "split_summary": {
+          "bytes": 3389,
+          "path": "data/manifests/micropcb_raspberry_pi_sbc.phash_v2.summary.json",
+          "sha256": "746edf4cfe26ab7392c592f631a82e000d17f3e401abf333503b211e08ab3a5c"
+        }
+      },
+      "assignment_sha256": "5a818e0fd1f264a1a364cfd0cfe2280e72ec52bfbaa35ff425224bbf4a0a4e33",
+      "image_count": 195,
+      "image_set_exact_match": true,
+      "policy": "phash_condition_component_model_balanced_sha256_v2",
+      "split": "val",
+      "status": "PASS"
+    }
+  },
+  "metrics": {
+    "ap50": 1.0,
+    "ap50_95": 1.0,
+    "ap75": 1.0,
+    "ap_large": 1.0,
+    "ap_medium": null,
+    "ap_small": null,
+    "ar1": 1.0,
+    "ar10": 1.0,
+    "ar100": 1.0,
+    "ar_large": 1.0,
+    "ar_medium": null,
+    "ar_small": null,
+    "best_f1": 1.0,
+    "best_f1_confidence": 0.0,
+    "f1": 1.0,
+    "fn": 0,
+    "fp": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "tp": 195
+  },
+  "mode": "formal",
+  "native_metric_equivalence": {
+    "absolute_tolerance": 0.005,
+    "gate": "abs(onnx-native) <= atol + rtol*abs(native) for every selected metric",
+    "metrics_failed": 0,
+    "metrics_passed": 9,
+    "metrics_requested": 9,
+    "reference_context": {
+      "ground_truth_sha256": "a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef",
+      "protocol": {
+        "coco_ap_max_dets": 100,
+        "operating_confidence": 0.25,
+        "operating_match_iou": 0.5,
+        "operating_max_dets_per_image": 100
+      },
+      "status": "PASS"
+    },
+    "relative_tolerance": 0.0,
+    "rows": [
+      {
+        "absolute_difference": 0.0,
+        "allowed_difference": 0.005,
+        "metric": "ap50_95",
+        "native": 1.0,
+        "onnx": 1.0,
+        "reason": "within_tolerance",
+        "status": "PASS"
+      },
+      {
+        "absolute_difference": 0.0,
+        "allowed_difference": 0.005,
+        "metric": "ap50",
+        "native": 1.0,
+        "onnx": 1.0,
+        "reason": "within_tolerance",
+        "status": "PASS"
+      },
+      {
+        "absolute_difference": 0.0,
+        "allowed_difference": 0.005,
+        "metric": "ap75",
+        "native": 1.0,
+        "onnx": 1.0,
+        "reason": "within_tolerance",
+        "status": "PASS"
+      },
+      {
+        "absolute_difference": 0.0,
+        "allowed_difference": 0.005,
+        "metric": "ar1",
+        "native": 1.0,
+        "onnx": 1.0,
+        "reason": "within_tolerance",
+        "status": "PASS"
+      },
+      {
+        "absolute_difference": 0.0,
+        "allowed_difference": 0.005,
+        "metric": "ar10",
+        "native": 1.0,
+        "onnx": 1.0,
+        "reason": "within_tolerance",
+        "status": "PASS"
+      },
+      {
+        "absolute_difference": 0.0,
+        "allowed_difference": 0.005,
+        "metric": "ar100",
+        "native": 1.0,
+        "onnx": 1.0,
+        "reason": "within_tolerance",
+        "status": "PASS"
+      },
+      {
+        "absolute_difference": 0.0,
+        "allowed_difference": 0.005,
+        "metric": "precision",
+        "native": 1.0,
+        "onnx": 1.0,
+        "reason": "within_tolerance",
+        "status": "PASS"
+      },
+      {
+        "absolute_difference": 0.0,
+        "allowed_difference": 0.005,
+        "metric": "recall",
+        "native": 1.0,
+        "onnx": 1.0,
+        "reason": "within_tolerance",
+        "status": "PASS"
+      },
+      {
+        "absolute_difference": 0.0,
+        "allowed_difference": 0.005,
+        "metric": "f1",
+        "native": 1.0,
+        "onnx": 1.0,
+        "reason": "within_tolerance",
+        "status": "PASS"
+      }
+    ],
+    "status": "PASS"
+  },
+  "native_reference_binding": {
+    "actual_sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef",
+    "binding": "deployment.release_validation.native_final_metrics_sha256",
+    "expected_sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef",
+    "status": "PASS"
+  },
+  "profile": "fixed_batch1_fp32_onnxruntime",
+  "protocol": {
+    "batch": 1,
+    "class_agnostic_nms": false,
+    "image_size": 640,
+    "latency_scope": "preprocess + ONNX Runtime inference + decode/NMS/restore; image I/O and SHA-256 excluded",
+    "max_detections_per_image": 100,
+    "nms_iou": 0.65,
+    "operating_confidence": 0.25,
+    "operating_match_iou": 0.5,
+    "prediction_floor_for_coco_ap": 0.001,
+    "warmup_runs_excluded": 1
+  },
+  "provider_requested": "CPUExecutionProvider",
+  "provider_used": "CPUExecutionProvider",
+  "schema_version": 1,
+  "split": "val",
+  "status": "PASS",
+  "threshold_selection": {
+    "source_split": "val",
+    "status": "VALIDATION_DERIVED_CANDIDATE",
+    "test_data_used": false,
+    "usage": "candidate_only_human_review_required"
+  },
+  "warning": "This is the phash_v2 bootstrap validation split, not an independent conveyor-camera acceptance set."
+}

@@ -1,0 +1,98 @@
+{
+  "area_ground_truth_counts": {
+    "large": 195,
+    "medium": 0,
+    "small": 0
+  },
+  "evaluation_set": "validation",
+  "ground_truth": {
+    "annotations": 195,
+    "images": 195,
+    "path": "data/processed/micropcb_rpi_phash_v2_coco/annotations/instances_val2017.json",
+    "sha256": "a31897f85c21198fe30ed54c5ab1247fcf0594b8e3b5b53c82f40a3ad145a7ef"
+  },
+  "metrics": {
+    "ap50": 1.0,
+    "ap50_95": 0.9898388546790992,
+    "ap75": 1.0,
+    "ap_large": 0.9898388546790992,
+    "ap_medium": null,
+    "ap_small": null,
+    "ar1": 0.9912820512820513,
+    "ar10": 0.9912820512820513,
+    "ar100": 0.9912820512820513,
+    "ar_large": 0.9912820512820513,
+    "ar_medium": null,
+    "ar_small": null,
+    "best_f1": 1.0,
+    "best_f1_confidence": 0.01,
+    "f1": 1.0,
+    "fn": 0,
+    "fp": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "tp": 195
+  },
+  "per_class": [
+    {
+      "ap50_95": 0.9898388546790992,
+      "category_id": 1,
+      "category_name": "raspberry_pi_sbc",
+      "f1": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "tp": 195
+    }
+  ],
+  "predictions": {
+    "count_after_operating_max_dets": 261,
+    "count_raw": 261,
+    "path": "runs/benchmarks/micropcb_rpi_completion_retry3_b3e4176_20260818/yolox_s_seed43/predictions.coco.json",
+    "sha256": "7527f256172f9ffb34965e025d493e2a267beb5405effae927ae928f1a0425a1"
+  },
+  "protocol": {
+    "coco_ap_max_dets": 100,
+    "operating_confidence": 0.25,
+    "operating_match_iou": 0.5,
+    "operating_matcher": "score_sorted_class_aware_greedy_one_to_one",
+    "operating_max_dets_per_image": 100,
+    "pseudo_label_minimum_precision_wilson_lower_95": 0.95,
+    "pseudo_label_target_precision": 0.98
+  },
+  "pseudo_label_calibration": {
+    "confidence": 0.01,
+    "f1": 1.0,
+    "fn": 0,
+    "fp": 0,
+    "minimum_precision_wilson_lower_95": 0.95,
+    "note": "Use only as a high-confidence pseudo-label candidate threshold. Every proposal and every empty image still requires human review; freeze before independent test.",
+    "precision": 1.0,
+    "precision_wilson_lower_95": 0.980680795426279,
+    "recall": 1.0,
+    "status": "VALIDATION_DERIVED_PENDING_HUMAN_REVIEW",
+    "target_precision": 0.98,
+    "tp": 195
+  },
+  "pseudo_label_calibration_by_class": [
+    {
+      "category_id": 1,
+      "category_name": "raspberry_pi_sbc",
+      "confidence": 0.01,
+      "f1": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "minimum_precision_wilson_lower_95": 0.95,
+      "note": "Use only as a high-confidence pseudo-label candidate threshold. Every proposal and every empty image still requires human review; freeze before independent test.",
+      "precision": 1.0,
+      "precision_wilson_lower_95": 0.980680795426279,
+      "recall": 1.0,
+      "status": "VALIDATION_DERIVED_PENDING_HUMAN_REVIEW",
+      "target_precision": 0.98,
+      "tp": 195
+    }
+  ],
+  "schema_version": 2,
+  "warning": "This is validation data, not an independent conveyor-camera test set."
+}

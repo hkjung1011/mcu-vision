@@ -1,0 +1,331 @@
+{
+  "files": [
+    {
+      "bytes": 3063795,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed42/terminal.log",
+      "published_sha256": "168b02ff53413190272eebe5d22078eb2c727c370cef76ca5e3e44507946a22b",
+      "run_id": "yolo11m_seed42",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "9a02cf9060b886f3e212c084fab9904c71102b99bb1fd630af6bde039656cdb4"
+    },
+    {
+      "bytes": 7109,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed42/run_manifest.json",
+      "published_sha256": "7c05e065d668b6c3bc78097835147d4d049d8b16118cd99724ddd564cfe66b9c",
+      "run_id": "yolo11m_seed42",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "919313fd9f04b1a1ace6abc302aafd3a551914e1691657746184eed5538dfa7d"
+    },
+    {
+      "bytes": 19813,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed42/epoch_metrics.csv",
+      "published_sha256": "820af611a2380ead9bfbd051174f57d89af93ef1c1ea70024a3b591937331229",
+      "run_id": "yolo11m_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "6a097035e4c4ac5858b5681d3d0802a556aeeb49ec102e768b3179e74e5585c8"
+    },
+    {
+      "bytes": 55922,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed42/epoch_metrics_extra.jsonl",
+      "published_sha256": "87939411e77d9886572c63518a0143c64f6dab788bf7d80802c05e1f1ea9ce61",
+      "run_id": "yolo11m_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "0d0d6d5e210139c290f49999f3c1ce6b022bba2fab29b190c3463187a505b47f"
+    },
+    {
+      "bytes": 2939,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed42/final_metrics.json",
+      "published_sha256": "3430febeea78e0a6ee15fb840bf4783a99b53795d408f8656470528f1799921f",
+      "run_id": "yolo11m_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "3430febeea78e0a6ee15fb840bf4783a99b53795d408f8656470528f1799921f"
+    },
+    {
+      "bytes": 106,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed42/per_class_metrics.csv",
+      "published_sha256": "498c03bf57fd8e396a95c9a9e2f1b89f576988d4b8a2f60a569e758d37d32f21",
+      "run_id": "yolo11m_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "34102e8418f5c94b925000258f17e9bd10724d9619700e8d37556c802fba30b1"
+    },
+    {
+      "bytes": 442,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed42/latency.json",
+      "published_sha256": "ed8baa61f4fc55e56deab568ce4a1b1af789fb02d46d9ee58e57a61b7130f760",
+      "run_id": "yolo11m_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "ed8baa61f4fc55e56deab568ce4a1b1af789fb02d46d9ee58e57a61b7130f760"
+    },
+    {
+      "bytes": 4057,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed42/latency_samples.csv",
+      "published_sha256": "2ec05d0c6259ebd5d5bc77700a254543a5bdbdf0f19996934cbc5b25b55cd21f",
+      "run_id": "yolo11m_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "cbe961542012a29c542694418781b950da6e13a8129463c657259423c31244a2"
+    },
+    {
+      "bytes": 157,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed42/gpu_summary.json",
+      "published_sha256": "71cc07b714d3dbea8ee36d04c76dd841621e80c7fb64657bf62f1c331375d9ce",
+      "run_id": "yolo11m_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "71cc07b714d3dbea8ee36d04c76dd841621e80c7fb64657bf62f1c331375d9ce"
+    },
+    {
+      "bytes": 3061441,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed43/terminal.log",
+      "published_sha256": "d928201f0c165f5ec245ac55a1653cfd4f2b84843c3eb0e6bc89a1762a4c95cd",
+      "run_id": "yolo11m_seed43",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "5648bf1db66378667223e8527ba71e62f6c5fd4d9e33808bdaa648352200995e"
+    },
+    {
+      "bytes": 7109,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed43/run_manifest.json",
+      "published_sha256": "a7ecc9c675626075a6c314f4d98242326c70f57f6c7a623503d7b07eae40b333",
+      "run_id": "yolo11m_seed43",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "948a8cfdeb2369117b1b39209d1621d8f7ac74d5804e060f8e19e8718f4af53e"
+    },
+    {
+      "bytes": 19797,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed43/epoch_metrics.csv",
+      "published_sha256": "dfcd75af696a40ce186ccfe09e07d9eb6e85309bc0930d96c4d97e55d7987a81",
+      "run_id": "yolo11m_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "82f5ad2a58408d33eb35388db0b58e5e4f4594372b00860bd2289d0973ea75b3"
+    },
+    {
+      "bytes": 55906,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed43/epoch_metrics_extra.jsonl",
+      "published_sha256": "11959ff4d525102c7b945bda2e0d175e0630ef9ecdb28ed5765eaa770285ba3f",
+      "run_id": "yolo11m_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "8706dd4a8109c0f1eddf477284a80252b0fa5fa0c6ef1f1fb6f13d42968fefcf"
+    },
+    {
+      "bytes": 2936,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed43/final_metrics.json",
+      "published_sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef",
+      "run_id": "yolo11m_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "e57499c03cac77ae70766a20bc218b57b7ab0b4160a632d5c3d26770707032ef"
+    },
+    {
+      "bytes": 106,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed43/per_class_metrics.csv",
+      "published_sha256": "498c03bf57fd8e396a95c9a9e2f1b89f576988d4b8a2f60a569e758d37d32f21",
+      "run_id": "yolo11m_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "34102e8418f5c94b925000258f17e9bd10724d9619700e8d37556c802fba30b1"
+    },
+    {
+      "bytes": 441,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed43/latency.json",
+      "published_sha256": "705bc246764f375a8830b53ed28140deb8a89246d100b246b2d9cef343ebddd2",
+      "run_id": "yolo11m_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "705bc246764f375a8830b53ed28140deb8a89246d100b246b2d9cef343ebddd2"
+    },
+    {
+      "bytes": 4066,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed43/latency_samples.csv",
+      "published_sha256": "43565624b12efd9d1c20538d1c00d174ca2a8706eea22668d88340c3838ad795",
+      "run_id": "yolo11m_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "4dbd23449591c1c40b736f68c4d89b67f4cf8a44f13d0586fbc69b5797931dda"
+    },
+    {
+      "bytes": 158,
+      "canonical_serialization": true,
+      "path": "sources/yolo11m_seed43/gpu_summary.json",
+      "published_sha256": "9df6329ffeeb79b7e115f3f35ae3e91495506352afba05cc9f7d0cf29b558011",
+      "run_id": "yolo11m_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "9df6329ffeeb79b7e115f3f35ae3e91495506352afba05cc9f7d0cf29b558011"
+    },
+    {
+      "bytes": 1044625,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed42/terminal.log",
+      "published_sha256": "e545602ce46f733fd05595ebc3cb42259401cdbd935e4f0eec14b01db0fe5313",
+      "run_id": "yolox_s_seed42",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "e859b48d9789d9b137deefc49073680af119a9887db7215223184e2b34378077"
+    },
+    {
+      "bytes": 6760,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed42/run_manifest.json",
+      "published_sha256": "865fcac6e6586d020e8cfa729be7ba60eb917db5e02fa486f1e048541ff3d8f9",
+      "run_id": "yolox_s_seed42",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "fedbf3a7f1e83f8b257c76f5b7eb2eda21808e37588f301011f297cf3e8484aa"
+    },
+    {
+      "bytes": 28139,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed42/epoch_metrics.csv",
+      "published_sha256": "bfe8f596f656a0c10cfdbe60748068d3bf9359852cb07b83e4f9e0f19e5dd249",
+      "run_id": "yolox_s_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "4ca7befb64a7b3ac76c1d210d72f9a8cd43fce702b165b343a20e8aabcc01d2f"
+    },
+    {
+      "bytes": 56413,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed42/epoch_metrics.jsonl",
+      "published_sha256": "f994da9ee732968a98822b0efb7c44f87894f89d541efdd5cbdb4b49a6a0013a",
+      "run_id": "yolox_s_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "16d5a71c9138fc3a8f823144e1217e30e1250660a0e633a30d0d3a5e4ecafb0f"
+    },
+    {
+      "bytes": 3044,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed42/final_metrics.json",
+      "published_sha256": "c255012a5466fe2e2cfa0b76dca37e0e19ca1c816c9ad2f012dcb2938b9f6f37",
+      "run_id": "yolox_s_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "c255012a5466fe2e2cfa0b76dca37e0e19ca1c816c9ad2f012dcb2938b9f6f37"
+    },
+    {
+      "bytes": 121,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed42/per_class_metrics.csv",
+      "published_sha256": "d12d77c1b1e082159c94f1e38ed579e462b90cb3cd6ff4a0d1f195ed735faf69",
+      "run_id": "yolox_s_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "7c5447e120acba85a0e8e63bab67ab26743cf1b4adbe89f0059339a1ef6f81e7"
+    },
+    {
+      "bytes": 439,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed42/latency.json",
+      "published_sha256": "fb1b25d91f03d38bccb337e633ca2bd40d956d7d23d829bce89d3ab3fc46dfc9",
+      "run_id": "yolox_s_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "fb1b25d91f03d38bccb337e633ca2bd40d956d7d23d829bce89d3ab3fc46dfc9"
+    },
+    {
+      "bytes": 4049,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed42/latency_samples.csv",
+      "published_sha256": "000b0bf985bd797dad7b669b57df59d4b0de1a0d4c2f85444364ecc96b66f94b",
+      "run_id": "yolox_s_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "1c3c48bc8c7beeb5a2ac61fe40c930b145f95acad9e67b9f14773cdf7ec4b0ab"
+    },
+    {
+      "bytes": 159,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed42/gpu_summary.json",
+      "published_sha256": "511ad6345f6337203d1039e714302aa591099e133a423447a9b43736531ebe26",
+      "run_id": "yolox_s_seed42",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "511ad6345f6337203d1039e714302aa591099e133a423447a9b43736531ebe26"
+    },
+    {
+      "bytes": 1019349,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed43/terminal.log",
+      "published_sha256": "52b62c834d4dee1b9d8bee31ad7ef718c77ae4663bd3157e7f7d1ee179c9231f",
+      "run_id": "yolox_s_seed43",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "42aefd4b1cf9945df539163f9d364e32b8056ea6026f110fc7b40569e3bc20af"
+    },
+    {
+      "bytes": 6578,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed43/run_manifest.json",
+      "published_sha256": "a4995682c719ec30c3255e303db88de6727dfb99c1e0d71a43705c7a44c3e7bd",
+      "run_id": "yolox_s_seed43",
+      "sanitized_for_repository": true,
+      "source_original_sha256": "0df463b02af5700ed454df7a275d6d7e4805b61913bd660034774e052ddbdebb"
+    },
+    {
+      "bytes": 28056,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed43/epoch_metrics.csv",
+      "published_sha256": "a359aae1bed2507c1dc69d67df9633bb7814748d30056cd1f1335b05b884c0f3",
+      "run_id": "yolox_s_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "6b85b5522f125732804614b6900fe73d77de09da31b7d188ff091a3fd66b5cae"
+    },
+    {
+      "bytes": 56330,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed43/epoch_metrics.jsonl",
+      "published_sha256": "84724092326420af4d030c83ed6d844743b72c8b8210a73571a9124a178a9d48",
+      "run_id": "yolox_s_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "7590f2d538a6607c7e5b8df3ee49c7c2f02a131c9dceeb911cc418520d0725c0"
+    },
+    {
+      "bytes": 2983,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed43/final_metrics.json",
+      "published_sha256": "79b0853c75755107ee00180a0082ba9ea499997276bca05a898aa2310ac923cf",
+      "run_id": "yolox_s_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "79b0853c75755107ee00180a0082ba9ea499997276bca05a898aa2310ac923cf"
+    },
+    {
+      "bytes": 121,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed43/per_class_metrics.csv",
+      "published_sha256": "3f279d6c3faef98b8b1b49e1a5bd34810526cab6261ebfcd42dc85097d9b493a",
+      "run_id": "yolox_s_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "222e6087868454fb58c39370bba3b38cffbef61da34f5ca122fbab8d0201c9fb"
+    },
+    {
+      "bytes": 441,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed43/latency.json",
+      "published_sha256": "ef4939ab946b3e4a32710faf878dfd04840694787e073831fdadfdf5c7549b3b",
+      "run_id": "yolox_s_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "ef4939ab946b3e4a32710faf878dfd04840694787e073831fdadfdf5c7549b3b"
+    },
+    {
+      "bytes": 4067,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed43/latency_samples.csv",
+      "published_sha256": "5842571495959300c6fab1d130e9c23ddf6cff18265a84637530257829dfaee4",
+      "run_id": "yolox_s_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "907c143a0a39328acf3d8f4f1cb7d4725674fec48719d2fca52bb02225597632"
+    },
+    {
+      "bytes": 158,
+      "canonical_serialization": true,
+      "path": "sources/yolox_s_seed43/gpu_summary.json",
+      "published_sha256": "6b365897a298cc31be96627027bab3c8a929abc237d810ae9984d0c286ae424d",
+      "run_id": "yolox_s_seed43",
+      "sanitized_for_repository": false,
+      "source_original_sha256": "6b365897a298cc31be96627027bab3c8a929abc237d810ae9984d0c286ae424d"
+    }
+  ],
+  "local_source_paths_included": false,
+  "publication_note": "Local project/user paths and raw nvidia-smi process listings are redacted. Original and published SHA-256 values are retained; numeric metrics are unchanged.",
+  "schema_version": 1
+}

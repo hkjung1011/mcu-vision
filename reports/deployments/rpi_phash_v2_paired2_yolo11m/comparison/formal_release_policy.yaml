@@ -1,0 +1,52 @@
+schema_version: 1
+policy_id: rpi_bootstrap_paired_2seed_release_v1
+status: FROZEN
+evidence_tier: paired_2seed_descriptive
+
+base_protocol:
+  protocol_id: micropcb_rpi_phash_component_bootstrap_v2
+  sha256: 02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5
+
+release_matrix:
+  models: [yolo11m, YOLOX-S]
+  seeds: [42, 43]
+  epochs_per_run: 100
+  expected_runs: 4
+  exact_pairs:
+    - [yolo11m, 42]
+    - [yolo11m, 43]
+    - [YOLOX-S, 42]
+    - [YOLOX-S, 43]
+
+decision_record:
+  selection_decided_after_training: true
+  reason: >-
+    The originally planned third paired repeat was judged too costly after training had begun.
+    This policy therefore narrows the release evidence to the already complete, matched seed 42
+    and seed 43 runs and explicitly limits inference to descriptive statistics.
+  included_seed_rule: >-
+    Include a seed only when both required models completed exactly 100 epochs with the immutable
+    base protocol and all formal evidence gates pass.
+  excluded_seed: 44
+  excluded_models: [yolo11m, YOLOX-S]
+  exclusion_rule: >-
+    Exclude seed 44 for both models as one paired unit. Do not include the completed YOLO11m seed44
+    run, the incomplete YOLOX-S retry3/retry4 runs, or any seed44 metric in this comparison.
+
+statistics:
+  n_per_model: 2
+  paired_n: 2
+  degrees_of_freedom: 1
+  interpretation: descriptive_only
+
+claims:
+  allowed:
+    - per_run_metrics
+    - model_mean
+    - sample_standard_deviation
+    - paired_seed_deltas
+  prohibited:
+    - statistical_significance
+    - population_superiority
+    - production_ready
+    - independent_test
