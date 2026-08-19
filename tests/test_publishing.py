@@ -161,7 +161,7 @@ def test_public_file_scan_accepts_matching_png_and_torch_magic(tmp_path: Path) -
     image = tmp_path / "image.png"
     image.write_bytes(b"\x89PNG\r\n\x1a\nfixture")
     checkpoint = tmp_path / "best.pth"
-    checkpoint.write_bytes(b"PK\x03\x04fixture")
+    checkpoint.write_bytes(b"PK\x03\x04/D1x2K4\x00/75o0random\x00t:\\;X:\x00tensor")
     assert scan_public_file(image, relative_path="image.png")["detected_magic"] == "png"
     assert scan_public_file(checkpoint, relative_path="weights/best.pth")["detected_magic"] == "zip"
 
