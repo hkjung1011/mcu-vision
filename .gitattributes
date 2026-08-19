@@ -28,3 +28,6 @@ data/evidence/micropcb_rpi_phash_v2_supplement_v1/** -text
 
 # Commons acquisition evidence binds this exact collector configuration by SHA-256.
 configs/sources.wikimedia.yaml -text
+configs/annotation/wikimedia_stm32_dev_board_manual_seed_v1.yaml -text
+configs/classes.smd_v1.yaml -text
+data/manifests/wikimedia_stm32_v2.acquisition-probe.json -text

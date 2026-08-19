@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
+from .autolabel import project_root, validate_source_binding
 from .common import portable_path, sha256_file, utc_now, write_json
 from .contracts import (
     ContractError,
@@ -52,8 +53,17 @@ def _approved_timestamp(value: Any) -> str:
     return value
 
 
+def _strict_positive_int(value: Any, *, field: str) -> int:
+    if type(value) is not int or value <= 0:
+        raise PromotionError(f"{field} must be a positive integer")
+    return value
+
+
 def _pending_images(
-    pending: dict[str, Any], *, ontology_sha256: str
+    pending: dict[str, Any],
+    *,
+    ontology_sha256: str,
+    validated_source_binding: dict[str, Any],
 ) -> tuple[dict[str, dict[str, Any]], str, str]:
     if pending.get("annotation_state") != "PENDING_HUMAN_REVIEW":
         raise PromotionError("Pending run annotation_state must be PENDING_HUMAN_REVIEW")
@@ -65,6 +75,11 @@ def _pending_images(
     if source_binding.get("schema_version") != AUTOLABEL_SOURCE_SCHEMA:
         raise PromotionError(
             f"Pending source binding schema must be {AUTOLABEL_SOURCE_SCHEMA}"
+        )
+    if source_binding != validated_source_binding:
+        raise PromotionError(
+            "Pending source binding differs from the source manifest, runtime files, "
+            "or current trusted registry"
         )
     if require_sha256(
         source_binding.get("ontology_sha256"),
@@ -95,13 +110,12 @@ def _pending_images(
         image_id = row.get("image_id")
         if not isinstance(image_id, str) or not image_id.strip():
             raise PromotionError(f"Pending source image_id is invalid: {path}")
-        try:
-            width = int(row["width"])
-            height = int(row["height"])
-        except (KeyError, TypeError, ValueError) as exc:
-            raise PromotionError(f"Pending source image dimensions are invalid: {path}") from exc
-        if width <= 0 or height <= 0:
-            raise PromotionError(f"Pending source image dimensions are invalid: {path}")
+        width = _strict_positive_int(
+            row.get("width"), field=f"Pending source image width for {path}"
+        )
+        height = _strict_positive_int(
+            row.get("height"), field=f"Pending source image height for {path}"
+        )
         normalized = {
             "image_id": image_id.strip(),
             "path": path,
@@ -137,6 +151,9 @@ def promote_reviewed_annotations(
     roundtrip_reference: Path,
     roundtrip_report: Path,
     ontology_path: Path,
+    source_manifest: Path,
+    source_root: Path,
+    trusted_registry_path: Path,
     output_path: Path,
     filtered_coco_path: Path | None = None,
 ) -> dict[str, Any]:
@@ -145,6 +162,16 @@ def promote_reviewed_annotations(
     cvat_export = cvat_export.resolve()
     roundtrip_reference = roundtrip_reference.resolve()
     roundtrip_report = roundtrip_report.resolve()
+    source_manifest = source_manifest.resolve()
+    source_root = source_root.resolve()
+    trusted_registry_path = trusted_registry_path.resolve()
+    canonical_registry_path = (
+        project_root() / "configs" / "data_trust_registry.yaml"
+    ).resolve()
+    if trusted_registry_path != canonical_registry_path:
+        raise PromotionError(
+            "Promotion must use the project's canonical configs/data_trust_registry.yaml"
+        )
     output_path = output_path.resolve()
     filtered_coco_path = (
         filtered_coco_path.resolve()
@@ -165,6 +192,8 @@ def promote_reviewed_annotations(
         cvat_export,
         roundtrip_reference,
         roundtrip_report,
+        source_manifest,
+        trusted_registry_path,
     ):
         if not path.is_file():
             raise FileNotFoundError(path)
@@ -172,8 +201,19 @@ def promote_reviewed_annotations(
     pending = load_json_object(pending_run_manifest, label="pending run manifest")
     review = load_json_object(review_manifest, label="CVAT review manifest")
     roundtrip = load_json_object(roundtrip_report, label="CVAT round-trip report")
+    try:
+        validated_source_binding = validate_source_binding(
+            source_manifest_path=source_manifest,
+            source=source_root,
+            ontology=ontology,
+            trusted_registry_path=trusted_registry_path,
+        )
+    except ContractError as exc:
+        raise PromotionError(f"Pending source trust revalidation failed: {exc}") from exc
     pending_images, source_image_list_sha, pending_roundtrip_bindings_sha = _pending_images(
-        pending, ontology_sha256=ontology.sha256
+        pending,
+        ontology_sha256=ontology.sha256,
+        validated_source_binding=validated_source_binding,
     )
 
     if review.get("schema_version") != REVIEW_SCHEMA:
@@ -239,11 +279,12 @@ def promote_reviewed_annotations(
         if pending_row is None:
             raise PromotionError(f"Review contains unknown pending image: {path}")
         image_id = row.get("image_id")
-        try:
-            width = int(row["width"])
-            height = int(row["height"])
-        except (KeyError, TypeError, ValueError) as exc:
-            raise PromotionError(f"Review image dimensions are invalid: {path}") from exc
+        width = _strict_positive_int(
+            row.get("width"), field=f"Review image width for {path}"
+        )
+        height = _strict_positive_int(
+            row.get("height"), field=f"Review image height for {path}"
+        )
         review_identity = {
             "image_id": image_id,
             "path": path,
@@ -344,10 +385,9 @@ def promote_reviewed_annotations(
     roundtrip_counts = roundtrip.get("counts")
     if not isinstance(roundtrip_counts, dict):
         raise PromotionError("Round-trip report counts must be an object")
-    try:
-        roundtrip_image_count = int(roundtrip_counts.get("images", -1))
-    except (TypeError, ValueError) as exc:
-        raise PromotionError("Round-trip image count must be an integer") from exc
+    roundtrip_image_count = _strict_positive_int(
+        roundtrip_counts.get("images"), field="Round-trip image count"
+    )
     if roundtrip_image_count != len(pending_images):
         raise PromotionError("Round-trip image count differs from pending source image count")
 
@@ -382,10 +422,14 @@ def promote_reviewed_annotations(
         pending_row = pending_images.get(path)
         if pending_row is None:
             raise PromotionError(f"CVAT export contains an image absent from pending run: {path}")
-        try:
-            dimensions = (int(raw_image["width"]), int(raw_image["height"]))
-        except (KeyError, TypeError, ValueError) as exc:
-            raise PromotionError(f"CVAT export dimensions are invalid: {path}") from exc
+        dimensions = (
+            _strict_positive_int(
+                raw_image.get("width"), field=f"CVAT export width for {path}"
+            ),
+            _strict_positive_int(
+                raw_image.get("height"), field=f"CVAT export height for {path}"
+            ),
+        )
         if dimensions != (pending_row["width"], pending_row["height"]):
             raise PromotionError(f"CVAT export dimensions differ from pending run: {path}")
         export_id = raw_image["id"]
@@ -429,6 +473,22 @@ def promote_reviewed_annotations(
             )
         if image_id in included_export_ids:
             filtered_annotations.append(dict(annotation))
+    annotation_counts = Counter(
+        export_id_to_path[annotation["image_id"]]
+        for annotation in export_annotations
+        if isinstance(annotation, Mapping) and annotation.get("image_id") in export_id_to_path
+    )
+    for path, review_row in reviewed.items():
+        count = annotation_counts.get(path, 0)
+        disposition = review_row["disposition"]
+        if disposition == "confirmed_empty" and count != 0:
+            raise PromotionError(
+                f"Review image marked confirmed_empty still contains annotations: {path}"
+            )
+        if disposition in {"approved", "corrected"} and count == 0:
+            raise PromotionError(
+                f"Review image marked {disposition} contains no approved annotations: {path}"
+            )
     filtered_info = dict(export_document.get("info", {})) if isinstance(export_document.get("info"), dict) else {}
     filtered_info.update(
         {
@@ -463,6 +523,22 @@ def promote_reviewed_annotations(
         "promoted_at_utc": utc_now(),
         "source_role": "unlabeled_train",
         "source_image_list_sha256": source_image_list_sha,
+        "source_approval": {
+            "source_manifest_sha256": validated_source_binding["manifest_sha256"],
+            "dataset_id": validated_source_binding["dataset_id"],
+            "trusted_registry_id": validated_source_binding["trust"]["registry_id"],
+            "trusted_registry_sha256": validated_source_binding["trust"]["registry_sha256"],
+            "trusted_dataset_record_sha256": validated_source_binding["trust"][
+                "dataset_record_sha256"
+            ],
+            "locked_split_evidence_path": validated_source_binding["trust"][
+                "locked_split_evidence_path"
+            ],
+            "locked_split_evidence_sha256": validated_source_binding["trust"][
+                "locked_split_evidence_sha256"
+            ],
+            "runtime_source_revalidated": True,
+        },
         "ontology": ontology.record(),
         "pending_run": {
             "sha256": actual_pending_sha,
@@ -523,6 +599,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--ontology", type=Path, default=root / "configs" / "classes.smd_v1.yaml"
     )
+    parser.add_argument("--source-manifest", type=Path, required=True)
+    parser.add_argument("--source-root", type=Path, required=True)
+    parser.add_argument(
+        "--trusted-registry",
+        type=Path,
+        default=project_root() / "configs" / "data_trust_registry.yaml",
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
         "--filtered-coco",
@@ -542,6 +625,9 @@ def main(argv: list[str] | None = None) -> int:
             roundtrip_reference=args.roundtrip_reference,
             roundtrip_report=args.roundtrip_report,
             ontology_path=args.ontology,
+            source_manifest=args.source_manifest,
+            source_root=args.source_root,
+            trusted_registry_path=args.trusted_registry,
             output_path=args.output,
             filtered_coco_path=args.filtered_coco,
         )

@@ -21,10 +21,19 @@ Raspberry Pi bootstrap은 추가 100-epoch 학습 없이, 이미 완료된 YOLO1
 | Independent test | physical item ID·새 camera session 독립성 미입증 | **NOT VERIFIED** |
 | Canonical multi-class | 6-class ID·alias 동결, 한국어 display sidecar exact binding | **CONTRACT PASS** |
 | Small-chip ingest | allowlist·rights/hash·specimen·ZIP resource·atomic output gate | **CODE PASS / DATA WAITING** |
-| Small-chip source review | Dainius auth gate, IoTKITs archive 감사, Commons schema-v2 14건 revision 고정·육안 QA(board 후보 11·bare IC 후보 0) | **REVIEWED / SOURCE BLOCKED** |
-| CVAT·autolabel | exact image/teacher/calibration binding, reviewed-only promotion | **CODE PASS / DATA WAITING** |
+| Small-chip source review | Dainius auth gate, IoTKITs archive 감사, Commons schema-v2 revision 고정·육안 QA | **REVIEWED / DATA WAITING** |
+| Commons STM32 manual seed | `stm32_dev_board` 후보 11건, model-assisted draft box 11개, 보수적 leakage group 6개 | **PENDING HUMAN REVIEW / APPROVED 0** |
+| CVAT·autolabel | exact image/teacher/calibration/source-registry binding, reviewed-only promotion | **CODE PASS / DATA WAITING** |
 | STM32/SMD 실제 학습 data | trusted registry 승인 canonical dataset 0장 | **NOT VERIFIED** |
 | Ubuntu 실제 카메라 | ONNX artifact 검증 완료, 현장 E2E 측정 미실행 | **NOT VERIFIED** |
+
+현재 Commons review bundle은
+`data/staging/manual_seed/wikimedia_commons_stm32_dev_board_v2_review2/`에 로컬로 준비되어 있습니다.
+11개 후보와 11개 model-assisted draft box는 6개 보수적 leakage group으로 관리합니다. 사람 승인은
+**0건**이고 학습 사용은 금지되며, 원본 이미지와 bundle은 Git 추적 제외(Gitignored) 상태입니다.
+다음 조치는 CVAT에서 각 후보의 `stm32_dev_board` identity와 bbox를 사람이 전수 확인·수정하는 것입니다.
+공개 상태와 hash는 [검수 준비 기록](../data/manifests/wikimedia_stm32_dev_board.manual-seed-review-preparation.json)에
+고정되어 있습니다.
 
 ## RPi 결과와 해석 한계
 
@@ -52,19 +61,21 @@ hardware·runtime에 종속됩니다. Internal test는 threshold selection에 �
 | REQ-RPI-03 | policy/base SHA, mixed-commit attestation, checkpoint hash | **PASS** |
 | REQ-ONNX-01 | native↔ONNX val/test numeric equivalence 및 공개 artifact scan | **PASS** |
 | REQ-DATA-01 | provenance·license·specimen/session이 확인된 small-chip 실사 | **NOT VERIFIED** |
-| REQ-LABEL-01 | 모든 target instance의 사람 검수와 CVAT round-trip | **CODE PASS / DATA WAITING** |
+| REQ-LABEL-01 | 모든 target instance의 사람 검수와 CVAT round-trip | **BUNDLE READY / HUMAN APPROVAL 0** |
 | REQ-MC-01 | 동일 canonical multi-class dataset으로 두 framework 실행 | **CODE PASS / DATA WAITING** |
 | REQ-UB-01 | Ubuntu 새 camera session에서 정확도·E2E latency·FPS | **NOT VERIFIED** |
 
 ## 다음 실행 순서
 
-1. 검출 범위를 board/package detection과 marking OCR·exact SKU classification으로 분리해 승인합니다.
-2. STM32·SMD 실사를 provenance, license, `physical_item_id`, `capture_session`과 함께 반입합니다.
-3. 대표 200장에 보이는 모든 target instance를 수동 라벨링하고 locked gold val을 만듭니다.
-4. CVAT round-trip과 reviewed-only promotion을 실제 export에서 검증합니다.
-5. `smallchip_staged_training_v1`에 따라 1e smoke, 최대 10e pilot, 최대 50e candidate를 순차 실행합니다.
-6. validation 결과로 full-frame·tiling·입력 해상도를 비교하고, 필요 시 근거가 포함된 새 contract만 승인합니다.
-7. Ubuntu에서 새 camera session을 고정해 accuracy, p50/p95 E2E latency, FPS와 자원 사용량을 측정합니다.
+1. CVAT에서 Commons `stm32_dev_board` 후보 11건의 identity와 draft bbox 11개를 사람이 전수 검수합니다.
+2. 검수 결과의 COCO round-trip을 확인하되, 사람 승인과 신뢰 registry 반영 전에는 학습 사용을 금지합니다.
+3. 검출 범위를 board/package detection과 marking OCR·exact SKU classification으로 분리해 승인합니다.
+4. 추가 STM32·SMD 실사를 provenance, license, `physical_item_id`, `capture_session`과 함께 반입합니다.
+5. 대표 200장에 보이는 모든 target instance를 수동 라벨링하고 locked gold val을 만듭니다.
+6. 실제 export에서 reviewed-only promotion을 검증합니다.
+7. `smallchip_staged_training_v1`에 따라 1e smoke, 최대 10e pilot, 최대 50e candidate를 순차 실행합니다.
+8. validation 결과로 full-frame·tiling·입력 해상도를 비교하고, 필요 시 근거가 포함된 새 contract만 승인합니다.
+9. Ubuntu에서 새 camera session을 고정해 accuracy, p50/p95 E2E latency, FPS와 자원 사용량을 측정합니다.
 
 ## 주장 경계
 
@@ -73,3 +84,4 @@ hardware·runtime에 종속됩니다. Internal test는 threshold selection에 �
 - `n=2`, `df=1` 결과로 통계적 유의성이나 architecture의 모집단 우월성을 주장하지 않습니다.
 - RPi bootstrap 결과를 STM32/SMD 성능으로 확장하지 않습니다.
 - 외형만으로 exact STM32 part number, 전기적 기능 또는 정격을 확정하지 않습니다.
+- Model-assisted draft box와 검수 bundle 생성을 사람 승인 또는 학습 가능 상태로 표현하지 않습니다.

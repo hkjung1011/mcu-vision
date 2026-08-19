@@ -3,14 +3,16 @@
 ## 선정 방식
 
 목표 workflow는 **CVAT Community + 수동 seed 라벨**, 이후 **학습된 domain YOLO teacher + tiled
-pseudo-label + 전량 사람 검수**입니다. 현재 구현된 CLI는 **Ultralytics YOLO11 `.pt` 기반 proposal
-생성기와 자체 tile/class-aware NMS**까지입니다. CVAT 서버 자동 import/export는 없지만, 받은 COCO/YOLO
-export의 round-trip verifier와 reviewer/hash 기반 승격 gate는 구현되었습니다. 실제 CVAT export를 넣은
-통합 검증, Grounding DINO, SAM2, 실제 SAHI package와 native YOLOX `.pth` backend는 아직 미완료입니다.
+pseudo-label + 전량 사람 검수**입니다. 현재 구현된 CLI는 revision-bound Commons 후보를 검수 전용
+bundle로 만드는 수동 seed 준비기와 **Ultralytics YOLO11 `.pt` 기반 proposal 생성기 및 자체
+tile/class-aware NMS**입니다. CVAT 서버 자동 import/export는 없지만, 받은 COCO/YOLO export의
+round-trip verifier와 reviewer/hash 기반 승격 gate는 구현되었습니다. 실제 CVAT export를 넣은 통합
+검증, Grounding DINO, SAM2, 실제 SAHI package와 native YOLOX `.pth` backend는 아직 미완료입니다.
 
 | 단계 | 입력 | 출력 상태 | 학습 사용 |
 |---|---|---|---|
-| 수동 seed | 사람이 모든 목표 instance를 box/class 지정 | `manual_seed` | train 가능 |
+| 수동 seed draft | 모델 보조 제안을 사람이 검수하기 전의 후보 | `PENDING_HUMAN_REVIEW` | 금지 |
+| 검수 완료 수동 seed | 사람이 모든 목표 instance의 identity·box·class를 확인 | `manual_seed` | 별도 승인 후 가능 |
 | 범용 초기 제안 | Grounding DINO text prompt | `pending` | NOT IMPLEMENTED |
 | domain teacher 제안 | 현재는 Ultralytics YOLO11 checkpoint | `pending` | 검수 전 금지 |
 | 사람 승인·수정 | 누락 추가, 오검출/중복 삭제, class 수정 | `reviewed_train` | train 가능 |
@@ -90,6 +92,37 @@ PASS한 승격 manifest와 **reviewed-only filtered canonical COCO**를 만든 �
 다룹니다. 승격기는 pending image binding과 실제 reference COCO, full class map, round-trip report를
 exact bind합니다. `rejected` image/annotation은 filtered artifact에서 물리적으로 제거되고 그 SHA-256이
 downstream 학습 입력의 필수값이 됩니다. 파일을 수동 복사한 것만으로는 승인 데이터가 되지 않습니다.
+
+`mcu-promote-reviewed`는 승격 시점의 원천 신뢰 상태도 다시 검증합니다. 따라서
+`--source-manifest`, `--source-root`, `--trusted-registry`를 실제 pending run과 같은 원천에 맞춰
+제공해야 하며, registry는 프로젝트의 canonical `configs/data_trust_registry.yaml`만 허용합니다.
+과거 run manifest 또는 임의 registry에 기록된 승인 주장만으로는 승격할 수 없습니다.
+
+## Wikimedia Commons STM32 수동 seed 검수 bundle
+
+현재 준비된 검수 단위는 revision-bound Wikimedia Commons `stm32_dev_board` 후보 **11건**입니다.
+각 후보에는 model-assisted draft box가 하나씩 있어 총 **11개**이며, 동일 실물 또는 근접 파생물의
+split leakage를 보수적으로 차단하기 위한 group은 **6개**입니다. 사람 승인은 **0건**입니다. 따라서
+모든 box는 proposal일 뿐 ground truth가 아니고, bundle 전체의 학습 사용은 금지됩니다. 원본 이미지와
+bundle은 `data/quarantine/` 및 `data/staging/` 아래의 Git 추적 제외(Gitignored) 로컬 자료로
+유지합니다. 현재 준비된 bundle은
+`data/staging/manual_seed/wikimedia_commons_stm32_dev_board_v2_review2/`에 있습니다.
+공개 저장소에는 [검수 준비 기록](../data/manifests/wikimedia_stm32_dev_board.manual-seed-review-preparation.json)만
+남기며, 원본 이미지·ZIP·preview는 포함하지 않습니다.
+
+새 검수 bundle은 다음과 같이 만들며, 명령은 기존 output directory를 덮어쓰지 않습니다.
+
+```powershell
+.\.venv-collect\Scripts\mcu-prepare-manual-seed.exe `
+  --output-dir data\staging\manual_seed\<new-review-task> `
+  --run-id <new-review-run-id>
+```
+
+준비기는 acquisition probe, Commons revision·license·author, collector record, 원본 image SHA-256,
+frozen ontology, proposal 및 leakage group을 재검증하고 CVAT용 image ZIP·reference COCO·preview·미완료
+review template을 생성합니다. 생성 성공은 **검수 bundle의 무결성**만 뜻합니다. 다음 단계는 CVAT에서
+11개 후보 각각의 `stm32_dev_board` identity를 확인하고 bbox의 포함 범위·누락·오검출을 전수 수정하는
+것입니다. 사람 검수와 round-trip gate가 완료되기 전에는 어떤 산출물도 학습 label로 승격하지 않습니다.
 
 ## 수동 라벨 가이드
 

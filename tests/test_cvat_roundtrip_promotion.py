@@ -6,9 +6,10 @@ from pathlib import Path
 
 import pytest
 import yaml
+from PIL import Image
 
 from mcu_data.annotation_promotion import PromotionError, promote_reviewed_annotations
-from mcu_data.autolabel import AUTOLABEL_SOURCE_SCHEMA
+from mcu_data.autolabel import AUTOLABEL_SOURCE_SCHEMA, validate_source_binding
 from mcu_data.common import sha256_file
 from mcu_data.contracts import canonical_sha256, load_ontology
 from mcu_data.cvat_roundtrip import RoundTripError, verify_cvat_roundtrip
@@ -175,13 +176,20 @@ def test_roundtrip_rejects_class_id_alias_collisions(tmp_path: Path) -> None:
         )
 
 
-def _promotion_files(tmp_path: Path) -> dict[str, Path]:
+def _promotion_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> dict[str, Path]:
+    monkeypatch.setattr("mcu_data.annotation_promotion.project_root", lambda: tmp_path)
     ontology = load_ontology(ONTOLOGY_PATH)
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    Image.new("RGB", (100, 80), (10, 20, 30)).save(source_root / "one.png")
+    Image.new("RGB", (200, 100), (40, 50, 60)).save(source_root / "two.png")
     image_rows = [
         {
             "image_id": "pending-one",
             "path": "one.png",
-            "sha256": "1" * 64,
+            "sha256": sha256_file(source_root / "one.png"),
             "width": 100,
             "height": 80,
             "role": "unlabeled_train",
@@ -189,13 +197,86 @@ def _promotion_files(tmp_path: Path) -> dict[str, Path]:
         {
             "image_id": "pending-two",
             "path": "two.png",
-            "sha256": "2" * 64,
+            "sha256": sha256_file(source_root / "two.png"),
             "width": 200,
             "height": 100,
             "role": "unlabeled_train",
         },
     ]
     image_list_sha = canonical_sha256(image_rows)
+    empty_list_sha = canonical_sha256([])
+    evidence = tmp_path / "data" / "evidence" / "locked.json"
+    evidence.parent.mkdir(parents=True)
+    evidence.write_text(
+        json.dumps(
+            {
+                "schema_version": "mcu.locked-split-evidence.v1",
+                "dataset_id": "synthetic-reviewed-source",
+                "ontology_sha256": ontology.sha256,
+                "splits": {
+                    "unlabeled_train": {
+                        "images": image_rows,
+                        "image_list_sha256": image_list_sha,
+                    },
+                    "gold_validation_locked": {
+                        "images": [],
+                        "image_list_sha256": empty_list_sha,
+                    },
+                    "test_locked": {
+                        "images": [],
+                        "image_list_sha256": empty_list_sha,
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    registry = tmp_path / "configs" / "data_trust_registry.yaml"
+    registry.parent.mkdir(parents=True)
+    dataset_entry = {
+        "status": "APPROVED",
+        "ontology_sha256": ontology.sha256,
+        "locked_split_evidence": {
+            "path": "data/evidence/locked.json",
+            "sha256": sha256_file(evidence),
+        },
+    }
+    registry.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": "mcu.data-trust-registry.v1",
+                "registry_id": "synthetic-trusted-registry",
+                "status": "TEST_ONLY",
+                "datasets": {"synthetic-reviewed-source": dataset_entry},
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    source_manifest = tmp_path / "source-manifest.json"
+    source_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": AUTOLABEL_SOURCE_SCHEMA,
+                "dataset_id": "synthetic-reviewed-source",
+                "role": "unlabeled_train",
+                "ontology_sha256": ontology.sha256,
+                "trusted_registry_id": "synthetic-trusted-registry",
+                "trusted_registry_sha256": sha256_file(registry),
+                "trusted_dataset_record_sha256": canonical_sha256(dataset_entry),
+                "locked_split_evidence_sha256": sha256_file(evidence),
+                "image_list_sha256": image_list_sha,
+                "images": image_rows,
+            }
+        ),
+        encoding="utf-8",
+    )
+    source_binding = validate_source_binding(
+        source_manifest_path=source_manifest,
+        source=source_root,
+        ontology=ontology,
+        trusted_registry_path=registry,
+    )
     pending = tmp_path / "pending.json"
     pending.write_text(
         json.dumps(
@@ -203,13 +284,7 @@ def _promotion_files(tmp_path: Path) -> dict[str, Path]:
                 "status": "complete",
                 "annotation_state": "PENDING_HUMAN_REVIEW",
                 "run_id": "pending_smd_001",
-                "source_binding": {
-                    "schema_version": AUTOLABEL_SOURCE_SCHEMA,
-                    "role": "unlabeled_train",
-                    "ontology_sha256": ontology.sha256,
-                    "image_list_sha256": image_list_sha,
-                    "images": image_rows,
-                },
+                "source_binding": source_binding,
                 "ontology": ontology.record(),
                 "protocol": {"automatic_promotion_to_training": False},
             }
@@ -217,6 +292,10 @@ def _promotion_files(tmp_path: Path) -> dict[str, Path]:
         encoding="utf-8",
     )
     reference = _reference_coco(tmp_path / "reviewed-reference.json")
+    reference_document = json.loads(reference.read_text(encoding="utf-8"))
+    for raw, binding in zip(reference_document["images"], image_rows, strict=True):
+        raw["sha256"] = binding["sha256"]
+    reference.write_text(json.dumps(reference_document), encoding="utf-8")
     export = _coco_export(tmp_path / "reviewed-coco.zip", reference)
     roundtrip = tmp_path / "roundtrip.json"
     roundtrip_report = verify_cvat_roundtrip(
@@ -258,11 +337,24 @@ def _promotion_files(tmp_path: Path) -> dict[str, Path]:
         "export": export,
         "roundtrip": roundtrip,
         "review": review,
+        "source_manifest": source_manifest,
+        "source_root": source_root,
+        "registry": registry,
     }
 
 
-def test_promotion_requires_hash_bound_complete_human_review(tmp_path: Path) -> None:
-    files = _promotion_files(tmp_path)
+def _promotion_trust(files: dict[str, Path]) -> dict[str, Path]:
+    return {
+        "source_manifest": files["source_manifest"],
+        "source_root": files["source_root"],
+        "trusted_registry_path": files["registry"],
+    }
+
+
+def test_promotion_requires_hash_bound_complete_human_review(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    files = _promotion_files(tmp_path, monkeypatch)
     output = tmp_path / "promotion.json"
     result = promote_reviewed_annotations(
         pending_run_manifest=files["pending"],
@@ -271,6 +363,7 @@ def test_promotion_requires_hash_bound_complete_human_review(tmp_path: Path) -> 
         roundtrip_reference=files["reference"],
         roundtrip_report=files["roundtrip"],
         ontology_path=ONTOLOGY_PATH,
+        **_promotion_trust(files),
         output_path=output,
     )
     assert result["status"] == "PASS"
@@ -285,13 +378,19 @@ def test_promotion_requires_hash_bound_complete_human_review(tmp_path: Path) -> 
     assert result["training_use"]["validation_or_test_use"] is False
     assert result["training_use"]["included_image_count"] == 2
     assert result["training_use"]["excluded_rejected_image_count"] == 0
+    assert result["source_approval"]["runtime_source_revalidated"] is True
+    assert result["source_approval"]["source_manifest_sha256"] == sha256_file(
+        files["source_manifest"]
+    )
     filtered = tmp_path / "promotion.reviewed_train.coco.json"
     assert sha256_file(filtered) == result["training_use"]["required_canonical_coco_sha256"]
     assert output.is_file()
 
 
-def test_promotion_rejects_incomplete_review(tmp_path: Path) -> None:
-    files = _promotion_files(tmp_path)
+def test_promotion_rejects_incomplete_review(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    files = _promotion_files(tmp_path, monkeypatch)
     review = json.loads(files["review"].read_text(encoding="utf-8"))
     review["images"].pop()
     files["review"].write_text(json.dumps(review), encoding="utf-8")
@@ -303,12 +402,15 @@ def test_promotion_rejects_incomplete_review(tmp_path: Path) -> None:
             roundtrip_reference=files["reference"],
             roundtrip_report=files["roundtrip"],
             ontology_path=ONTOLOGY_PATH,
+            **_promotion_trust(files),
             output_path=tmp_path / "promotion.json",
         )
 
 
-def test_promotion_rejects_tampered_pending_image_binding(tmp_path: Path) -> None:
-    files = _promotion_files(tmp_path)
+def test_promotion_rejects_tampered_pending_image_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    files = _promotion_files(tmp_path, monkeypatch)
     pending = json.loads(files["pending"].read_text(encoding="utf-8"))
     pending["source_binding"]["images"][0]["width"] = 101
     files["pending"].write_text(json.dumps(pending), encoding="utf-8")
@@ -316,7 +418,7 @@ def test_promotion_rejects_tampered_pending_image_binding(tmp_path: Path) -> Non
     review["pending_run_manifest_sha256"] = sha256_file(files["pending"])
     files["review"].write_text(json.dumps(review), encoding="utf-8")
 
-    with pytest.raises(PromotionError, match="image_list_sha256"):
+    with pytest.raises(PromotionError, match="source binding differs"):
         promote_reviewed_annotations(
             pending_run_manifest=files["pending"],
             review_manifest=files["review"],
@@ -324,14 +426,81 @@ def test_promotion_rejects_tampered_pending_image_binding(tmp_path: Path) -> Non
             roundtrip_reference=files["reference"],
             roundtrip_report=files["roundtrip"],
             ontology_path=ONTOLOGY_PATH,
+            **_promotion_trust(files),
+            output_path=tmp_path / "promotion.json",
+        )
+
+
+def test_promotion_rejects_registry_changed_after_pending_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    files = _promotion_files(tmp_path, monkeypatch)
+    registry = yaml.safe_load(files["registry"].read_text(encoding="utf-8"))
+    registry["datasets"]["synthetic-reviewed-source"]["status"] = "REVOKED"
+    files["registry"].write_text(
+        yaml.safe_dump(registry, sort_keys=False), encoding="utf-8", newline="\n"
+    )
+
+    with pytest.raises(PromotionError, match="trust revalidation failed"):
+        promote_reviewed_annotations(
+            pending_run_manifest=files["pending"],
+            review_manifest=files["review"],
+            cvat_export=files["export"],
+            roundtrip_reference=files["reference"],
+            roundtrip_report=files["roundtrip"],
+            ontology_path=ONTOLOGY_PATH,
+            **_promotion_trust(files),
+            output_path=tmp_path / "promotion.json",
+        )
+
+
+def test_promotion_rejects_noncanonical_registry_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    files = _promotion_files(tmp_path, monkeypatch)
+    alternate = tmp_path / "alternate-registry.yaml"
+    alternate.write_bytes(files["registry"].read_bytes())
+    trust = _promotion_trust(files)
+    trust["trusted_registry_path"] = alternate
+
+    with pytest.raises(PromotionError, match="canonical configs/data_trust_registry"):
+        promote_reviewed_annotations(
+            pending_run_manifest=files["pending"],
+            review_manifest=files["review"],
+            cvat_export=files["export"],
+            roundtrip_reference=files["reference"],
+            roundtrip_report=files["roundtrip"],
+            ontology_path=ONTOLOGY_PATH,
+            **trust,
+            output_path=tmp_path / "promotion.json",
+        )
+
+
+def test_promotion_rejects_confirmed_empty_with_annotation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    files = _promotion_files(tmp_path, monkeypatch)
+    review = json.loads(files["review"].read_text(encoding="utf-8"))
+    review["images"][0]["disposition"] = "confirmed_empty"
+    files["review"].write_text(json.dumps(review), encoding="utf-8")
+
+    with pytest.raises(PromotionError, match="confirmed_empty still contains annotations"):
+        promote_reviewed_annotations(
+            pending_run_manifest=files["pending"],
+            review_manifest=files["review"],
+            cvat_export=files["export"],
+            roundtrip_reference=files["reference"],
+            roundtrip_report=files["roundtrip"],
+            ontology_path=ONTOLOGY_PATH,
+            **_promotion_trust(files),
             output_path=tmp_path / "promotion.json",
         )
 
 
 def test_promotion_rejects_unrelated_roundtrip_reference_with_same_count(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    files = _promotion_files(tmp_path)
+    files = _promotion_files(tmp_path, monkeypatch)
     alien = json.loads(files["reference"].read_text(encoding="utf-8"))
     for index, image in enumerate(alien["images"], start=1):
         image["file_name"] = f"alien-{index}.png"
@@ -368,12 +537,15 @@ def test_promotion_rejects_unrelated_roundtrip_reference_with_same_count(
             roundtrip_reference=alien_reference,
             roundtrip_report=alien_report_path,
             ontology_path=ONTOLOGY_PATH,
+            **_promotion_trust(files),
             output_path=tmp_path / "promotion.json",
         )
 
 
-def test_promotion_physically_filters_rejected_images(tmp_path: Path) -> None:
-    files = _promotion_files(tmp_path)
+def test_promotion_physically_filters_rejected_images(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    files = _promotion_files(tmp_path, monkeypatch)
     review = json.loads(files["review"].read_text(encoding="utf-8"))
     review["images"][1]["disposition"] = "rejected"
     files["review"].write_text(json.dumps(review), encoding="utf-8")
@@ -384,6 +556,7 @@ def test_promotion_physically_filters_rejected_images(tmp_path: Path) -> None:
         roundtrip_reference=files["reference"],
         roundtrip_report=files["roundtrip"],
         ontology_path=ONTOLOGY_PATH,
+        **_promotion_trust(files),
         output_path=tmp_path / "promotion.json",
     )
     filtered_path = tmp_path / "promotion.reviewed_train.coco.json"

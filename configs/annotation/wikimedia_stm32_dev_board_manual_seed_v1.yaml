@@ -1,0 +1,72 @@
+schema_version: mcu.manual-seed-proposals.v1
+proposal_id: wikimedia_stm32_dev_board_manual_seed_v1
+status: DRAFT_REQUIRES_HUMAN_REVIEW
+source_probe:
+  path: data/manifests/wikimedia_stm32_v2.acquisition-probe.json
+  sha256: 52c5f8d1e761945e7ed4951aaf3f14eb0ceced36fd15421ae56b4dbaa9215a49
+  schema_version: 2
+collection_route: stm32_dev_board
+class_name: stm32_dev_board
+ontology_sha256: 1ad19fe8623c9b93b483ef28993780a8af82486dd86f06b40f79b117a9161c23
+proposal_method: model_assisted_visual_draft_from_revision_bound_originals
+claim_boundary:
+  human_review_completed: false
+  ground_truth: false
+  training_use_allowed: false
+  note: Bounding boxes are review proposals only; correct them against the original image in CVAT.
+proposals:
+  - source_page_id: 17582795
+    leakage_group_id: stm32f1_discovery_family
+    bbox_xywh_pixels: [3, 0, 1245, 2364]
+    attributes: {occluded: false, truncated: true}
+    review_state: PROPOSED_REQUIRES_HUMAN_REVIEW
+  - source_page_id: 48272638
+    leakage_group_id: stm32_nucleo_f4_family
+    bbox_xywh_pixels: [0, 0, 3139, 3652]
+    attributes: {occluded: false, truncated: true}
+    review_state: PROPOSED_REQUIRES_HUMAN_REVIEW
+  - source_page_id: 48272883
+    leakage_group_id: stm32_nucleo_f4_family
+    bbox_xywh_pixels: [0, 0, 2588, 2901]
+    attributes: {occluded: false, truncated: true}
+    review_state: PROPOSED_REQUIRES_HUMAN_REVIEW
+  - source_page_id: 81008735
+    leakage_group_id: stm32f1_discovery_family
+    bbox_xywh_pixels: [38, 34, 324, 649]
+    attributes: {occluded: false, truncated: false}
+    review_state: PROPOSED_REQUIRES_HUMAN_REVIEW
+  - source_page_id: 81008736
+    leakage_group_id: stm32f1_discovery_family
+    bbox_xywh_pixels: [40, 26, 320, 649]
+    attributes: {occluded: false, truncated: false}
+    review_state: PROPOSED_REQUIRES_HUMAN_REVIEW
+  - source_page_id: 81008737
+    leakage_group_id: stm32f0_discovery_family
+    bbox_xywh_pixels: [29, 0, 328, 690]
+    attributes: {occluded: false, truncated: true}
+    review_state: PROPOSED_REQUIRES_HUMAN_REVIEW
+  - source_page_id: 81008738
+    leakage_group_id: stm32f0_discovery_family
+    bbox_xywh_pixels: [48, 19, 320, 665]
+    attributes: {occluded: false, truncated: false}
+    review_state: PROPOSED_REQUIRES_HUMAN_REVIEW
+  - source_page_id: 81008739
+    leakage_group_id: stm32f3_discovery_family
+    bbox_xywh_pixels: [39, 29, 417, 643]
+    attributes: {occluded: false, truncated: false}
+    review_state: PROPOSED_REQUIRES_HUMAN_REVIEW
+  - source_page_id: 81008740
+    leakage_group_id: stm32f4_discovery_family
+    bbox_xywh_pixels: [48, 15, 414, 676]
+    attributes: {occluded: false, truncated: false}
+    review_state: PROPOSED_REQUIRES_HUMAN_REVIEW
+  - source_page_id: 81008742
+    leakage_group_id: stm32f4_discovery_family
+    bbox_xywh_pixels: [53, 40, 410, 647]
+    attributes: {occluded: false, truncated: false}
+    review_state: PROPOSED_REQUIRES_HUMAN_REVIEW
+  - source_page_id: 91299007
+    leakage_group_id: blue_pill_family
+    bbox_xywh_pixels: [20, 20, 816, 323]
+    attributes: {occluded: false, truncated: false}
+    review_state: PROPOSED_REQUIRES_HUMAN_REVIEW

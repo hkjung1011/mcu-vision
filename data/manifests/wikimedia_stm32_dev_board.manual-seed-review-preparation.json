@@ -1,0 +1,49 @@
+{
+  "schema_version": "mcu.manual-seed-preparation-record.v1",
+  "status": "AWAITING_HUMAN_CVAT_REVIEW",
+  "dataset_id": "wikimedia_stm32_dev_board_manual_seed_v1",
+  "run_id": "wikimedia-commons-stm32-dev-board-v2-review2",
+  "created_at_utc": "2026-08-19T13:47:20+00:00",
+  "class_name": "stm32_dev_board",
+  "candidate_images": 11,
+  "proposed_annotations": 11,
+  "conservative_leakage_groups": 6,
+  "human_approved_images": 0,
+  "human_approved_annotations": 0,
+  "claim_boundary": {
+    "human_review_complete": false,
+    "proposals_are_ground_truth": false,
+    "training_use_allowed": false,
+    "formal_evaluation_allowed": false
+  },
+  "source_evidence": {
+    "probe_path": "data/manifests/wikimedia_stm32_v2.acquisition-probe.json",
+    "probe_sha256": "52c5f8d1e761945e7ed4951aaf3f14eb0ceced36fd15421ae56b4dbaa9215a49",
+    "collector_records_sha256": "7e553b19486ca98a5b6c75107158f8f4bece3491e13a5f6daed288264b9df908",
+    "proposal_path": "configs/annotation/wikimedia_stm32_dev_board_manual_seed_v1.yaml",
+    "proposal_sha256": "2772e514025a43d0c8129f5811ae6f9c00be48e0367aef3e409a9ef2bee7356f",
+    "ontology_path": "configs/classes.smd_v1.yaml",
+    "ontology_sha256": "1ad19fe8623c9b93b483ef28993780a8af82486dd86f06b40f79b117a9161c23",
+    "class_map_sha256": "11c4024b3dd9821418c7921fe43f159f70a1ea908ebd8b4889aee04df517ca20"
+  },
+  "local_review_bundle": {
+    "path": "data/staging/manual_seed/wikimedia_commons_stm32_dev_board_v2_review2",
+    "tracked_by_git": false,
+    "file_count": 27,
+    "bytes": 16573098,
+    "task_manifest_sha256": "c8649cd9073c8841ebaeee122a37b56357a0fa5c1e66caf9ab7a698ca7bf8754",
+    "reference_coco_sha256": "95b785a4b2454bbc22f6511118f26a834bbfb3861e4fd51e65ce131ca50e778f",
+    "cvat_images_zip_sha256": "e296ac734b95dc394d4136cd34d995985fe14fc80c596e86708fae4eaf97b08d",
+    "attribution_sha256": "62b28b846cad892cb95cd83ef310038ec781d58914b4104c936fcbc98d34efbd",
+    "unresolved_review_template_sha256": "d5fece0710a0b4ff74ae2257aa9527a6fe6bcb48860540e4ffba3d6be962941b"
+  },
+  "required_next_gate": {
+    "action": "HUMAN_CVAT_IDENTITY_AND_BBOX_REVIEW",
+    "requirements": [
+      "Verify that every image depicts an STM32 development board covered by class stm32_dev_board.",
+      "Correct or reject every proposed bounding box against the revision-bound original.",
+      "Record reviewer identity, CVAT task/job IDs, dispositions, approval time, and a hash-bound COCO round-trip report.",
+      "Keep all source images in the training split only; do not use them for validation or test."
+    ]
+  }
+}

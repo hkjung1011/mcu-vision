@@ -20,8 +20,8 @@ third-party model·dataset에는 해당 원 라이선스가 함께 적용됩니�
 | RPi ONNX deployment gate | 두 모델 val/test 공통 평가, native↔ONNX numeric equivalence, artifact hash | **PASS** |
 | 독립성 | physical item·새 camera session 독립성 증빙 없음 | **NOT VERIFIED** |
 | MCU/SMD ontology | canonical 6-class ID 동결, 한국어는 presentation-only sidecar | **CONTRACT PASS / DATA EMPTY** |
-| 소형칩 반입·CVAT·오토라벨 경로 | provenance·hash·specimen·round-trip·승격 gate 구현 | **CODE PASS / SOURCE BLOCKED** |
-| STM32 공개 원천 검수 | Wikimedia schema-v2 14건 revision 고정·육안 QA: board 후보 11, 단품 IC 후보 0 | **REVIEWED / APPROVED 0** |
+| 소형칩 반입·CVAT·오토라벨 경로 | provenance·hash·specimen·round-trip·승격 gate 구현 | **CODE PASS / DATA WAITING** |
+| STM32 공개 원천 수동 seed | Wikimedia Commons `stm32_dev_board` 후보 11건, model-assisted draft box 11개, 보수적 leakage group 6개 | **PENDING HUMAN REVIEW / APPROVED 0** |
 | STM32/SMD 승인 실사 | trusted registry에 승인된 실제 학습 dataset 없음 | **NOT VERIFIED** |
 | Ubuntu 실제 카메라 시험 | ONNX artifact 준비, 현장 capture·latency·정확도 미측정 | **NOT VERIFIED** |
 
@@ -86,6 +86,30 @@ compute/time budget, leakage gate 및 사용자 승인 근거를 기록한 새 v
 
 한국어 sidecar는 presentation-only입니다. canonical ID, class 순서, source alias 또는 학습 label을
 재정의하지 않으며 integration test가 두 파일의 ontology ID와 exact key order를 검증합니다.
+
+## STM32 Commons 수동 seed 검수 상태
+
+Wikimedia Commons에서 revision과 권리 근거를 고정한 `stm32_dev_board` 후보 11건을 하나의
+**검수 전용 bundle**로 준비했습니다. 이 bundle에는 후보별 model-assisted draft box 11개와
+보수적으로 정의한 leakage group 6개가 포함됩니다. 현재 사람 승인 수는 **0건**이며, draft box는
+ground truth가 아닙니다. 로컬 bundle 경로는
+`data/staging/manual_seed/wikimedia_commons_stm32_dev_board_v2_review2/`입니다. 원본 이미지와 검수
+작업물은 Git 추적 제외(Gitignored) 데이터이므로 GitHub에 게시하거나 학습 입력으로 사용하지 않습니다.
+GitHub에는 원본 대신 [검수 준비 기록](data/manifests/wikimedia_stm32_dev_board.manual-seed-review-preparation.json)만
+공개하며, 여기에도 사람 승인 0건과 학습 금지 상태를 명시했습니다.
+
+동일한 계약으로 새 검수 작업을 만들 때는 기존 output directory를 덮어쓰지 않고 새 `run-id`와 경로를
+지정합니다.
+
+```powershell
+.\.venv-collect\Scripts\mcu-prepare-manual-seed.exe `
+  --output-dir data\staging\manual_seed\<new-review-task> `
+  --run-id <new-review-run-id>
+```
+
+다음 단계는 CVAT에서 11개 이미지의 **`stm32_dev_board` identity와 bbox를 사람이 전수 확인·수정**하는
+것입니다. 검수 완료, round-trip 검증 및 hash-bound 승인 절차 전까지 `training_use_allowed=false`를
+유지합니다.
 
 ## 처음 실행
 

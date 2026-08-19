@@ -3,8 +3,10 @@
 ## 판정
 
 이 구현은 **데이터 계약과 fail-closed 검증 경로**만 제공합니다. 저장소에는 Dainius SMD 원본이나
-STM32 자체 촬영본이 없으며, 승인 canonical STM32/SMD 데이터 수량은 계속 **0장**입니다. 테스트의
-작은 단색 이미지는 코드 검증 중 임시 폴더에만 생성되는 synthetic fixture이고 학습 데이터가 아닙니다.
+STM32 자체 촬영본이 없으며, 승인 canonical STM32/SMD 데이터 수량은 계속 **0장**입니다. Wikimedia
+Commons `stm32_dev_board` 후보 11건은 model-assisted draft box 11개와 보수적 leakage group 6개를
+포함한 검수 전용 bundle로 준비되었지만, 사람 승인은 **0건**이고 학습 사용은 금지됩니다. 테스트의 작은
+단색 이미지는 코드 검증 중 임시 폴더에만 생성되는 synthetic fixture이고 학습 데이터가 아닙니다.
 
 ## 고정 ontology
 
@@ -33,6 +35,31 @@ PDM은 source가 표시한 권리 상태이며 이 프로젝트가 새 license�
 이미지는 `.gitignore` 대상이고 Git에는 URL, author, version, rights statement, archive/image SHA-256,
 수량과 감사 결과만 올립니다. Provider의 random split은 formal validation/test로 인정하지 않고
 `bootstrap_train_only`로 반입합니다.
+
+## Wikimedia Commons STM32 수동 seed 검수
+
+Revision-bound Commons 수집물 가운데 현재 ontology와 일치하는 항목은 `stm32_dev_board` 후보
+**11건**입니다. 준비된 reference COCO에는 후보별 model-assisted draft box **11개**가 있으며,
+유사 촬영·동일 실물 가능성을 보수적으로 묶은 leakage group은 **6개**입니다. 이는 데이터 승인이나
+ground truth 확정이 아니라 사람 검수를 위한 초기 제안입니다. 사람 승인 수는 **0건**이고,
+`training_use_allowed=false`를 유지합니다. 현재 로컬 bundle은
+`data/staging/manual_seed/wikimedia_commons_stm32_dev_board_v2_review2/`에 있습니다. 원본 이미지와
+검수 bundle은 Git 추적 제외(Gitignored)이며 공개 Git에는 provenance·hash·상태 증빙만 기록합니다.
+추적되는 상태 증빙은
+[`wikimedia_stm32_dev_board.manual-seed-review-preparation.json`](../data/manifests/wikimedia_stm32_dev_board.manual-seed-review-preparation.json)입니다.
+
+새 review task를 준비하는 명령은 다음과 같습니다. 출력 경로가 이미 존재하면 덮어쓰지 않고 실패하므로
+재실행에는 새 `run-id`와 새 directory를 사용합니다.
+
+```powershell
+.\.venv-collect\Scripts\mcu-prepare-manual-seed.exe `
+  --output-dir data\staging\manual_seed\<new-review-task> `
+  --run-id <new-review-run-id>
+```
+
+다음 단계는 CVAT 원본 해상도에서 11개 후보의 `stm32_dev_board` identity를 사람이 확인하고, 각 bbox의
+경계·누락·오검출을 전수 수정하는 것입니다. 이 검수와 COCO round-trip 검증이 끝나기 전에는 reference
+COCO나 draft annotation을 canonical train split으로 복사하지 않습니다.
 
 ## 1. 인증 필요 상태 기록
 
@@ -159,6 +186,9 @@ task ID/job IDs, pending run/export/round-trip/ontology/image-list SHA-256와 �
   --roundtrip-reference runs\autolabel\smd_pending_v1\pending_reference.coco.json `
   --roundtrip-report data\reports\cvat\coco-roundtrip.json `
   --ontology configs\classes.smd_v1.yaml `
+  --source-manifest data\manifests\unlabeled_smd.session-001.json `
+  --source-root data\staging\unlabeled_smd `
+  --trusted-registry configs\data_trust_registry.yaml `
   --output data\manifests\smd_reviewed_train.promotion.json `
   --filtered-coco data\processed\smd_reviewed_train\instances_train.json
 ```
@@ -167,7 +197,11 @@ Pending의 image ID/path/dimensions/SHA, full class map, ontology, reference COC
 report가 정확히 같은 run에 묶이지 않으면 승격하지 않습니다. 모든 이미지의 review가 끝나야 하며
 reviewer/task/job/hash 중 하나라도 없으면 실패합니다. `rejected` image와 annotation은 filtered canonical
 COCO에서 실제 제거되고, manifest에는 included/excluded stable ID와 downstream에서 반드시 확인할 filtered
-COCO SHA-256이 기록됩니다. 승격 manifest만으로 validation/test 사용은 허용되지 않습니다.
+COCO SHA-256이 기록됩니다. 또한 승격기는 `--source-manifest`의 image binding을 `--source-root`의 실제
+파일 및 `--trusted-registry`의 현재 승인 evidence와 다시 대조합니다. Pending 생성 당시의 trust 기록만
+일치하고 현재 원천·registry가 달라진 경우에도 fail closed입니다. `--trusted-registry`는 프로젝트의
+canonical `configs/data_trust_registry.yaml`과 정확히 같은 경로여야 하며 임의 승인 registry로 대체할 수
+없습니다. 승격 manifest만으로 validation/test 사용은 허용되지 않습니다.
 
 ## Locked 평가 evidence
 
