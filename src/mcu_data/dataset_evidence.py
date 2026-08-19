@@ -4,7 +4,7 @@ import argparse
 import hashlib
 import json
 import unicodedata
-from collections import Counter
+from collections import Counter, defaultdict
 from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
@@ -24,20 +24,322 @@ REQUIRED_EVIDENCE_FIELDS = (
     "canonical_train_records_sha256",
     "canonical_val_records_sha256",
 )
+OPTIONAL_EVIDENCE_FIELDS = (
+    "test_image_list_sha256",
+    "canonical_test_records_sha256",
+    "canonical_annotation_attributes_sha256",
+)
+TEST_EVIDENCE_SUPPLEMENT_CONTRACT_ID = "rpi_test_evidence_supplement_v1"
 ARTIFACT_FILENAMES = {
     "class_map": "class_map.json",
     "train_image_list": "train_image_list.json",
     "val_image_list": "val_image_list.json",
     "canonical_train_records": "canonical_train_records.jsonl",
     "canonical_val_records": "canonical_val_records.jsonl",
+    "test_image_list": "test_image_list.json",
+    "canonical_test_records": "canonical_test_records.jsonl",
+    "canonical_annotation_attributes": "canonical_annotation_attributes.jsonl",
     "canonical_dataset_manifest": "canonical_dataset_manifest.json",
     "dataset_evidence": "dataset_evidence.json",
     "equivalence_report": "dataset_equivalence_report.json",
+}
+EVIDENCE_ARTIFACT_KEYS = {
+    "class_map_sha256": "class_map",
+    "train_image_list_sha256": "train_image_list",
+    "val_image_list_sha256": "val_image_list",
+    "test_image_list_sha256": "test_image_list",
+    "canonical_train_records_sha256": "canonical_train_records",
+    "canonical_val_records_sha256": "canonical_val_records",
+    "canonical_test_records_sha256": "canonical_test_records",
+    "canonical_annotation_attributes_sha256": "canonical_annotation_attributes",
+    "canonical_dataset_manifest_sha256": "canonical_dataset_manifest",
 }
 
 
 class DatasetEvidenceError(ValueError):
     """Raised when an input cannot be represented without ambiguity."""
+
+
+def _exact_mapping_keys(value: Any, expected: set[str], *, label: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise DatasetEvidenceError(f"{label} must be a mapping")
+    actual = set(value)
+    if actual != expected:
+        raise DatasetEvidenceError(
+            f"{label} keys differ: missing={sorted(expected - actual)}, "
+            f"extra={sorted(actual - expected)}"
+        )
+    return value
+
+
+def _contained_contract_path(project_root: Path, value: Any, *, label: str) -> Path:
+    if not isinstance(value, str) or not value or "\\" in value:
+        raise DatasetEvidenceError(f"{label} must be a non-empty project-relative POSIX path")
+    relative = PurePosixPath(value)
+    if relative.is_absolute() or any(part in {"", ".", ".."} for part in relative.parts):
+        raise DatasetEvidenceError(f"{label} is not a contained project-relative path")
+    root = project_root.resolve()
+    resolved = (root / Path(*relative.parts)).resolve()
+    if not resolved.is_relative_to(root):
+        raise DatasetEvidenceError(f"{label} escapes the project root")
+    return resolved
+
+
+def _canonical_text_sha256(path: Path) -> str:
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except UnicodeError as exc:
+        raise DatasetEvidenceError(f"Contract text must be UTF-8: {path}") from exc
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _load_canonical_envelopes(path: Path, *, expected_count: int, label: str) -> list[dict[str, Any]]:
+    try:
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
+    except UnicodeError as exc:
+        raise DatasetEvidenceError(f"{label} must be UTF-8") from exc
+    if len(lines) != expected_count or any(not line for line in lines):
+        raise DatasetEvidenceError(
+            f"{label} record count differs: expected={expected_count}, actual={len(lines)}"
+        )
+    envelopes: list[dict[str, Any]] = []
+    for index, line in enumerate(lines, start=1):
+        try:
+            envelope = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise DatasetEvidenceError(f"{label} line {index} is invalid JSON") from exc
+        _exact_mapping_keys(envelope, {"record", "record_sha256"}, label=f"{label} line {index}")
+        record = envelope["record"]
+        if not isinstance(record, dict):
+            raise DatasetEvidenceError(f"{label} line {index} record must be a mapping")
+        expected_sha = _sha256_bytes(_canonical_json(record).encode("utf-8"))
+        if envelope["record_sha256"] != expected_sha:
+            raise DatasetEvidenceError(f"{label} line {index} record SHA-256 differs")
+        envelopes.append(envelope)
+    return envelopes
+
+
+def load_test_evidence_supplement_contract(
+    path: Path,
+    *,
+    project_root: Path,
+) -> dict[str, Any]:
+    """Validate the versioned locked-test sidecar without mutating the RPi protocol."""
+    document = load_yaml(path)
+    _exact_mapping_keys(
+        document,
+        {
+            "schema_version",
+            "contract_id",
+            "status",
+            "scope",
+            "base_protocol",
+            "base_evidence",
+            "supplement",
+            "evaluation_boundary",
+            "training_effect",
+        },
+        label="test evidence supplement contract",
+    )
+    if (
+        type(document.get("schema_version")) is not int
+        or document["schema_version"] != 1
+        or document.get("contract_id") != TEST_EVIDENCE_SUPPLEMENT_CONTRACT_ID
+        or document.get("status") != "FROZEN_SUPPLEMENT"
+        or document.get("scope") != "evidence_only"
+    ):
+        raise DatasetEvidenceError("Test evidence supplement identity/status differs")
+
+    base_protocol = _exact_mapping_keys(
+        document["base_protocol"],
+        {"protocol_id", "path", "canonical_sha256", "immutable"},
+        label="base_protocol",
+    )
+    protocol_path = _contained_contract_path(
+        project_root, base_protocol["path"], label="base_protocol.path"
+    )
+    protocol = load_yaml(protocol_path)
+    if (
+        base_protocol.get("immutable") is not True
+        or protocol.get("protocol_id") != base_protocol.get("protocol_id")
+        or _canonical_text_sha256(protocol_path) != base_protocol.get("canonical_sha256")
+    ):
+        raise DatasetEvidenceError("Supplement base protocol binding differs")
+
+    base_evidence = _exact_mapping_keys(
+        document["base_evidence"], {"path", "hashes"}, label="base_evidence"
+    )
+    evidence_path = _contained_contract_path(
+        project_root, base_evidence["path"], label="base_evidence.path"
+    )
+    declared_base_hashes = _exact_mapping_keys(
+        base_evidence["hashes"], set(REQUIRED_EVIDENCE_FIELDS), label="base_evidence.hashes"
+    )
+    loaded_base_hashes = load_dataset_evidence(evidence_path)
+    if loaded_base_hashes != declared_base_hashes:
+        raise DatasetEvidenceError("Supplement base evidence binding differs")
+
+    supplement = _exact_mapping_keys(
+        document["supplement"],
+        {"directory", "locked_test_evidence_enabled", "include_coco_attributes", "artifacts"},
+        label="supplement",
+    )
+    if (
+        supplement.get("locked_test_evidence_enabled") is not True
+        or supplement.get("include_coco_attributes") is not True
+    ):
+        raise DatasetEvidenceError("Supplement test/attribute evidence must be explicitly enabled")
+    supplement_directory = _contained_contract_path(
+        project_root, supplement["directory"], label="supplement.directory"
+    )
+    artifacts = _exact_mapping_keys(
+        supplement["artifacts"],
+        {"test_image_list", "canonical_test_records", "canonical_annotation_attributes"},
+        label="supplement.artifacts",
+    )
+    paths: dict[str, Path] = {}
+    for name, raw_record in artifacts.items():
+        required_keys = {"path", "sha256", "records"}
+        if name == "canonical_annotation_attributes":
+            required_keys.add("split_records")
+        record = _exact_mapping_keys(raw_record, required_keys, label=f"artifact {name}")
+        if type(record.get("records")) is not int or record["records"] <= 0:
+            raise DatasetEvidenceError(f"artifact {name}.records must be a positive integer")
+        artifact_path = _contained_contract_path(
+            project_root, record["path"], label=f"artifact {name}.path"
+        )
+        if artifact_path.parent != supplement_directory:
+            raise DatasetEvidenceError(f"artifact {name} is outside the declared supplement directory")
+        if not artifact_path.is_file() or sha256_file(artifact_path) != record.get("sha256"):
+            raise DatasetEvidenceError(f"artifact {name} SHA-256 differs")
+        paths[name] = artifact_path
+
+    try:
+        image_list = json.loads(paths["test_image_list"].read_text(encoding="utf-8-sig"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise DatasetEvidenceError("test_image_list is invalid JSON") from exc
+    if not isinstance(image_list, list) or len(image_list) != artifacts["test_image_list"]["records"]:
+        raise DatasetEvidenceError("test_image_list record count differs")
+    image_pairs = {
+        (item.get("image_key"), item.get("image_sha256"))
+        for item in image_list
+        if isinstance(item, dict)
+    }
+    if len(image_pairs) != len(image_list):
+        raise DatasetEvidenceError("test_image_list identities are invalid or duplicated")
+
+    test_records = _load_canonical_envelopes(
+        paths["canonical_test_records"],
+        expected_count=artifacts["canonical_test_records"]["records"],
+        label="canonical_test_records",
+    )
+    test_pairs = {
+        (item["record"].get("image_key"), item["record"].get("image_sha256"))
+        for item in test_records
+    }
+    if test_pairs != image_pairs:
+        raise DatasetEvidenceError("Canonical test records do not match the test image sidecar")
+
+    attribute_records = _load_canonical_envelopes(
+        paths["canonical_annotation_attributes"],
+        expected_count=artifacts["canonical_annotation_attributes"]["records"],
+        label="canonical_annotation_attributes",
+    )
+    split_counts = Counter(item["record"].get("split") for item in attribute_records)
+    expected_split_counts = artifacts["canonical_annotation_attributes"]["split_records"]
+    if (
+        not isinstance(expected_split_counts, dict)
+        or any(type(value) is not int for value in expected_split_counts.values())
+        or dict(split_counts) != expected_split_counts
+    ):
+        raise DatasetEvidenceError("Canonical attribute sidecar split counts differ")
+
+    boundary = _exact_mapping_keys(
+        document["evaluation_boundary"],
+        {
+            "split_method",
+            "exact_sha_cross_split_gate",
+            "physical_item_independence_verified",
+            "independent_test",
+            "permitted_claim",
+            "prohibited_claims",
+        },
+        label="evaluation_boundary",
+    )
+    if (
+        boundary.get("split_method") != "internal_phash_component_grouping"
+        or boundary.get("exact_sha_cross_split_gate") is not True
+        or boundary.get("physical_item_independence_verified") is not False
+        or boundary.get("independent_test") is not False
+        or boundary.get("permitted_claim") != "locked_internal_test_supplement"
+        or boundary.get("prohibited_claims")
+        != ["independent_test", "field_generalization", "production_ready"]
+    ):
+        raise DatasetEvidenceError("Supplement evaluation claim boundary differs")
+    training_effect = _exact_mapping_keys(
+        document["training_effect"],
+        {
+            "changes_historical_rpi_training_protocol",
+            "authorizes_additional_rpi_training",
+            "changes_paired_2seed_release",
+        },
+        label="training_effect",
+    )
+    if any(value is not False for value in training_effect.values()):
+        raise DatasetEvidenceError("Evidence supplement must not alter or authorize RPi training")
+    return {
+        "contract_id": document["contract_id"],
+        "base_protocol_sha256": base_protocol["canonical_sha256"],
+        "base_evidence": loaded_base_hashes,
+        "artifact_sha256": {name: artifacts[name]["sha256"] for name in artifacts},
+        "test_images": len(image_list),
+        "test_records": len(test_records),
+        "attribute_records": len(attribute_records),
+        "attribute_split_records": dict(split_counts),
+        "independent_test": False,
+    }
+
+
+def resolve_protocol_test_evidence(
+    *,
+    dataset_config: dict[str, Any],
+    coco_root: Path,
+    coco_test_annotations: Path | None,
+    coco_test_image_root: Path | None,
+) -> tuple[Path | None, Path | None, bool]:
+    """Resolve a locked test preflight only when the protocol explicitly opts in."""
+    enabled = dataset_config.get("locked_test_evidence_enabled", False)
+    if not isinstance(enabled, bool):
+        raise DatasetEvidenceError("dataset.locked_test_evidence_enabled must be boolean")
+    include_attributes = dataset_config.get("include_coco_attributes", False)
+    if not isinstance(include_attributes, bool):
+        raise DatasetEvidenceError("dataset.include_coco_attributes must be boolean")
+    if not enabled:
+        if coco_test_annotations is not None or coco_test_image_root is not None:
+            raise DatasetEvidenceError(
+                "COCO test evidence arguments are forbidden unless the protocol opts in"
+            )
+        if include_attributes:
+            raise DatasetEvidenceError(
+                "COCO attribute evidence requires locked_test_evidence_enabled=true"
+            )
+        return None, None, False
+    annotation = (
+        coco_test_annotations.resolve()
+        if coco_test_annotations is not None
+        else (coco_root.resolve() / "annotations" / "instances_test2017.json")
+    )
+    image_root = (
+        coco_test_image_root.resolve()
+        if coco_test_image_root is not None
+        else (coco_root.resolve() / "test2017")
+    )
+    if not annotation.is_file():
+        raise FileNotFoundError(annotation)
+    if not image_root.is_dir():
+        raise FileNotFoundError(image_root)
+    return annotation, image_root, include_attributes
 
 
 def _canonical_json(value: Any) -> str:
@@ -71,6 +373,23 @@ def _record_envelopes(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         }
         for record in ordered
     ]
+
+
+def _coco_attributes(annotation: dict[str, Any]) -> dict[str, Any]:
+    """Preserve primitive CVAT/COCO attributes without claiming YOLO can encode them."""
+    result: dict[str, Any] = {}
+    raw = annotation.get("attributes")
+    if isinstance(raw, dict):
+        for key, value in raw.items():
+            if isinstance(key, str) and isinstance(value, (str, int, float, bool, type(None))):
+                result[unicodedata.normalize("NFC", key)] = value
+    for key in ("occluded", "truncated"):
+        if key in annotation:
+            value = annotation[key]
+            if value not in (True, False, 0, 1):
+                raise DatasetEvidenceError(f"COCO annotation attribute {key} must be boolean-like")
+            result[key] = bool(value)
+    return dict(sorted(result.items()))
 
 
 def _normalized_text(value: Any, *, field: str) -> str:
@@ -370,13 +689,15 @@ def canonicalize_yolo_dataset(
     *,
     dataset_root: Path | None = None,
     bbox_decimals: int = 3,
+    include_test: bool = False,
 ) -> dict[str, Any]:
     dataset_yaml = dataset_yaml.resolve()
     document = load_yaml(dataset_yaml)
     root = _dataset_root(dataset_yaml, document, dataset_root)
     class_map = _parse_yolo_class_map(document)
     splits = {}
-    for split in ("train", "val"):
+    split_names = ("train", "val", "test") if include_test else ("train", "val")
+    for split in split_names:
         if split not in document:
             raise DatasetEvidenceError(f"dataset.yaml is missing the {split!r} split")
         images = _expand_yolo_reference(document[split], dataset_root=root)
@@ -386,7 +707,36 @@ def canonicalize_yolo_dataset(
             class_map=class_map,
             decimals=bbox_decimals,
         )
+    _assert_no_cross_split_exact_sha_duplicates(splits, representation="YOLO")
     return {"class_map": class_map, "splits": splits}
+
+
+def _assert_no_cross_split_exact_sha_duplicates(
+    splits: dict[str, dict[str, Any]], *, representation: str
+) -> None:
+    occurrences: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    for split, content in splits.items():
+        for row in content.get("images", []):
+            occurrences[str(row["image_sha256"])].append(
+                (split, str(row["image_key"]))
+            )
+    conflicts = []
+    for digest, locations in sorted(occurrences.items()):
+        split_names = {split for split, _ in locations}
+        if len(split_names) > 1:
+            conflicts.append(
+                {
+                    "sha256": digest,
+                    "locations": [
+                        f"{split}:{image_key}" for split, image_key in sorted(locations)
+                    ],
+                }
+            )
+    if conflicts:
+        raise DatasetEvidenceError(
+            f"{representation} cross-split exact image SHA-256 duplicates detected: "
+            + _canonical_json(conflicts[:20])
+        )
 
 
 def _coco_class_lookup(
@@ -441,6 +791,7 @@ def _canonicalize_coco_split(
     image_root: Path | None,
     class_map: list[dict[str, Any]],
     decimals: int,
+    include_attributes: bool = False,
 ) -> dict[str, Any]:
     annotation_path = annotation_path.resolve()
     try:
@@ -494,6 +845,7 @@ def _canonicalize_coco_split(
         image_rows.append(row)
         image_lookup[image_id] = row
     records: list[dict[str, Any]] = []
+    attribute_records: list[dict[str, Any]] = []
     for index, annotation in enumerate(annotations, start=1):
         if not isinstance(annotation, dict):
             raise DatasetEvidenceError(f"COCO annotation {index} must be an object")
@@ -517,24 +869,31 @@ def _canonicalize_coco_split(
         image_width = Decimal(int(image_row["width"]))
         image_height = Decimal(int(image_row["height"]))
         canonical_class = category_lookup[category_id]
-        records.append(
-            {
-                "image_key": image_row["image_key"],
-                "image_sha256": image_row["image_sha256"],
-                "class_index": canonical_class["index"],
-                "class_name": canonical_class["name"],
-                "bbox_xywh_pixels": _canonical_bbox_from_coco(
-                    (x, y, box_width, box_height),
-                    image_width=int(image_width),
-                    image_height=int(image_height),
-                    decimals=decimals,
-                    field=f"COCO annotation {index}",
-                ),
-            }
-        )
+        record = {
+            "image_key": image_row["image_key"],
+            "image_sha256": image_row["image_sha256"],
+            "class_index": canonical_class["index"],
+            "class_name": canonical_class["name"],
+            "bbox_xywh_pixels": _canonical_bbox_from_coco(
+                (x, y, box_width, box_height),
+                image_width=int(image_width),
+                image_height=int(image_height),
+                decimals=decimals,
+                field=f"COCO annotation {index}",
+            ),
+        }
+        records.append(record)
+        if include_attributes:
+            attribute_records.append(
+                {
+                    **record,
+                    "attributes": _coco_attributes(annotation),
+                }
+            )
     return {
         "images": sorted(image_rows, key=_canonical_json),
         "records": sorted(records, key=_canonical_json),
+        "attribute_records": sorted(attribute_records, key=_canonical_json),
     }
 
 
@@ -545,24 +904,41 @@ def canonicalize_coco_dataset(
     class_map: list[dict[str, Any]],
     train_image_root: Path | None = None,
     val_image_root: Path | None = None,
+    test_annotations: Path | None = None,
+    test_image_root: Path | None = None,
     bbox_decimals: int = 3,
+    include_attributes: bool = False,
 ) -> dict[str, Any]:
+    if test_image_root is not None and test_annotations is None:
+        raise DatasetEvidenceError("test_image_root requires test_annotations")
+    splits = {
+        "train": _canonicalize_coco_split(
+            train_annotations,
+            image_root=train_image_root,
+            class_map=class_map,
+            decimals=bbox_decimals,
+            include_attributes=include_attributes,
+        ),
+        "val": _canonicalize_coco_split(
+            val_annotations,
+            image_root=val_image_root,
+            class_map=class_map,
+            decimals=bbox_decimals,
+            include_attributes=include_attributes,
+        ),
+    }
+    if test_annotations is not None:
+        splits["test"] = _canonicalize_coco_split(
+            test_annotations,
+            image_root=test_image_root,
+            class_map=class_map,
+            decimals=bbox_decimals,
+            include_attributes=include_attributes,
+        )
+    _assert_no_cross_split_exact_sha_duplicates(splits, representation="COCO")
     return {
         "class_map": class_map,
-        "splits": {
-            "train": _canonicalize_coco_split(
-                train_annotations,
-                image_root=train_image_root,
-                class_map=class_map,
-                decimals=bbox_decimals,
-            ),
-            "val": _canonicalize_coco_split(
-                val_annotations,
-                image_root=val_image_root,
-                class_map=class_map,
-                decimals=bbox_decimals,
-            ),
-        },
+        "splits": splits,
     }
 
 
@@ -603,19 +979,19 @@ def _side_summary(dataset: dict[str, Any]) -> dict[str, Any]:
                 _jsonl_bytes(_record_envelopes(dataset["splits"][split]["records"]))
             ),
         }
-        for split in ("train", "val")
+        for split in dataset["splits"]
     }
 
 
 def _artifact_payloads(
-    dataset: dict[str, Any], *, bbox_decimals: int
+    dataset: dict[str, Any], *, bbox_decimals: int, attribute_records: list[dict[str, Any]] | None = None
 ) -> tuple[dict[str, bytes], dict[str, str], dict[str, Any]]:
     payloads: dict[str, bytes] = {
         "class_map": _json_bytes(dataset["class_map"]),
     }
     split_manifest: dict[str, Any] = {}
     evidence: dict[str, str] = {}
-    for split in ("train", "val"):
+    for split in dataset["splits"]:
         image_key = f"{split}_image_list"
         record_key = f"canonical_{split}_records"
         payloads[image_key] = _json_bytes(dataset["splits"][split]["images"])
@@ -631,6 +1007,13 @@ def _artifact_payloads(
             "image_list_sha256": image_sha,
             "canonical_records_sha256": record_sha,
         }
+    if attribute_records is not None:
+        payloads["canonical_annotation_attributes"] = _jsonl_bytes(
+            _record_envelopes(attribute_records)
+        )
+        evidence["canonical_annotation_attributes_sha256"] = _sha256_bytes(
+            payloads["canonical_annotation_attributes"]
+        )
     evidence["class_map_sha256"] = _sha256_bytes(payloads["class_map"])
     manifest = {
         "schema_version": SCHEMA_VERSION,
@@ -646,9 +1029,17 @@ def _artifact_payloads(
                 "this removes expected normalized-text round-trip noise"
             ),
             "ignored_coco_fields": ["annotation id", "area", "segmentation", "supercategory"],
+            "optional_attribute_evidence": (
+                "primitive COCO/CVAT attributes plus occluded/truncated"
+                if attribute_records is not None
+                else "not requested"
+            ),
         },
         "class_count": len(dataset["class_map"]),
         "class_map_sha256": evidence["class_map_sha256"],
+        "annotation_attributes_sha256": evidence.get(
+            "canonical_annotation_attributes_sha256"
+        ),
         "splits": split_manifest,
     }
     payloads["canonical_dataset_manifest"] = _json_bytes(manifest)
@@ -656,6 +1047,11 @@ def _artifact_payloads(
         payloads["canonical_dataset_manifest"]
     )
     ordered_evidence = {field: evidence[field] for field in REQUIRED_EVIDENCE_FIELDS}
+    ordered_evidence.update(
+        (field, evidence[field])
+        for field in OPTIONAL_EVIDENCE_FIELDS
+        if field in evidence
+    )
     return payloads, ordered_evidence, manifest
 
 
@@ -668,8 +1064,11 @@ def build_dataset_equivalence_evidence(
     yolo_dataset_root: Path | None = None,
     coco_train_image_root: Path | None = None,
     coco_val_image_root: Path | None = None,
+    coco_test_annotations: Path | None = None,
+    coco_test_image_root: Path | None = None,
     bbox_decimals: int = 3,
     max_difference_examples: int = 20,
+    include_coco_attributes: bool = False,
 ) -> dict[str, Any]:
     """Verify YOLO txt and COCO JSON as the same canonical detection dataset.
 
@@ -684,6 +1083,7 @@ def build_dataset_equivalence_evidence(
         yolo_dataset_yaml,
         dataset_root=yolo_dataset_root,
         bbox_decimals=bbox_decimals,
+        include_test=coco_test_annotations is not None,
     )
     coco = canonicalize_coco_dataset(
         coco_train_annotations,
@@ -691,11 +1091,15 @@ def build_dataset_equivalence_evidence(
         class_map=yolo["class_map"],
         train_image_root=coco_train_image_root,
         val_image_root=coco_val_image_root,
+        test_annotations=coco_test_annotations,
+        test_image_root=coco_test_image_root,
         bbox_decimals=bbox_decimals,
+        include_attributes=include_coco_attributes,
     )
     split_differences: dict[str, Any] = {}
     equivalent = yolo["class_map"] == coco["class_map"]
-    for split in ("train", "val"):
+    split_names = tuple(yolo["splits"])
+    for split in split_names:
         image_difference = _counter_differences(
             yolo["splits"][split]["images"],
             coco["splits"][split]["images"],
@@ -733,8 +1137,17 @@ def build_dataset_equivalence_evidence(
     }
     payloads: dict[str, bytes] = {}
     if equivalent:
+        attribute_records = None
+        if include_coco_attributes:
+            attribute_records = [
+                {"split": split, **record}
+                for split in split_names
+                for record in coco["splits"][split]["attribute_records"]
+            ]
         payloads, evidence, manifest = _artifact_payloads(
-            yolo, bbox_decimals=bbox_decimals
+            yolo,
+            bbox_decimals=bbox_decimals,
+            attribute_records=attribute_records,
         )
         report["evidence"] = evidence
         report["canonical_manifest"] = manifest
@@ -752,19 +1165,15 @@ def build_dataset_equivalence_evidence(
                 "status": "PASS",
                 **report["evidence"],
                 "artifacts": {
-                    field: ARTIFACT_FILENAMES[
-                        field.removesuffix("_sha256")
-                        if field != "canonical_dataset_manifest_sha256"
-                        else "canonical_dataset_manifest"
-                    ]
-                    for field in REQUIRED_EVIDENCE_FIELDS
+                    field: ARTIFACT_FILENAMES[EVIDENCE_ARTIFACT_KEYS[field]]
+                    for field in report["evidence"]
                 },
                 "counts": {
                     split: {
                         "images": len(yolo["splits"][split]["images"]),
                         "annotations": len(yolo["splits"][split]["records"]),
                     }
-                    for split in ("train", "val")
+                    for split in split_names
                 },
             }
             (output_dir / ARTIFACT_FILENAMES["dataset_evidence"]).write_bytes(
@@ -785,7 +1194,10 @@ def load_dataset_evidence(path: Path, *, verify_artifacts: bool = True) -> dict[
     if not isinstance(document, dict) or document.get("status") != "PASS":
         raise DatasetEvidenceError(f"Dataset evidence is not PASS: {path}")
     evidence: dict[str, str] = {}
-    for field in REQUIRED_EVIDENCE_FIELDS:
+    fields = list(REQUIRED_EVIDENCE_FIELDS) + [
+        field for field in OPTIONAL_EVIDENCE_FIELDS if field in document
+    ]
+    for field in fields:
         value = document.get(field)
         if not isinstance(value, str) or len(value) != 64:
             raise DatasetEvidenceError(f"Dataset evidence is missing a SHA-256 field: {field}")
@@ -823,7 +1235,10 @@ def verify_dataset_against_evidence(
     yolo_dataset_root: Path | None = None,
     coco_train_image_root: Path | None = None,
     coco_val_image_root: Path | None = None,
+    coco_test_annotations: Path | None = None,
+    coco_test_image_root: Path | None = None,
     bbox_decimals: int = 3,
+    include_coco_attributes: bool = False,
 ) -> dict[str, str]:
     """Fail unless the current YOLO/COCO files reproduce the declared evidence.
 
@@ -840,7 +1255,10 @@ def verify_dataset_against_evidence(
         coco_val_annotations=coco_val_annotations,
         coco_train_image_root=coco_train_image_root,
         coco_val_image_root=coco_val_image_root,
+        coco_test_annotations=coco_test_annotations,
+        coco_test_image_root=coco_test_image_root,
         bbox_decimals=bbox_decimals,
+        include_coco_attributes=include_coco_attributes,
     )
     if not report["equivalent"]:
         raise DatasetEvidenceError(
@@ -850,7 +1268,7 @@ def verify_dataset_against_evidence(
     actual = report["evidence"]
     mismatches = {
         field: {"declared": declared[field], "actual": actual.get(field)}
-        for field in REQUIRED_EVIDENCE_FIELDS
+        for field in declared
         if actual.get(field) != declared[field]
     }
     if mismatches:
@@ -869,8 +1287,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--yolo-root", type=Path, help="Override dataset.yaml path")
     parser.add_argument("--coco-train", type=Path, required=True)
     parser.add_argument("--coco-val", type=Path, required=True)
+    parser.add_argument(
+        "--coco-test",
+        type=Path,
+        help="Optional locked test COCO annotation; requires dataset.yaml test split",
+    )
     parser.add_argument("--coco-train-images", type=Path)
     parser.add_argument("--coco-val-images", type=Path)
+    parser.add_argument("--coco-test-images", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
         "--bbox-decimals",
@@ -879,6 +1303,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Canonical pixel-coordinate decimal places (default: 3)",
     )
     parser.add_argument("--max-difference-examples", type=int, default=20)
+    parser.add_argument(
+        "--include-coco-attributes",
+        action="store_true",
+        help="Hash primitive COCO/CVAT attributes separately; YOLO equivalence remains bbox/class only",
+    )
     return parser
 
 
@@ -892,9 +1321,12 @@ def main() -> int:
             coco_val_annotations=args.coco_val,
             coco_train_image_root=args.coco_train_images,
             coco_val_image_root=args.coco_val_images,
+            coco_test_annotations=args.coco_test,
+            coco_test_image_root=args.coco_test_images,
             output_dir=args.output_dir,
             bbox_decimals=args.bbox_decimals,
             max_difference_examples=args.max_difference_examples,
+            include_coco_attributes=args.include_coco_attributes,
         )
     except (DatasetEvidenceError, FileNotFoundError, FileExistsError) as exc:
         print(json.dumps({"status": "ERROR", "error": str(exc)}, ensure_ascii=False))

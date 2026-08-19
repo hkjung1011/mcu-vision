@@ -1,0 +1,42 @@
+schema_version: 1
+ontology_id: mcu_smd_detection_v1
+status: FROZEN_IDS_P0
+scope: bbox_object_detection
+
+# IDs are part of the dataset contract. Never reorder or reuse an ID.
+classes:
+  smd_capacitor:
+    id: 0
+    definition: Surface-mount capacitor package, including its visible terminals.
+    status: PROVISIONAL_VISUAL_CLASS
+  smd_resistor:
+    id: 1
+    definition: Surface-mount resistor package, including its visible terminals.
+    status: PROVISIONAL_VISUAL_CLASS
+  smd_diode:
+    id: 2
+    definition: Surface-mount diode package, including its visible terminals.
+    status: PROVISIONAL_VISUAL_CLASS
+  smd_transistor:
+    id: 3
+    definition: Surface-mount transistor package, including its visible terminals.
+    status: PROVISIONAL_VISUAL_CLASS
+  stm32_dev_board:
+    id: 4
+    definition: Development board carrying a verified STM32 MCU.
+    status: PROVISIONAL_REQUIRES_SPECIMEN_METADATA
+  stm32_bare_ic:
+    id: 5
+    definition: Bare IC verified as STM32 by legible top marking or trusted specimen metadata.
+    status: PROVISIONAL_REQUIRES_SPECIMEN_METADATA
+
+source_aliases:
+  dainius_smdcomponents_v2:
+    Condensator: smd_capacitor
+    Resistor: smd_resistor
+    Diode: smd_diode
+    Transistor: smd_transistor
+
+unknown_policy:
+  action: QUARANTINE
+  note: Do not infer STM32 identity or an exact part number from package shape alone.

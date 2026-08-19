@@ -16,7 +16,7 @@ pretrained/fine-tuned weights, dataset의 원 라이선스 조건을 없애거�
 | [ONNX Runtime](https://github.com/microsoft/onnxruntime) | export 수치 검증과 Ubuntu camera inference | MIT | 목표 장치 provider/CUDA 호환성 별도 검증 |
 | [OpenCV](https://github.com/opencv/opencv-python) | COCO image 전처리와 camera capture/UI | Apache-2.0 | RGB/BGR·letterbox 규약을 release metadata에 고정 |
 | [pycocotools 2.0.11](https://pypi.org/project/pycocotools/2.0.11/) | 공통 COCO AP/AR | package metadata/license 참조 | exact version 고정 |
-| [CVAT Community](https://github.com/cvat-ai/cvat) | 권장 검수 UI, 아직 미통합 | MIT | SDK/import round-trip NOT VERIFIED |
+| [CVAT Community](https://github.com/cvat-ai/cvat) | 권장 검수 UI와 export verifier | MIT | 서버 자동화 없음; 실제 export round-trip 대기 |
 | [Grounding DINO](https://github.com/IDEA-Research/GroundingDINO) | 초기 bbox 제안 후보, 미구현 | Apache-2.0 | 현재 환경/weight 미포함 |
 | [SAM 2](https://github.com/facebookresearch/sam2) | 선택적 mask 보조 후보, 미구현 | upstream license 참조 | semantic class detector가 아님 |
 | [SAHI](https://github.com/obss/sahi) | sliced inference 참고문헌, package 미사용 | MIT | 현재 코드는 자체 tile+NMS이며 SAHI 재현이 아님 |
@@ -45,3 +45,11 @@ framework/dataset license, config hash, source/public checkpoint SHA-256과 함�
 - 사용 범위: Raspberry Pi 1 B+, Raspberry Pi 3 B+, Raspberry Pi A+ 합계 1,875장
 - 적용한 변경: bbox 변환, pHash-connected split, resize/augmentation, YOLO11m/YOLOX-S 학습
 - 원본/processed image는 이 GitHub snapshot에 포함하지 않음
+
+## Candidate source — Git에 데이터 미포함
+
+- Dataset: [smdComponents raw-images v2](https://universe.roboflow.com/dainius/smdcomponents/dataset/2)
+- Authors/project: Dainius Varna and Vytautas Abromavicius
+- Rights record: `PDM-1.0 asserted by the Roboflow Universe project maintained by Dainius; this records the source assertion and Public Domain Mark is not a license grant.`
+- 상태: candidate only; source image와 annotation archive는 Git에 포함하지 않음
+- 범위: provider split은 독립 자체촬영 validation/test가 생기기 전까지 bootstrap-train-only

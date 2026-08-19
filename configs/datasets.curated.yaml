@@ -15,11 +15,25 @@ datasets:
 
   smd_components_raw:
     provider: manual_roboflow
+    source_id: dainius_smdcomponents_v2
+    dataset_version: 2
+    author: Dainius Varna and Vytautas Abromavicius
     source_url: https://universe.roboflow.com/dainius/smdcomponents/dataset/2
-    license: Public Domain
-    license_url: https://creativecommons.org/publicdomain/mark/1.0/
+    rights_statement: >-
+      PDM-1.0 asserted by the Roboflow Universe project maintained by Dainius;
+      this records the source assertion and Public Domain Mark is not a license grant.
+    rights_url: https://creativecommons.org/publicdomain/mark/1.0/
     purpose: Conveyor-borne loose SMD detector bootstrap
+    ingest_split_policy: bootstrap_train_only
+    formal_evaluation_allowed: false
+    allowed_source_labels:
+      Condensator: smd_capacitor
+      Resistor: smd_resistor
+      Diode: smd_diode
+      Transistor: smd_transistor
     notes:
       - Download raw-images version 2, not augmented versions.
-      - Roboflow sign-in/API authorization may be required.
+      - Roboflow sign-in is required by the logged-out v2 COCO download route, verified 2026-08-19; do not bypass it.
       - Capacitor, resistor, diode, and transistor bounding boxes are included.
+      - Preserve the source label Condensator and map it explicitly through the ontology alias.
+      - Do not reuse the provider random split as an independent formal validation or test set.

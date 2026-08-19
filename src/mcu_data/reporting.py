@@ -1445,10 +1445,21 @@ def _protocol_compatibility(
     expected_protocol = expected_protocol or {}
     common = expected_protocol.get("common", {})
     rules = expected_protocol.get("comparison_rules", {})
-    required_dataset_evidence = [
-        str(field) for field in rules.get("required_dataset_evidence", [])
-    ]
-    expected_dataset_evidence = expected_protocol.get("dataset", {}).get("evidence", {})
+    dataset_protocol = expected_protocol.get("dataset", {})
+    locked_test_enabled = dataset_protocol.get("locked_test_evidence_enabled", False)
+    if not isinstance(locked_test_enabled, bool):
+        raise ValueError("dataset.locked_test_evidence_enabled must be boolean")
+    evidence_rule_key = (
+        "formal_required_dataset_evidence"
+        if locked_test_enabled
+        else "required_dataset_evidence"
+    )
+    required_dataset_evidence = [str(field) for field in rules.get(evidence_rule_key, [])]
+    if locked_test_enabled and not required_dataset_evidence:
+        raise ValueError(
+            "locked test evidence requires comparison_rules.formal_required_dataset_evidence"
+        )
+    expected_dataset_evidence = dataset_protocol.get("evidence", {})
 
     def value(run: dict[str, Any], field: str) -> Any:
         protocol = run["metadata"].get("protocol", {})

@@ -21,6 +21,11 @@ data/processed/
 data/staging/
 data/quarantine/
 data/cache/
+# Never publish downloaded dataset archives or CVAT bundles from any data subdirectory.
+data/**/*.zip
+data/**/*.7z
+data/**/*.tar
+data/**/*.tar.gz
 
 # Training outputs are curated before being added to weights/.
 /runs/

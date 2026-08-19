@@ -21,8 +21,15 @@ def download_curated(config_path: Path, dataset_name: str, output_root: Path, fo
         "dataset_name": dataset_name,
         "provider": provider,
         "source_url": dataset.get("source_url", ""),
+        "source_id": dataset.get("source_id", dataset_name),
+        "dataset_version": dataset.get("dataset_version"),
+        "author": dataset.get("author", ""),
         "license": dataset.get("license", ""),
         "license_url": dataset.get("license_url", ""),
+        "rights_statement": dataset.get("rights_statement", ""),
+        "rights_url": dataset.get("rights_url", ""),
+        "ingest_split_policy": dataset.get("ingest_split_policy"),
+        "formal_evaluation_allowed": dataset.get("formal_evaluation_allowed"),
         "purpose": dataset.get("purpose", ""),
         "notes": dataset.get("notes", []),
         "requested_at": utc_now(),
@@ -41,7 +48,10 @@ def download_curated(config_path: Path, dataset_name: str, output_root: Path, fo
         record.update(
             {
                 "status": "MANUAL_AUTH_REQUIRED",
-                "action": "Open source_url, choose the raw dataset version, and export COCO or YOLO format.",
+                "action": (
+                    "Open source_url, choose the configured raw dataset version, and export COCO. "
+                    "Do not count or publish it until archive/hash/rights ingestion passes."
+                ),
             }
         )
     else:

@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "status": "MANUAL_AUTH_REQUIRED",
+  "checked_at": "2026-08-19T08:41:25+09:00",
+  "source": {
+    "provider": "Roboflow Universe",
+    "workspace": "dainius",
+    "project": "smdcomponents",
+    "dataset_version": 2,
+    "version_name": "raw-images",
+    "url": "https://universe.roboflow.com/dainius/smdcomponents/dataset/2",
+    "license_display": "Public Domain",
+    "images_displayed": 2997,
+    "split_displayed": {
+      "train": 2397,
+      "valid": 300,
+      "test": 300
+    },
+    "preprocessing_displayed": [
+      "Auto-Orient"
+    ],
+    "augmentations_displayed": []
+  },
+  "access_check": {
+    "session": "logged_out",
+    "format": "COCO JSON",
+    "url": "https://universe.roboflow.com/dainius/smdcomponents/dataset/2/download/coco",
+    "observed_result": "Login or create a free account dialog",
+    "terms_notice_observed": true,
+    "anonymous_download_verified": false,
+    "archive_downloaded": false
+  },
+  "rights": {
+    "statement": "PDM-1.0 asserted by the Roboflow Universe project maintained by Dainius; this records the source assertion and Public Domain Mark is not a license grant.",
+    "status": "SOURCE_ASSERTION_ONLY_TO_VERIFY",
+    "note": "The original paper's Data Availability Statement says the study data are available on reasonable request and are not publicly available due to privacy issues; do not broaden the Universe display into a project-issued license grant."
+  },
+  "paper": {
+    "doi": "10.3390/app12115608",
+    "url": "https://doi.org/10.3390/app12115608",
+    "initial_images_reported": 3005,
+    "split_reported": {
+      "train": 2405,
+      "validation": 300,
+      "test": 300
+    }
+  },
+  "official_sources": [
+    "https://universe.roboflow.com/dainius/smdcomponents",
+    "https://universe.roboflow.com/dainius/smdcomponents/dataset/2",
+    "https://docs.roboflow.com/universe/download-a-universe-dataset",
+    "https://github.com/roboflow/roboflow-python/blob/main/CLI-COMMANDS.md",
+    "https://doi.org/10.3390/app12115608"
+  ],
+  "next_user_action": "Sign in to Roboflow (or create a free account), review the displayed Terms of Service and Privacy Policy notice, export dataset version 2 in COCO JSON format as a ZIP, and place it at data/staging/incoming/smdcomponents-v2-coco.zip.",
+  "ingest_status": "NOT_STARTED_NO_ARCHIVE"
+}
