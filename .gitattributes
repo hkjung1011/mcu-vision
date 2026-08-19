@@ -25,3 +25,6 @@ weights/trained/** -text
 # Canonical RPi evidence and versioned sidecars are byte-hashed and must never be normalized.
 data/evidence/micropcb_rpi_phash_v2/** -text
 data/evidence/micropcb_rpi_phash_v2_supplement_v1/** -text
+
+# Commons acquisition evidence binds this exact collector configuration by SHA-256.
+configs/sources.wikimedia.yaml -text
