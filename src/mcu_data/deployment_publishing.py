@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
 import shutil
@@ -11,8 +10,16 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from .common import portable_path, safe_stem, sha256_file, write_json
-from .checkpoint_publishing import assert_binary_has_no_local_paths
-from .publishing import publish_evidence_file, validate_formal_comparison
+from .checkpoint_publishing import (
+    assert_binary_has_no_local_paths,
+    validate_yolox_checkpoint_proof,
+)
+from .publishing import (
+    load_json_strict,
+    publish_evidence_file,
+    scan_public_file,
+    validate_formal_comparison,
+)
 
 
 EVALUATION_REPORT_FILES = (
@@ -62,8 +69,7 @@ def _read_object(path: Path, label: str) -> dict[str, Any]:
     path = path.resolve()
     if not path.is_file():
         raise FileNotFoundError(f"{label} is missing: {path}")
-    with path.open("r", encoding="utf-8") as handle:
-        value = json.load(handle)
+    value = load_json_strict(path, label=label)
     if not isinstance(value, dict):
         raise ValueError(f"{label} must be a JSON object: {path}")
     return value
@@ -177,8 +183,7 @@ def _verify_comparison(
     attestation_path = comparison_dir / "run_provenance_attestation.json"
     if provenance.get("mixed_commits") is True and not attestation_path.is_file():
         raise FileNotFoundError("Mixed comparison provenance attestation is missing")
-    with comparison_path.open("r", encoding="utf-8") as handle:
-        comparison_rows = json.load(handle)
+    comparison_rows = load_json_strict(comparison_path, label="comparison rows")
     if not isinstance(comparison_rows, list):
         raise ValueError("comparison.json must be a JSON array")
     matching_rows = [
@@ -573,6 +578,20 @@ def validate_promoted_deployment_for_runtime(
     if manifest_onnx_path != onnx_path:
         raise ValueError("Camera ONNX path differs from the promoted deployment release")
     verified_onnx = _verify_record_file(onnx_path, onnx_record, "promoted deployment ONNX")
+    checkpoint_record = _mapping(
+        manifest.get("native_checkpoint"),
+        "deployment release native checkpoint",
+    )
+    checkpoint_path = _resolve_record_path(
+        checkpoint_record,
+        project_root,
+        "deployment release native checkpoint",
+    )
+    _verify_record_file(
+        checkpoint_path,
+        checkpoint_record,
+        "promoted native checkpoint",
+    )
 
     release_dir = release_manifest_path.parent
     published_rows = manifest.get("published_files")
@@ -582,10 +601,70 @@ def validate_promoted_deployment_for_runtime(
     for row in published_rows:
         if not isinstance(row, dict) or not isinstance(row.get("path"), str):
             raise ValueError("Deployment release published_files contains an invalid row")
-        relative_path = str(row["path"]).replace("\\", "/")
+        raw_path = str(row["path"])
+        relative_path = raw_path.replace("\\", "/")
+        candidate = (release_dir / relative_path).resolve()
+        candidate_relative = _relative_under(
+            candidate,
+            release_dir,
+            f"Published deployment file {relative_path}",
+        )
+        if (
+            raw_path != relative_path
+            or not relative_path
+            or relative_path.startswith("/")
+            or ":" in relative_path
+            or ".." in Path(relative_path).parts
+            or candidate_relative.as_posix() != relative_path
+        ):
+            raise ValueError(f"Non-canonical deployment release path: {raw_path!r}")
         if relative_path in rows_by_path:
             raise ValueError(f"Duplicate deployment release published path: {relative_path}")
+        if not candidate.is_file():
+            raise FileNotFoundError(f"Published deployment file is missing: {relative_path}")
+        expected_bytes = row.get("bytes")
+        if type(expected_bytes) is not int or expected_bytes != candidate.stat().st_size:
+            raise ValueError(f"Published deployment byte-size mismatch: {relative_path}")
+        expected_sha = str(row.get("published_sha256", "")).lower()
+        if not re.fullmatch(r"[0-9a-f]{64}", expected_sha) or expected_sha != sha256_file(
+            candidate
+        ):
+            raise ValueError(f"Published deployment SHA-256 mismatch: {relative_path}")
         rows_by_path[relative_path] = row
+    actual_files = {
+        path.relative_to(release_dir).as_posix()
+        for path in release_dir.rglob("*")
+        if path.is_file()
+    }
+    expected_files = set(rows_by_path) | {"deployment_release_manifest.json"}
+    if actual_files != expected_files:
+        raise ValueError(
+            "Deployment release file set differs from manifest: "
+            f"missing={sorted(expected_files - actual_files)}, "
+            f"extra={sorted(actual_files - expected_files)}"
+        )
+    recomputed_report_scans = [
+        scan_public_file(release_dir / relative_path, relative_path=relative_path)
+        for relative_path in sorted(rows_by_path)
+    ]
+    recomputed_external_scans = [
+        scan_public_file(
+            path,
+            relative_path=path.relative_to(project_root).as_posix(),
+        )
+        for path in (checkpoint_path, onnx_path)
+    ]
+    public_scan = _mapping(manifest.get("public_scan"), "deployment public scan")
+    if (
+        public_scan.get("status") != "PASS"
+        or public_scan.get("report_files") != recomputed_report_scans
+        or public_scan.get("external_files") != recomputed_external_scans
+    ):
+        raise ValueError("Deployment public signature/privacy scan differs from recomputation")
+    scan_public_file(
+        release_manifest_path,
+        relative_path="deployment_release_manifest.json",
+    )
     required_reports = {
         "deployment_metadata.json": (None, None),
         "val/onnx_split_evaluation.json": ("val", "formal"),
@@ -697,6 +776,7 @@ def promote_deployment_release(
     checkpoint = _verify_record_file(checkpoint_path, checkpoint_record, "promoted native checkpoint")
     checkpoint["path"] = checkpoint_path.relative_to(project_root).as_posix()
     is_yolo11 = str(native.get("model", "")).lower().startswith("yolo11")
+    is_yolox = "yolox" in str(native.get("model", "")).lower()
     source_original_sha = str(checkpoint_record.get("source_original_sha256", "")).lower()
     if not re.fullmatch(r"[0-9a-f]{64}", source_original_sha):
         raise ValueError("Native checkpoint record is missing source_original_sha256")
@@ -709,6 +789,14 @@ def promote_deployment_release(
         and checkpoint_record.get("ultralytics_load") == "PASS"
     ):
         raise ValueError("YOLO11 native checkpoint sanitizer evidence is not a formal PASS")
+    if not is_yolo11:
+        if not is_yolox or checkpoint_path.suffix.lower() != ".pth":
+            raise ValueError("Formal non-YOLO11 native release must be a YOLOX .pth checkpoint")
+        validate_yolox_checkpoint_proof(
+            checkpoint_path,
+            checkpoint_record,
+            project_root=project_root,
+        )
     assert_binary_has_no_local_paths(checkpoint_path, project_root)
 
     _relative_under(deployment_metadata_path, release_weight_root, "Deployment metadata")
@@ -768,6 +856,8 @@ def promote_deployment_release(
         and publication.get("ultralytics_load") == "PASS"
     ):
         raise ValueError("Deployment did not retain YOLO11 sanitizer evidence")
+    if not is_yolo11 and publication.get("proof") != checkpoint_record.get("proof"):
+        raise ValueError("Deployment did not retain the recomputed YOLOX checkpoint proof")
     run_manifest_record = _mapping(
         deployment_artifacts.get("run_manifest"), "deployment run manifest artifact"
     )
@@ -911,6 +1001,32 @@ def promote_deployment_release(
                 )
             )
 
+        published_paths = [str(record["path"]) for record in published]
+        if len(set(published_paths)) != len(published_paths):
+            raise ValueError("Deployment publication produced duplicate report paths")
+        actual_before_manifest = {
+            path.relative_to(staging).as_posix()
+            for path in staging.rglob("*")
+            if path.is_file()
+        }
+        if actual_before_manifest != set(published_paths):
+            raise ValueError(
+                "Deployment staging file set differs from its publication records: "
+                f"missing={sorted(set(published_paths) - actual_before_manifest)}, "
+                f"extra={sorted(actual_before_manifest - set(published_paths))}"
+            )
+        public_report_scans = [
+            scan_public_file(staging / relative, relative_path=relative)
+            for relative in sorted(published_paths)
+        ]
+        external_public_scans = [
+            scan_public_file(
+                path,
+                relative_path=path.relative_to(project_root).as_posix(),
+            )
+            for path in (checkpoint_path, onnx_path)
+        ]
+
         manifest = {
             "schema_version": 1,
             "status": "PASS",
@@ -961,6 +1077,11 @@ def promote_deployment_release(
             },
             "git_lfs": lfs,
             "published_files": sorted(published, key=lambda item: str(item["path"])),
+            "public_scan": {
+                "status": "PASS",
+                "report_files": public_report_scans,
+                "external_files": external_public_scans,
+            },
             "local_source_path_included": False,
             "raw_images_included": False,
             "predictions_included": False,
@@ -969,6 +1090,19 @@ def promote_deployment_release(
         manifest_path = staging / "deployment_release_manifest.json"
         write_json(manifest_path, manifest)
         _assert_no_local_paths(manifest_path)
+        scan_public_file(manifest_path, relative_path="deployment_release_manifest.json")
+        actual_after_manifest = {
+            path.relative_to(staging).as_posix()
+            for path in staging.rglob("*")
+            if path.is_file()
+        }
+        expected_after_manifest = set(published_paths) | {"deployment_release_manifest.json"}
+        if actual_after_manifest != expected_after_manifest:
+            raise ValueError(
+                "Deployment release file set differs from its manifest: "
+                f"missing={sorted(expected_after_manifest - actual_after_manifest)}, "
+                f"extra={sorted(actual_after_manifest - expected_after_manifest)}"
+            )
         for path in staging.rglob("*"):
             if path.is_file():
                 _assert_no_local_paths(path)

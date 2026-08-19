@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
-import shutil
 import textwrap
 from pathlib import Path
 from typing import Any
@@ -38,6 +38,21 @@ def load_protocol(path: Path) -> dict[str, Any]:
     if not isinstance(document, dict):
         raise ValueError(f"Protocol must be a YAML mapping: {path}")
     return document
+
+
+def _canonical_text_bytes(path: Path) -> bytes:
+    """Return UTF-8/LF bytes so protocol identity is independent of Git autocrlf."""
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except UnicodeError as exc:
+        raise ValueError(f"Protocol must be valid UTF-8 text: {path}") from exc
+    if "\x00" in text:
+        raise ValueError(f"Protocol must not contain NUL bytes: {path}")
+    return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+
+
+def canonical_text_sha256(path: Path) -> str:
+    return hashlib.sha256(_canonical_text_bytes(path)).hexdigest()
 
 
 def _flatten_value(value: Any) -> str:
@@ -83,7 +98,7 @@ def _write_csv(path: Path, rows: list[dict[str, str]]) -> None:
         "references",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -128,7 +143,7 @@ def _write_methodology_markdown(
             f"- protocol snapshot 작성시 상태: `{document.get('status', '-')}`",
             f"- 비교 유형: `{document.get('experiment_type', '-')}`",
             f"- 현재 task: `{document.get('task', '-')}`",
-            f"- 원본 config SHA256: `{sha256_file(source_path)}`",
+            f"- 원본 config SHA256: `{canonical_text_sha256(source_path)}`",
             "- 고정 입력: [immutable protocol snapshot](protocol_snapshot.yaml)",
             "",
             "> 현재 protocol은 Raspberry Pi SBC 1-class bootstrap 전용입니다. Provisional MCU/SMD "
@@ -193,7 +208,7 @@ def _write_methodology_markdown(
             f"- **{reference.get('id', '-')}** — [{reference.get('title', '-')}]"
             f"({reference.get('url', '')}) ({reference.get('type', '-')})"
         )
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
 def _write_parameter_summary_markdown(
@@ -222,7 +237,7 @@ def _write_parameter_summary_markdown(
         [
             f"- protocol: `{document.get('protocol_id', '-')}`",
             f"- 현재 task: `{document.get('task', '-')}`",
-            f"- config SHA256: `{sha256_file(source_path)}`",
+            f"- config SHA256: `{canonical_text_sha256(source_path)}`",
             "- 고정 입력: [immutable protocol snapshot](protocol_snapshot.yaml)",
             "",
             "> 현재 protocol은 Raspberry Pi SBC 1-class bootstrap 전용이며 MCU/SMD multi-class 결과가 아닙니다.",
@@ -257,7 +272,7 @@ def _write_parameter_summary_markdown(
             "사용한 고정 config는 [immutable protocol snapshot](protocol_snapshot.yaml)을 봅니다.",
         ]
     )
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
 def _plot_rationale(
@@ -346,11 +361,10 @@ def write_protocol_artifacts(
     output_dir = output_dir.resolve()
     document = load_protocol(source_path)
     rows = _rationale_rows(document)
-    source_sha256 = sha256_file(source_path)
+    source_sha256 = canonical_text_sha256(source_path)
     source_label = _repository_path(source_path)
     snapshot = output_dir / "protocol_snapshot.yaml"
-    if source_path != snapshot.resolve():
-        shutil.copy2(source_path, snapshot)
+    snapshot.write_bytes(_canonical_text_bytes(source_path))
     _write_csv(output_dir / "protocol_rationale.csv", rows)
     write_json(output_dir / "protocol_references.json", document.get("references", []))
     _write_methodology_markdown(

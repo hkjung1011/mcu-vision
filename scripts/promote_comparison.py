@@ -12,8 +12,11 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mcu_data.common import sha256_file, write_json
 from mcu_data.publishing import (
-    publish_evidence_file,
+    copy_public_file_exact,
+    load_json_strict,
+    scan_public_file,
     validate_formal_comparison,
+    validate_published_comparison_release,
     validated_formal_publication_plan,
 )
 
@@ -43,7 +46,7 @@ def main() -> int:
     compatibility_path = source_root / "protocol_compatibility.json"
     if not compatibility_path.exists():
         parser.error(f"Missing protocol_compatibility.json: {source_root}")
-    compatibility = json.loads(compatibility_path.read_text(encoding="utf-8"))
+    compatibility = load_json_strict(compatibility_path)
     if not compatibility.get("release_ready", False):
         fields = ", ".join(
             str(item.get("field")) for item in compatibility.get("release_blockers", [])
@@ -64,7 +67,7 @@ def main() -> int:
         relative = Path(relative_text)
         source = source_root / relative
         destination = destination_root / relative
-        record = publish_evidence_file(source, destination, project_root=PROJECT_ROOT)
+        record = copy_public_file_exact(source, destination)
         copied.append(
             {
                 "path": relative.as_posix(),
@@ -79,9 +82,13 @@ def main() -> int:
     if copied_paths != set(publication_plan["relative_paths"]):
         raise RuntimeError("Published comparison file set differs from the verified allowlist")
     validate_formal_comparison(destination_root)
+    public_file_records = [
+        scan_public_file(destination_root / relative, relative_path=relative)
+        for relative in sorted(publication_plan["relative_paths"])
+    ]
 
     artifact = {
-        "schema_version": 2,
+        "schema_version": 3,
         "status": "PASS",
         "formal_release": True,
         "release_name": args.release_name,
@@ -98,6 +105,10 @@ def main() -> int:
         "protocol_release_ready": bool(compatibility.get("release_ready", False)),
         "files": copied,
         "source_scan": publication_plan["scan"],
+        "public_scan": {
+            "status": "PASS",
+            "files": public_file_records,
+        },
         "publication_note": (
             "Repository copies redact local user/project paths and raw nvidia-smi process listings. "
             "Original and published SHA-256 values are recorded per file; numeric metrics are unchanged."
@@ -106,6 +117,7 @@ def main() -> int:
         "weights_included": bool(publication_plan["scan"]["weight_files"]),
     }
     write_json(destination_root / "artifact_manifest.json", artifact)
+    validate_published_comparison_release(destination_root)
     print(json.dumps(artifact, indent=2, ensure_ascii=False))
     print("\nReady for review, then git add/commit/push.")
     return 0

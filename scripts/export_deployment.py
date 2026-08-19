@@ -31,7 +31,7 @@ from mcu_data.deployment import (
     restore_boxes,
 )
 from mcu_data.framework_provenance import verify_yolox_source
-from mcu_data.publishing import validate_comparison_for_run
+from mcu_data.publishing import load_json_strict, validate_comparison_for_run
 
 
 DEFAULT_YOLOX_CONFIG = PROJECT_ROOT / "configs" / "yolox_s_micropcb.py"
@@ -340,8 +340,7 @@ def _verify_run_manifest(
     image_size: int,
 ) -> dict[str, Any]:
     manifest_path = manifest_path.resolve()
-    with manifest_path.open("r", encoding="utf-8") as handle:
-        manifest = json.load(handle)
+    manifest = load_json_strict(manifest_path, label="run manifest")
     if not isinstance(manifest, dict):
         raise ValueError(f"Run manifest must be a JSON object: {manifest_path}")
     if manifest.get("status") != "complete":

@@ -6,7 +6,13 @@ from pathlib import Path
 import pytest
 
 from mcu_data.common import sha256_file
-from mcu_data.publishing import publish_evidence_file, validate_comparison_for_run
+from mcu_data.publishing import (
+    load_json_strict,
+    load_jsonl_strict,
+    publish_evidence_file,
+    scan_public_file,
+    validate_comparison_for_run,
+)
 
 
 def test_publish_evidence_file_redacts_local_paths_and_process_table(tmp_path: Path) -> None:
@@ -83,6 +89,78 @@ def test_publish_evidence_file_accepts_utf8_bom_json(tmp_path: Path) -> None:
     publish_evidence_file(source, destination, project_root=project)
 
     assert json.loads(destination.read_text(encoding="utf-8-sig"))["metric"] == 0.5
+
+
+@pytest.mark.parametrize(
+    ("suffix", "payload", "loader"),
+    [
+        (".json", '{"seed": 42, "seed": 43}\n', load_json_strict),
+        (".jsonl", '{"seed": 42, "seed": 43}\n', load_jsonl_strict),
+    ],
+)
+def test_strict_publication_rejects_duplicate_json_keys(
+    tmp_path: Path,
+    suffix: str,
+    payload: str,
+    loader: object,
+) -> None:
+    source = tmp_path / f"evidence{suffix}"
+    source.write_text(payload, encoding="utf-8")
+    with pytest.raises(ValueError, match="Duplicate JSON object key"):
+        loader(source)  # type: ignore[operator]
+    with pytest.raises(ValueError, match="Duplicate JSON object key"):
+        publish_evidence_file(
+            source,
+            tmp_path / "published" / source.name,
+            project_root=tmp_path,
+        )
+
+
+def test_publication_serialization_is_deterministic_not_parse_only(tmp_path: Path) -> None:
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+    first.write_bytes(b'{"z":1,"a":{"path":"C:\\\\fixture\\\\x"}}\r\n')
+    second.write_bytes(b'{\n  "a": {"path": "C:\\\\fixture\\\\x"},\n  "z": 1\n}\n')
+    first_public = tmp_path / "public" / "first.json"
+    second_public = tmp_path / "public" / "second.json"
+    publish_evidence_file(first, first_public, project_root=tmp_path)
+    publish_evidence_file(second, second_public, project_root=tmp_path)
+    assert first_public.read_bytes() == second_public.read_bytes()
+    assert first_public.read_bytes().endswith(b"\n")
+    assert b"\r" not in first_public.read_bytes()
+
+
+@pytest.mark.parametrize(
+    ("filename", "payload", "message"),
+    [
+        ("image.png", b"\xff\xd8\xffjpeg", "signature does not match"),
+        ("report.txt", b"\x89PNG\r\n\x1a\ndisguised", "disguised png"),
+        ("report.txt", b"nul\x00text", "binary/NUL"),
+        ("report.txt", b"private=/opt/build/secret/file", "absolute local path"),
+        ("report.txt", b"private=/secret.txt", "absolute local path"),
+        ("report.txt", b"private=D:\\build\\secret.txt", "absolute local path"),
+        ("checkpoint.pth", b"not-a-torch-file", "unknown signature"),
+    ],
+)
+def test_public_file_scan_rejects_signature_text_and_generic_path_spoofs(
+    tmp_path: Path,
+    filename: str,
+    payload: bytes,
+    message: str,
+) -> None:
+    path = tmp_path / filename
+    path.write_bytes(payload)
+    with pytest.raises(ValueError, match=message):
+        scan_public_file(path, relative_path=filename)
+
+
+def test_public_file_scan_accepts_matching_png_and_torch_magic(tmp_path: Path) -> None:
+    image = tmp_path / "image.png"
+    image.write_bytes(b"\x89PNG\r\n\x1a\nfixture")
+    checkpoint = tmp_path / "best.pth"
+    checkpoint.write_bytes(b"PK\x03\x04fixture")
+    assert scan_public_file(image, relative_path="image.png")["detected_magic"] == "png"
+    assert scan_public_file(checkpoint, relative_path="weights/best.pth")["detected_magic"] == "zip"
 
 
 @pytest.mark.parametrize(

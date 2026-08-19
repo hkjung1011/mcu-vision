@@ -278,7 +278,9 @@ def test_formal_comparison_generates_hash_bound_execution_overlay(
     assert len(execution["runs"]) == 6
     assert (output / "aggregate_comparison.png").is_file()
     assert (output / "ubuntu_handoff.md").is_file()
-    assert (output / "protocol_snapshot.yaml").read_bytes() == protocol_source.read_bytes()
+    assert (output / "protocol_snapshot.yaml").read_bytes() == protocol_source.read_bytes().replace(
+        b"\r\n", b"\n"
+    ).replace(b"\r", b"\n")
 
 
 def test_common_evaluator_handles_no_predictions(tmp_path: Path) -> None:

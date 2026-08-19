@@ -9,3 +9,9 @@ reports/progress/** -whitespace
 
 # Published logs also preserve the trainer's original spacing as evidence.
 reports/progress/**/*.log -whitespace
+
+# Generated methodology files contain byte hashes; preserve their committed bytes on every OS.
+reports/methodology/*.md -text
+reports/methodology/*.json -text
+reports/methodology/*.csv -text
+reports/methodology/*.yaml -text

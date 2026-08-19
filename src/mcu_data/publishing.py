@@ -11,6 +11,8 @@ import statistics
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from .common import safe_stem, sha256_file, write_json
 
 
@@ -150,6 +152,317 @@ IMAGE_SUFFIXES = {
     ".heic",
     ".svg",
 }
+PUBLIC_TEXT_SUFFIXES = TEXT_SUFFIXES | {".json", ".jsonl", ".svg"}
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+JPEG_MAGIC = b"\xff\xd8\xff"
+GIF_MAGICS = (b"GIF87a", b"GIF89a")
+ZIP_MAGICS = (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")
+PICKLE_MAGIC = b"\x80"
+GENERIC_WINDOWS_ABSOLUTE_TEXT = re.compile(
+    r"(?i)(?<![A-Za-z0-9])(?:[A-Z]:[\\/][^\s`\"'<>|]+|"
+    r"\\\\[^\\/\s]+[\\/][^\s`\"'<>|]+)"
+)
+GENERIC_POSIX_ABSOLUTE_TEXT = re.compile(
+    r"(?m)(?<![A-Za-z0-9:/])/(?![/\s])[A-Za-z0-9._~+@=-]+"
+    r"(?:/[A-Za-z0-9._~+@=-]+)*"
+)
+GENERIC_WINDOWS_ABSOLUTE_BYTES = re.compile(
+    rb"(?i)(?<![A-Za-z0-9])(?:[A-Z]:[\\/][^\s`\"'<>|]+|"
+    rb"\\\\[^\\/\s]+[\\/][^\s`\"'<>|]+)"
+)
+GENERIC_POSIX_ABSOLUTE_BYTES = re.compile(
+    rb"(?m)(?<![A-Za-z0-9:/])/(?![/\s])[A-Za-z0-9._~+@=-]+"
+    rb"(?:/[A-Za-z0-9._~+@=-]+)*"
+)
+PRINTABLE_BINARY_STRING = re.compile(rb"[\x20-\x7e]{6,}")
+
+
+def _reject_duplicate_json_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"Duplicate JSON object key: {key!r}")
+        result[key] = value
+    return result
+
+
+def _reject_nonstandard_json_constant(value: str) -> None:
+    raise ValueError(f"Non-standard JSON numeric constant: {value}")
+
+
+def loads_json_strict(text: str, *, label: str = "JSON") -> Any:
+    """Decode RFC-style JSON while rejecting duplicate keys and NaN/Infinity."""
+    try:
+        return json.loads(
+            text,
+            object_pairs_hook=_reject_duplicate_json_pairs,
+            parse_constant=_reject_nonstandard_json_constant,
+        )
+    except (json.JSONDecodeError, UnicodeError, ValueError) as exc:
+        raise ValueError(f"Invalid {label}: {exc}") from exc
+
+
+def load_json_strict(path: Path, *, label: str | None = None) -> Any:
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except UnicodeError as exc:
+        raise ValueError(f"Invalid UTF-8 JSON file: {path}") from exc
+    if "\x00" in text:
+        raise ValueError(f"JSON file contains NUL bytes: {path}")
+    return loads_json_strict(text, label=label or path.name)
+
+
+def load_jsonl_strict(path: Path, *, label: str | None = None) -> list[dict[str, Any]]:
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except UnicodeError as exc:
+        raise ValueError(f"Invalid UTF-8 JSONL file: {path}") from exc
+    if "\x00" in text:
+        raise ValueError(f"JSONL file contains NUL bytes: {path}")
+    rows: list[dict[str, Any]] = []
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if not line.strip():
+            continue
+        value = loads_json_strict(
+            line,
+            label=f"{label or path.name} line {line_number}",
+        )
+        if not isinstance(value, dict):
+            raise ValueError(
+                f"Invalid {label or path.name} line {line_number}: JSONL rows must be objects"
+            )
+        rows.append(value)
+    return rows
+
+
+def _canonical_json_bytes(value: Any) -> bytes:
+    return (
+        json.dumps(
+            value,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def _canonical_jsonl_bytes(rows: list[dict[str, Any]]) -> bytes:
+    lines = [
+        json.dumps(
+            row,
+            ensure_ascii=False,
+            sort_keys=True,
+            allow_nan=False,
+            separators=(",", ": "),
+        )
+        for row in rows
+    ]
+    return (("\n".join(lines) + "\n") if lines else "").encode("utf-8")
+
+
+def _newline_hash_variants(path: Path) -> set[str]:
+    """Hash the exact, canonical-LF, and checkout-CRLF forms of UTF-8 text."""
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except UnicodeError as exc:
+        raise ValueError(f"Protocol snapshot must be valid UTF-8: {path}") from exc
+    if "\x00" in text:
+        raise ValueError(f"Protocol snapshot contains NUL bytes: {path}")
+    lf_bytes = text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+    crlf_bytes = lf_bytes.replace(b"\n", b"\r\n")
+    return {
+        sha256_file(path),
+        hashlib.sha256(lf_bytes).hexdigest(),
+        hashlib.sha256(crlf_bytes).hexdigest(),
+    }
+
+
+def _json_strings(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        strings: list[str] = []
+        for key, item in value.items():
+            strings.append(str(key))
+            strings.extend(_json_strings(item))
+        return strings
+    if isinstance(value, list):
+        strings = []
+        for item in value:
+            strings.extend(_json_strings(item))
+        return strings
+    return []
+
+
+def assert_public_text_privacy(strings: list[str], *, label: str) -> None:
+    for value in strings:
+        inspected = value
+        for placeholder in ("<PROJECT_ROOT>", "<USER_HOME>"):
+            inspected = inspected.replace(placeholder + "/", "")
+            inspected = inspected.replace(placeholder + "\\", "")
+        if (
+            GENERIC_WINDOWS_ABSOLUTE_TEXT.search(inspected)
+            or GENERIC_POSIX_ABSOLUTE_TEXT.search(inspected)
+        ):
+            raise ValueError(f"Public artifact contains an absolute local path: {label}")
+
+
+def assert_public_binary_privacy(content: bytes, *, label: str) -> None:
+    """Reject generic absolute paths embedded as printable UTF-8/ASCII or UTF-16 text."""
+    candidates = PRINTABLE_BINARY_STRING.findall(content)
+    compact_utf16 = content.replace(b"\x00", b"")
+    candidates.extend(PRINTABLE_BINARY_STRING.findall(compact_utf16))
+    inspected_candidates = []
+    for candidate in candidates:
+        for placeholder in (b"<PROJECT_ROOT>", b"<USER_HOME>"):
+            candidate = candidate.replace(placeholder + b"/", b"")
+            candidate = candidate.replace(placeholder + b"\\", b"")
+        inspected_candidates.append(candidate)
+    if any(
+        GENERIC_WINDOWS_ABSOLUTE_BYTES.search(candidate)
+        or GENERIC_POSIX_ABSOLUTE_BYTES.search(candidate)
+        for candidate in inspected_candidates
+    ):
+        raise ValueError(f"Public binary artifact contains an absolute local path: {label}")
+
+
+def _validate_yaml_schema(text: str, *, label: str) -> None:
+    try:
+        node = yaml.compose(text)
+        yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"Invalid YAML schema: {label}") from exc
+
+    def visit(value: yaml.Node | None) -> None:
+        if value is None:
+            return
+        if isinstance(value, yaml.MappingNode):
+            seen: set[str] = set()
+            for key_node, child in value.value:
+                key = str(getattr(key_node, "value", ""))
+                if key in seen:
+                    raise ValueError(f"Duplicate YAML mapping key in {label}: {key!r}")
+                seen.add(key)
+                visit(child)
+        elif isinstance(value, yaml.SequenceNode):
+            for child in value.value:
+                visit(child)
+
+    visit(node)
+
+
+def _detected_binary_magic(content: bytes) -> str | None:
+    if content.startswith(PNG_MAGIC):
+        return "png"
+    if content.startswith(JPEG_MAGIC):
+        return "jpeg"
+    if content.startswith(GIF_MAGICS):
+        return "gif"
+    if content.startswith(ZIP_MAGICS):
+        return "zip"
+    if content.startswith(PICKLE_MAGIC):
+        return "pickle_or_torch_legacy"
+    return None
+
+
+def scan_public_file(path: Path, *, relative_path: str) -> dict[str, Any]:
+    """Validate public artifact path, media signature, schema, UTF-8, and path privacy."""
+    raw_relative = str(relative_path)
+    normalized = raw_relative.replace("\\", "/")
+    if (
+        not normalized
+        or raw_relative != normalized
+        or normalized.startswith("/")
+        or Path(normalized).is_absolute()
+        or Path(normalized).as_posix() != normalized
+        or ":" in normalized
+        or ".." in Path(normalized).parts
+    ):
+        raise ValueError(f"Public artifact path is not canonical: {relative_path!r}")
+    if not path.is_file():
+        raise FileNotFoundError(f"Public artifact is missing: {normalized}")
+    content = path.read_bytes()
+    suffix = path.suffix.lower()
+    magic = _detected_binary_magic(content)
+    expected_magic = {
+        ".png": "png",
+        ".jpg": "jpeg",
+        ".jpeg": "jpeg",
+        ".gif": "gif",
+    }.get(suffix)
+    if expected_magic is not None and magic != expected_magic:
+        raise ValueError(
+            f"Public artifact signature does not match {suffix}: {normalized}"
+        )
+    allowed_magic = {
+        "png": {".png"},
+        "jpeg": {".jpg", ".jpeg"},
+        "gif": {".gif"},
+        "zip": {".pt", ".pth", ".torchscript", ".zip"},
+        "pickle_or_torch_legacy": {".pt", ".pth"},
+    }
+    if magic is not None and suffix not in allowed_magic[magic]:
+        raise ValueError(
+            f"Public artifact has disguised {magic} content: {normalized}"
+        )
+    if suffix in {".pt", ".pth", ".torchscript"} and magic not in {
+        "zip",
+        "pickle_or_torch_legacy",
+    }:
+        raise ValueError(f"Public torch checkpoint has an unknown signature: {normalized}")
+
+    schema = "BINARY"
+    if suffix in PUBLIC_TEXT_SUFFIXES:
+        if magic is not None or b"\x00" in content:
+            raise ValueError(f"Public text artifact contains binary/NUL content: {normalized}")
+        try:
+            text = content.decode("utf-8-sig")
+        except UnicodeDecodeError as exc:
+            raise ValueError(f"Public text artifact is not valid UTF-8: {normalized}") from exc
+        strings = [text]
+        if suffix == ".json":
+            document = loads_json_strict(text, label=normalized)
+            if not isinstance(document, (dict, list)):
+                raise ValueError(f"Public JSON top level must be object/array: {normalized}")
+            strings = _json_strings(document)
+            schema = "JSON_PASS"
+        elif suffix == ".jsonl":
+            rows = load_jsonl_strict(path, label=normalized)
+            strings = _json_strings(rows)
+            schema = "JSONL_PASS"
+        elif suffix == ".csv":
+            try:
+                rows = list(csv.reader(text.splitlines(), strict=True))
+            except csv.Error as exc:
+                raise ValueError(f"Public CSV is malformed: {normalized}") from exc
+            if not rows or not rows[0] or len(set(rows[0])) != len(rows[0]):
+                raise ValueError(f"Public CSV has an invalid/duplicate header: {normalized}")
+            if any(len(row) != len(rows[0]) for row in rows[1:]):
+                raise ValueError(f"Public CSV row width differs from header: {normalized}")
+            schema = "CSV_PASS"
+        elif suffix in {".yaml", ".yml"}:
+            _validate_yaml_schema(text, label=normalized)
+            schema = "YAML_PASS"
+        elif suffix == ".svg":
+            if "<svg" not in text[:4096].lower():
+                raise ValueError(f"Public SVG signature is missing: {normalized}")
+            schema = "SVG_PASS"
+        else:
+            schema = "UTF8_TEXT_PASS"
+        assert_public_text_privacy(strings, label=normalized)
+    else:
+        assert_public_binary_privacy(content, label=normalized)
+    return {
+        "path": normalized,
+        "bytes": len(content),
+        "sha256": hashlib.sha256(content).hexdigest(),
+        "extension": suffix,
+        "detected_magic": magic,
+        "schema": schema,
+        "privacy": "PASS",
+    }
 
 
 def _replacement_pairs(project_root: Path) -> list[tuple[str, str]]:
@@ -235,34 +548,28 @@ def publish_evidence_file(
     changed = False
 
     if source.suffix.lower() == ".json":
-        value = json.loads(source.read_text(encoding="utf-8-sig"))
+        value = load_json_strict(source)
         cleaned, changed = _scrub_json_value(value, replacements)
-        if changed:
-            write_json(destination, cleaned)
-        else:
-            shutil.copy2(source, destination)
+        destination.write_bytes(_canonical_json_bytes(cleaned))
     elif source.suffix.lower() == ".jsonl":
-        output_lines: list[str] = []
-        for line in source.read_text(encoding="utf-8-sig").splitlines():
-            if not line.strip():
-                continue
-            value = json.loads(line)
+        output_rows: list[dict[str, Any]] = []
+        for value in load_jsonl_strict(source):
             cleaned, line_changed = _scrub_json_value(value, replacements)
             changed = changed or line_changed
-            output_lines.append(json.dumps(cleaned, ensure_ascii=False, sort_keys=True))
-        if changed:
-            destination.write_text("\n".join(output_lines) + "\n", encoding="utf-8", newline="\n")
-        else:
-            shutil.copy2(source, destination)
+            if not isinstance(cleaned, dict):  # defensive: scrub preserves object shape
+                raise ValueError(f"Published JSONL row changed shape: {source}")
+            output_rows.append(cleaned)
+        destination.write_bytes(_canonical_jsonl_bytes(output_rows))
     elif source.suffix.lower() in TEXT_SUFFIXES:
-        with source.open("r", encoding="utf-8", errors="replace", newline="") as handle:
-            text = handle.read()
+        try:
+            text = source.read_text(encoding="utf-8-sig")
+        except UnicodeError as exc:
+            raise ValueError(f"Published text is not valid UTF-8: {source}") from exc
+        if "\x00" in text:
+            raise ValueError(f"Published text contains NUL bytes: {source}")
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
         cleaned_text, changed = _scrub_text(text, replacements)
-        if changed:
-            with destination.open("w", encoding="utf-8", newline="") as handle:
-                handle.write(cleaned_text)
-        else:
-            shutil.copy2(source, destination)
+        destination.write_text(cleaned_text, encoding="utf-8", newline="\n")
     else:
         shutil.copy2(source, destination)
 
@@ -271,6 +578,8 @@ def publish_evidence_file(
         "published_sha256": sha256_file(destination),
         "bytes": destination.stat().st_size,
         "sanitized_for_repository": changed,
+        "canonical_serialization": source.suffix.lower() in TEXT_SUFFIXES
+        or source.suffix.lower() in {".json", ".jsonl"},
     }
 
 
@@ -293,9 +602,9 @@ def _numeric_digest(path: Path) -> str:
     values: list[list[Any]] = []
     if path.suffix.lower() in {".json", ".jsonl"}:
         documents = (
-            [json.loads(line) for line in path.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
+            load_jsonl_strict(path)
             if path.suffix.lower() == ".jsonl"
-            else [json.loads(path.read_text(encoding="utf-8-sig"))]
+            else [load_json_strict(path)]
         )
 
         def visit(value: Any, location: str) -> None:
@@ -326,46 +635,59 @@ def _numeric_digest(path: Path) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def _expected_published_bytes(
+    original: Path,
+    *,
+    publication_project_root: Path,
+) -> bytes:
+    """Reapply the sole approved publication transform into deterministic bytes."""
+    suffix = original.suffix.lower()
+    replacements = _replacement_pairs(publication_project_root)
+    if suffix == ".json":
+        expected, _ = _scrub_json_value(
+            load_json_strict(original),
+            replacements,
+        )
+        return _canonical_json_bytes(expected)
+    if suffix == ".jsonl":
+        original_rows = load_jsonl_strict(original)
+        expected_rows = [_scrub_json_value(row, replacements)[0] for row in original_rows]
+        return _canonical_jsonl_bytes(expected_rows)
+    if suffix in TEXT_SUFFIXES:
+        text = original.read_text(encoding="utf-8-sig")
+        if "\x00" in text:
+            raise ValueError(f"Published text contains NUL bytes: {original}")
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        expected, _ = _scrub_text(
+            text,
+            replacements,
+        )
+        return expected.encode("utf-8")
+    return original.read_bytes()
+
+
 def _published_content_equivalent(
     original: Path,
     published: Path,
     *,
     publication_project_root: Path,
 ) -> bool:
-    """Reapply the sole approved publication transform and require an exact result."""
-    suffix = original.suffix.lower()
-    replacements = _replacement_pairs(publication_project_root)
-    if suffix == ".json":
-        expected, _ = _scrub_json_value(
-            json.loads(original.read_text(encoding="utf-8-sig")),
-            replacements,
-        )
-        return expected == json.loads(published.read_text(encoding="utf-8-sig"))
-    if suffix == ".jsonl":
-        original_rows = [
-            json.loads(line)
-            for line in original.read_text(encoding="utf-8-sig").splitlines()
-            if line.strip()
-        ]
-        published_rows = [
-            json.loads(line)
-            for line in published.read_text(encoding="utf-8-sig").splitlines()
-            if line.strip()
-        ]
-        expected_rows = [_scrub_json_value(row, replacements)[0] for row in original_rows]
-        return expected_rows == published_rows
-    if suffix in TEXT_SUFFIXES:
-        expected, _ = _scrub_text(
-            original.read_text(encoding="utf-8", errors="replace"),
-            replacements,
-        )
-        return expected == published.read_text(encoding="utf-8", errors="replace")
-    return sha256_file(original) == sha256_file(published)
+    return published.read_bytes() == _expected_published_bytes(
+        original,
+        publication_project_root=publication_project_root,
+    )
 
 
 def _contained_manifest_path(root: Path, relative: Any, *, label: str) -> tuple[str, Path]:
-    normalized = str(relative or "").replace("\\", "/")
-    if not normalized or normalized.startswith("/"):
+    raw = str(relative or "")
+    normalized = raw.replace("\\", "/")
+    if (
+        not normalized
+        or raw != normalized
+        or normalized.startswith("/")
+        or ":" in normalized
+        or ".." in Path(normalized).parts
+    ):
         raise ValueError(f"{label} path is empty or absolute: {normalized!r}")
     resolved = (root / normalized).resolve()
     try:
@@ -376,6 +698,12 @@ def _contained_manifest_path(root: Path, relative: Any, *, label: str) -> tuple[
     if canonical != normalized:
         raise ValueError(f"{label} path is not canonical: {normalized}")
     return canonical, resolved
+
+
+def _require_exact_record_size(record: dict[str, Any], path: Path, *, label: str) -> None:
+    value = record.get("bytes")
+    if type(value) is not int or value < 0 or value != path.stat().st_size:
+        raise ValueError(f"{label} byte-size mismatch: {path.name}")
 
 
 def _validate_file_record(
@@ -390,8 +718,7 @@ def _validate_file_record(
     expected_sha = str(record.get("sha256", "")).lower()
     if not re.fullmatch(r"[0-9a-f]{64}", expected_sha) or sha256_file(path) != expected_sha:
         raise ValueError(f"{label} SHA-256 mismatch: {relative}")
-    if int(record.get("bytes", -1)) != path.stat().st_size:
-        raise ValueError(f"{label} byte-size mismatch: {relative}")
+    _require_exact_record_size(record, path, label=label)
     return relative, path
 
 
@@ -400,7 +727,7 @@ def _validate_formal_artifact_inventory(
     source_bundle_paths: set[str],
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     evidence_path = comparison_dir / "evidence_manifest.json"
-    evidence = json.loads(evidence_path.read_text(encoding="utf-8-sig"))
+    evidence = load_json_strict(evidence_path)
     if evidence.get("generative_ai_used_for_images") is not False:
         raise ValueError(
             "Formal evidence_manifest.json requires exact generative_ai_used_for_images=false"
@@ -461,7 +788,7 @@ def _validate_protocol_artifacts(
     execution_status: dict[str, Any],
 ) -> dict[str, Any]:
     path = comparison_dir / "protocol_artifacts.json"
-    document = json.loads(path.read_text(encoding="utf-8-sig"))
+    document = load_json_strict(path)
     if document.get("generative_ai_used_for_images") is not False:
         raise ValueError(
             "Formal protocol_artifacts.json requires exact generative_ai_used_for_images=false"
@@ -490,8 +817,7 @@ def _validate_protocol_artifacts(
         expected_sha = str(raw.get("sha256", "")).lower()
         if not re.fullmatch(r"[0-9a-f]{64}", expected_sha) or sha256_file(artifact_path) != expected_sha:
             raise ValueError(f"Formal protocol artifact SHA-256 mismatch: {relative}")
-        if int(raw.get("bytes", -1)) != artifact_path.stat().st_size:
-            raise ValueError(f"Formal protocol artifact byte-size mismatch: {relative}")
+        _require_exact_record_size(raw, artifact_path, label="formal protocol artifact")
     missing = sorted(set(REQUIRED_PROTOCOL_ARTIFACTS) - seen)
     if missing:
         raise FileNotFoundError(f"Formal protocol artifacts are incomplete: {missing}")
@@ -509,7 +835,7 @@ def validate_formal_comparison(
     compatibility_path = comparison_dir / "protocol_compatibility.json"
     comparison_path = comparison_dir / "comparison.json"
     sources_path = comparison_dir / "sources_manifest.json"
-    compatibility = json.loads(compatibility_path.read_text(encoding="utf-8-sig"))
+    compatibility = load_json_strict(compatibility_path)
     if not (
         compatibility.get("release_ready") is True
         and compatibility.get("comparable") is True
@@ -519,7 +845,7 @@ def validate_formal_comparison(
     ):
         raise ValueError("Formal comparison compatibility claims are not an unblocked six-run PASS")
     provenance_path = comparison_dir / "run_provenance.json"
-    provenance = json.loads(provenance_path.read_text(encoding="utf-8-sig"))
+    provenance = load_json_strict(provenance_path)
     if provenance.get("status") != "PASS" or compatibility.get("run_provenance") != provenance:
         raise ValueError("Formal comparison provenance is missing, failed, or differs from compatibility")
     attestation_path = comparison_dir / "run_provenance_attestation.json"
@@ -528,27 +854,30 @@ def validate_formal_comparison(
     ):
         raise ValueError("Formal mixed-commit provenance attestation is missing or unbound")
     if provenance.get("mixed_commits") is True:
-        attestation = json.loads(attestation_path.read_text(encoding="utf-8-sig"))
+        attestation = load_json_strict(attestation_path)
         if sorted(attestation.get("allowed_commits", [])) != sorted(
             provenance["attestation"].get("allowed_commits", [])
         ):
             raise ValueError("Formal provenance attestation commit set differs from provenance")
     expectations = compatibility.get("release_expectations", {})
+    expected_seed_values = expectations.get("seeds", [])
     if (
         {_normalized_model(value) for value in expectations.get("models", [])} != FORMAL_MODELS
-        or {int(value) for value in expectations.get("seeds", [])} != FORMAL_SEEDS
+        or not isinstance(expected_seed_values, list)
+        or any(type(value) is not int for value in expected_seed_values)
+        or set(expected_seed_values) != FORMAL_SEEDS
         or int(expectations.get("runs", -1)) != 6
     ):
         raise ValueError("Formal comparison release expectations are not the exact model/seed matrix")
 
-    comparison_rows = json.loads(comparison_path.read_text(encoding="utf-8-sig"))
+    comparison_rows = load_json_strict(comparison_path)
     if not isinstance(comparison_rows, list) or len(comparison_rows) != 6:
         raise ValueError("Formal comparison.json must contain exactly six rows")
     row_ids = [str(row.get("run_id") or "") for row in comparison_rows if isinstance(row, dict)]
     if len(row_ids) != 6 or len(set(row_ids)) != 6:
         raise ValueError("Formal comparison run_id values must be six unique identifiers")
 
-    sources = json.loads(sources_path.read_text(encoding="utf-8-sig"))
+    sources = load_json_strict(sources_path)
     records = sources.get("files", []) if isinstance(sources, dict) else []
     if not isinstance(records, list):
         raise ValueError("Formal sources_manifest.files must be a list")
@@ -583,8 +912,7 @@ def validate_formal_comparison(
             raise FileNotFoundError(path)
         if str(record.get("published_sha256", "")).lower() != sha256_file(path):
             raise ValueError(f"Formal source published SHA-256 mismatch: {relative}")
-        if int(record.get("bytes", -1)) != path.stat().st_size:
-            raise ValueError(f"Formal source byte-size mismatch: {relative}")
+        _require_exact_record_size(record, path, label="formal source")
         original_sha = str(record.get("source_original_sha256", "")).lower()
         if not re.fullmatch(r"[0-9a-f]{64}", original_sha):
             raise ValueError(f"Formal source original SHA-256 is invalid: {relative}")
@@ -601,7 +929,7 @@ def validate_formal_comparison(
         missing = [name for name in REQUIRED_SOURCE_FILES if (run_id, name) not in by_run_file]
         if missing:
             raise ValueError(f"Formal run evidence is incomplete for {run_id}: {missing}")
-        manifest = json.loads(by_run_file[(run_id, "run_manifest.json")][1].read_text(encoding="utf-8-sig"))
+        manifest = load_json_strict(by_run_file[(run_id, "run_manifest.json")][1])
         if (
             str(manifest.get("run_id")) != run_id
             or manifest.get("status") != "complete"
@@ -611,7 +939,12 @@ def validate_formal_comparison(
             raise ValueError(f"Formal run manifest is not a complete checkpointed run: {run_id}")
         protocol = manifest.get("protocol", {})
         model = _normalized_model(manifest.get("model"))
-        seed = int(protocol.get("seed", -1))
+        seed_value = protocol.get("seed")
+        if type(seed_value) is not int:
+            raise ValueError(
+                f"Formal run seed must have exact JSON integer type: {run_id}"
+            )
+        seed = seed_value
         actual_pairs.add((model, seed))
         for field, expected in FORMAL_COMMON.items():
             defaults = {"fraction": 1.0, "multiscale_range": 0}
@@ -645,7 +978,7 @@ def validate_formal_comparison(
                 f"Formal epoch evidence must be the ordered, unique 1..100 sequence: {run_id}"
             )
         epochs_by_run[run_id] = epochs
-        final = json.loads(by_run_file[(run_id, "final_metrics.json")][1].read_text(encoding="utf-8-sig"))
+        final = load_json_strict(by_run_file[(run_id, "final_metrics.json")][1])
         metrics = final.get("metrics", final.get("metrics_common", {}))
         _finite_fields(
             metrics,
@@ -653,10 +986,10 @@ def validate_formal_comparison(
             f"metrics/{run_id}",
         )
         metrics_by_run[run_id] = metrics
-        latency = json.loads(by_run_file[(run_id, "latency.json")][1].read_text(encoding="utf-8-sig"))
+        latency = load_json_strict(by_run_file[(run_id, "latency.json")][1])
         _finite_fields(latency, ("e2e_p50_ms", "e2e_p95_ms", "sustained_fps"), f"latency/{run_id}")
         latency_by_run[run_id] = latency
-        gpu = json.loads(by_run_file[(run_id, "gpu_summary.json")][1].read_text(encoding="utf-8-sig"))
+        gpu = load_json_strict(by_run_file[(run_id, "gpu_summary.json")][1])
         _finite_fields(gpu, ("peak_memory_used_mib",), f"gpu/{run_id}")
         gpu_by_run[run_id] = gpu
         manifests[run_id] = manifest
@@ -672,7 +1005,9 @@ def validate_formal_comparison(
         for manifest in manifests.values()
     }
     protocol_snapshot_path = comparison_dir / "protocol_snapshot.yaml"
-    if len(protocol_hashes) != 1 or sha256_file(protocol_snapshot_path) not in protocol_hashes:
+    if len(protocol_hashes) != 1 or not protocol_hashes <= _newline_hash_variants(
+        protocol_snapshot_path
+    ):
         raise ValueError(
             "Formal protocol_snapshot.yaml differs from the protocol_config SHA-256 bound by runs"
         )
@@ -682,7 +1017,8 @@ def validate_formal_comparison(
         if (
             row.get("status") != "complete"
             or _normalized_model(row.get("model")) != _normalized_model(manifest.get("model"))
-            or int(row.get("seed", -1)) != int(manifest.get("protocol", {}).get("seed", -2))
+            or type(row.get("seed")) is not int
+            or row.get("seed") != manifest.get("protocol", {}).get("seed")
         ):
             raise ValueError("Formal comparison row differs from its source run manifest")
         for field in (
@@ -750,7 +1086,7 @@ def validate_formal_comparison(
         raise ValueError("Formal comparison.csv must exactly mirror comparison.json")
 
     aggregate_path = comparison_dir / "aggregate_comparison.json"
-    aggregate_rows = json.loads(aggregate_path.read_text(encoding="utf-8-sig"))
+    aggregate_rows = load_json_strict(aggregate_path)
     if not isinstance(aggregate_rows, list) or len(aggregate_rows) != 2:
         raise ValueError("Formal aggregate comparison must contain exactly two model rows")
     expected_aggregate_rows: list[dict[str, Any]] = []
@@ -787,12 +1123,22 @@ def validate_formal_comparison(
         )
 
     execution_path = comparison_dir / "formal_execution_status.json"
-    execution_status = json.loads(execution_path.read_text(encoding="utf-8-sig"))
+    execution_status = load_json_strict(execution_path)
+    if (
+        not isinstance(execution_status.get("seeds"), list)
+        or any(type(value) is not int for value in execution_status.get("seeds", []))
+        or not isinstance(execution_status.get("runs"), list)
+        or any(
+            not isinstance(item, dict) or type(item.get("seed")) is not int
+            for item in execution_status.get("runs", [])
+        )
+    ):
+        raise ValueError("Formal execution-status seeds must use exact JSON integer types")
     expected_execution_runs = sorted(
         (
             {
                 "model": str(row["model"]),
-                "seed": int(row["seed"]),
+                "seed": row["seed"],
                 "run_id": str(row["run_id"]),
                 "status": "complete",
                 "observed_epoch_rows": 100,
@@ -863,7 +1209,7 @@ def validate_formal_comparison(
     bindings: dict[tuple[str, str], dict[str, Any]] = {}
     publication_project_root: Path | None = None
     if bindings_path.is_file():
-        binding_document = json.loads(bindings_path.read_text(encoding="utf-8-sig"))
+        binding_document = load_json_strict(bindings_path)
         root_text = str(binding_document.get("publication_project_root") or "")
         publication_project_root = Path(root_text).resolve() if root_text else None
         if (
@@ -975,7 +1321,7 @@ def validate_formal_comparison(
     }
     formal_path = comparison_dir / "formal_validation.json"
     if formal_path.is_file():
-        recorded = json.loads(formal_path.read_text(encoding="utf-8-sig"))
+        recorded = load_json_strict(formal_path)
         if recorded != formal_record:
             raise ValueError("Formal validation digest chain differs from comparison evidence")
     elif not _allow_missing_formal_record:
@@ -1041,9 +1387,7 @@ def validated_formal_publication_plan(
             f"unlisted={unlisted}, images={unlisted_images}, weights={unlisted_weights}"
         )
 
-    evidence = json.loads(
-        (comparison_dir / "evidence_manifest.json").read_text(encoding="utf-8-sig")
-    )
+    evidence = load_json_strict(comparison_dir / "evidence_manifest.json")
     derived_images = {
         str(record.get("path") or "").replace("\\", "/")
         for record in evidence.get("derived_images", [])
@@ -1060,6 +1404,10 @@ def validated_formal_publication_plan(
         raise ValueError(f"Formal comparison publication must not include weights: {allowed_weights}")
     if raw_images:
         raise ValueError(f"Formal comparison publication contains undeclared raw images: {raw_images}")
+    public_file_records = [
+        scan_public_file(comparison_dir / relative, relative_path=relative)
+        for relative in sorted(allowlist)
+    ]
     return {
         "formal_validation": formal_record,
         "relative_paths": sorted(allowlist),
@@ -1070,7 +1418,271 @@ def validated_formal_publication_plan(
             "raw_image_files": raw_images,
             "weight_files": allowed_weights,
             "derived_image_files": sorted(derived_images),
+            "public_file_records": public_file_records,
         },
+    }
+
+
+def copy_public_file_exact(source: Path, destination: Path) -> dict[str, Any]:
+    """Copy an already validated formal artifact without invalidating its hash chain."""
+    source = source.resolve()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    source_sha = sha256_file(source)
+    shutil.copy2(source, destination)
+    published_sha = sha256_file(destination)
+    if source_sha != published_sha:
+        raise ValueError(f"Verified public artifact changed during copy: {source.name}")
+    return {
+        "source_original_sha256": source_sha,
+        "published_sha256": published_sha,
+        "bytes": destination.stat().st_size,
+        "sanitized_for_repository": False,
+        "canonical_serialization": source.suffix.lower() in PUBLIC_TEXT_SUFFIXES,
+        "copy_mode": "EXACT_VERIFIED_BYTES",
+    }
+
+
+def validate_published_comparison_release(release_dir: Path) -> dict[str, Any]:
+    """Validate a public-clone comparison including its sole implicit manifest file."""
+    release_dir = release_dir.resolve()
+    manifest_path = release_dir / "artifact_manifest.json"
+    document = load_json_strict(manifest_path)
+    if not isinstance(document, dict):
+        raise ValueError("Published comparison artifact_manifest.json must be an object")
+    if (
+        document.get("schema_version") != 3
+        or document.get("status") != "PASS"
+        or document.get("formal_release") is not True
+    ):
+        raise ValueError("Published comparison manifest is not a schema-3 formal PASS")
+    raw_records = document.get("files")
+    if not isinstance(raw_records, list) or not raw_records:
+        raise ValueError("Published comparison manifest files must be a non-empty list")
+    records: dict[str, dict[str, Any]] = {}
+    for raw in raw_records:
+        if not isinstance(raw, dict):
+            raise ValueError("Published comparison file record must be an object")
+        relative, path = _contained_manifest_path(
+            release_dir,
+            raw.get("path"),
+            label="published comparison file",
+        )
+        if relative == "artifact_manifest.json" or relative in records:
+            raise ValueError(f"Duplicate/reserved published comparison path: {relative}")
+        if not path.is_file():
+            raise FileNotFoundError(f"Published comparison file is missing: {relative}")
+        _require_exact_record_size(raw, path, label="published comparison")
+        if str(raw.get("published_sha256", "")).lower() != sha256_file(path):
+            raise ValueError(f"Published comparison SHA-256 mismatch: {relative}")
+        records[relative] = raw
+    actual = {
+        path.relative_to(release_dir).as_posix()
+        for path in release_dir.rglob("*")
+        if path.is_file()
+    }
+    expected = set(records) | {"artifact_manifest.json"}
+    if actual != expected:
+        raise ValueError(
+            "Published comparison file set differs from manifest: "
+            f"missing={sorted(expected - actual)}, extra={sorted(actual - expected)}"
+        )
+    recomputed = [
+        scan_public_file(release_dir / relative, relative_path=relative)
+        for relative in sorted(records)
+    ]
+    public_scan = document.get("public_scan")
+    if not isinstance(public_scan, dict) or public_scan.get("files") != recomputed:
+        raise ValueError("Published comparison public signature/privacy scan differs")
+    scan_public_file(manifest_path, relative_path="artifact_manifest.json")
+    weight_files = sorted(
+        relative for relative in records if Path(relative).suffix.lower() in WEIGHT_SUFFIXES
+    )
+    evidence = load_json_strict(release_dir / "evidence_manifest.json")
+    derived_images = {
+        str(record.get("path") or "").replace("\\", "/")
+        for record in evidence.get("derived_images", [])
+        if isinstance(record, dict)
+    }
+    image_files = {
+        relative for relative in records if Path(relative).suffix.lower() in IMAGE_SUFFIXES
+    }
+    raw_images = sorted(image_files - derived_images)
+    if (
+        weight_files
+        or raw_images
+        or document.get("weights_included") is not False
+        or document.get("raw_images_included") is not False
+    ):
+        raise ValueError(
+            f"Published comparison raw/weight scan failed: raw={raw_images}, weights={weight_files}"
+        )
+    validate_formal_comparison(release_dir)
+    return {
+        "status": "PASS",
+        "files": sorted(actual),
+        "public_file_records": recomputed,
+        "raw_image_files": raw_images,
+        "weight_files": weight_files,
+    }
+
+
+def validate_published_run_release(
+    report_root: Path,
+    weight_root: Path,
+    *,
+    project_root: Path,
+) -> dict[str, Any]:
+    """Validate exact public report/weight file sets and recompute every public scan."""
+    report_root = report_root.resolve()
+    weight_root = weight_root.resolve()
+    project_root = project_root.resolve()
+    manifest_path = report_root / "artifact_manifest.json"
+    document = load_json_strict(manifest_path)
+    if (
+        not isinstance(document, dict)
+        or document.get("schema_version") != 3
+        or document.get("status") != "PASS"
+        or document.get("formal_release") is not True
+    ):
+        raise ValueError("Published run manifest is not a schema-3 formal PASS")
+    raw_records = document.get("published_evidence")
+    if not isinstance(raw_records, list) or not raw_records:
+        raise ValueError("Published run evidence list is missing")
+    records: dict[str, dict[str, Any]] = {}
+    for raw in raw_records:
+        if not isinstance(raw, dict):
+            raise ValueError("Published run evidence record must be an object")
+        relative, path = _contained_manifest_path(
+            report_root,
+            raw.get("path"),
+            label="published run evidence",
+        )
+        if relative == "artifact_manifest.json" or relative in records:
+            raise ValueError(f"Duplicate/reserved published run path: {relative}")
+        if not path.is_file():
+            raise FileNotFoundError(f"Published run report is missing: {relative}")
+        try:
+            _require_exact_record_size(raw, path, label="published run report")
+        except ValueError as exc:
+            raise ValueError(f"Published run report hash/size mismatch: {relative}") from exc
+        if str(raw.get("published_sha256", "")).lower() != sha256_file(path):
+            raise ValueError(f"Published run report hash/size mismatch: {relative}")
+        records[relative] = raw
+    reports = document.get("reports")
+    if not isinstance(reports, list) or reports != sorted(records):
+        raise ValueError("Published run reports list differs from evidence records")
+    actual_reports = {
+        path.relative_to(report_root).as_posix()
+        for path in report_root.rglob("*")
+        if path.is_file()
+    }
+    expected_reports = set(records) | {"artifact_manifest.json"}
+    if actual_reports != expected_reports:
+        raise ValueError(
+            "Published run report file set differs from manifest: "
+            f"missing={sorted(expected_reports - actual_reports)}, "
+            f"extra={sorted(actual_reports - expected_reports)}"
+        )
+    report_scans = [
+        scan_public_file(report_root / relative, relative_path=relative)
+        for relative in sorted(records)
+    ]
+    scan_public_file(manifest_path, relative_path="artifact_manifest.json")
+
+    checkpoint_record = document.get("checkpoint")
+    if not isinstance(checkpoint_record, dict):
+        raise ValueError("Published run checkpoint record is missing")
+    checkpoint_text = str(checkpoint_record.get("path") or "").replace("\\", "/")
+    checkpoint_path = (project_root / checkpoint_text).resolve()
+    try:
+        checkpoint_relative = checkpoint_path.relative_to(weight_root).as_posix()
+    except ValueError as exc:
+        raise ValueError("Published run checkpoint path escapes its weight release") from exc
+    if not checkpoint_path.is_file():
+        raise ValueError("Published run checkpoint hash/size mismatch")
+    try:
+        _require_exact_record_size(
+            checkpoint_record,
+            checkpoint_path,
+            label="published run checkpoint",
+        )
+    except ValueError as exc:
+        raise ValueError("Published run checkpoint hash/size mismatch") from exc
+    if str(checkpoint_record.get("sha256", "")).lower() != sha256_file(checkpoint_path):
+        raise ValueError("Published run checkpoint hash/size mismatch")
+    actual_weights = {
+        path.relative_to(weight_root).as_posix()
+        for path in weight_root.rglob("*")
+        if path.is_file()
+    }
+    if actual_weights != {checkpoint_relative}:
+        raise ValueError(
+            "Published weight file set must contain exactly the declared checkpoint: "
+            f"actual={sorted(actual_weights)}"
+        )
+    weight_scan = scan_public_file(
+        checkpoint_path,
+        relative_path=(Path("weights") / checkpoint_relative).as_posix(),
+    )
+    model = _normalized_model(document.get("model"))
+    if model.startswith("yolox"):
+        from .checkpoint_publishing import validate_yolox_checkpoint_proof
+
+        validate_yolox_checkpoint_proof(
+            checkpoint_path,
+            checkpoint_record,
+            project_root=project_root,
+        )
+    elif model.startswith("yolo11"):
+        if not (
+            checkpoint_record.get("metadata_sanitized") is True
+            and checkpoint_record.get("state_dict_bitwise_equal") is True
+            and checkpoint_record.get("source_forward_captured_before_scrub") is True
+            and checkpoint_record.get("forward_max_abs_difference") == 0.0
+            and checkpoint_record.get("ultralytics_load") == "PASS"
+        ):
+            raise ValueError("Published YOLO11 checkpoint proof is not an exact formal PASS")
+    else:
+        raise ValueError(f"Unsupported published checkpoint model: {document.get('model')!r}")
+    public_scan = document.get("public_scan")
+    if (
+        not isinstance(public_scan, dict)
+        or public_scan.get("report_files") != report_scans
+        or public_scan.get("weight_files") != [weight_scan]
+    ):
+        raise ValueError("Published run signature/privacy scan differs from recomputed evidence")
+    report_weight_files = sorted(
+        relative for relative in records if Path(relative).suffix.lower() in WEIGHT_SUFFIXES
+    )
+    formal_images = {
+        (Path("formal_comparison") / record["path"]).as_posix()
+        for record in load_json_strict(
+            report_root / "formal_comparison" / "evidence_manifest.json"
+        ).get("derived_images", [])
+        if isinstance(record, dict)
+    }
+    report_images = {
+        relative for relative in records if Path(relative).suffix.lower() in IMAGE_SUFFIXES
+    }
+    raw_images = sorted(report_images - formal_images)
+    if (
+        report_weight_files
+        or raw_images
+        or document.get("weights_in_reports") is not False
+        or document.get("raw_images_included") is not False
+        or document.get("promoted_checkpoint_count") != 1
+    ):
+        raise ValueError(
+            f"Published run raw/weight assertions differ: raw={raw_images}, "
+            f"report_weights={report_weight_files}"
+        )
+    validate_formal_comparison(report_root / "formal_comparison")
+    return {
+        "status": "PASS",
+        "report_files": sorted(actual_reports),
+        "weight_files": sorted(actual_weights),
+        "report_scans": report_scans,
+        "weight_scans": [weight_scan],
     }
 
 
@@ -1091,7 +1703,7 @@ def validate_comparison_for_run(
             raise FileNotFoundError(f"Comparison evidence is missing: {path}")
     validate_formal_comparison(comparison_dir, require_local_originals=True)
 
-    compatibility = json.loads(compatibility_path.read_text(encoding="utf-8"))
+    compatibility = load_json_strict(compatibility_path)
     if not compatibility.get("release_ready", False):
         blockers = ", ".join(
             str(item.get("field")) for item in compatibility.get("release_blockers", [])
@@ -1100,21 +1712,21 @@ def validate_comparison_for_run(
             "Comparison is not formal-release ready"
             + (f" ({blockers})" if blockers else "")
         )
-    provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+    provenance = load_json_strict(provenance_path)
     if provenance.get("status") != "PASS" or compatibility.get("run_provenance") != provenance:
         raise ValueError("Comparison run provenance is missing, failed, or differs from compatibility")
     attestation_path = comparison_dir / "run_provenance_attestation.json"
     if provenance.get("mixed_commits") is True and not attestation_path.is_file():
         raise FileNotFoundError("Mixed-commit comparison is missing its provenance attestation")
 
-    comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
+    comparison = load_json_strict(comparison_path)
     rows = [row for row in comparison if str(row.get("run_id")) == run_id]
     if len(rows) != 1:
         raise ValueError(f"Comparison must contain run_id exactly once: {run_id}")
     if rows[0].get("status") != "complete":
         raise ValueError(f"Comparison row is not complete: {run_id}")
 
-    sources_manifest = json.loads(sources_manifest_path.read_text(encoding="utf-8"))
+    sources_manifest = load_json_strict(sources_manifest_path)
     expected_manifest_path = f"sources/{safe_stem(run_id)}/run_manifest.json"
     source_rows = [
         row

@@ -13,7 +13,9 @@ import pytest
 from mcu_data.common import sha256_file
 from mcu_data.publishing import (
     create_formal_validation,
+    publish_evidence_file,
     validate_formal_comparison,
+    validate_published_comparison_release,
     validated_formal_publication_plan,
 )
 from mcu_data.deployment_publishing import (
@@ -138,7 +140,7 @@ def _write_formal_user_artifacts(comparison: Path, rows: list[dict[str, Any]]) -
         "aggregate_comparison.png",
         "protocol_rationale.png",
     ):
-        (comparison / name).write_bytes(b"fixture-derived-image")
+        (comparison / name).write_bytes(b"\x89PNG\r\n\x1a\nfixture-derived-image")
 
     protocol_names = (
         "protocol_snapshot.yaml",
@@ -213,6 +215,16 @@ def _rehash_evidence_record(comparison: Path, relative: str) -> None:
     _write_json(manifest_path, document)
 
 
+def _rewrite_source_record(comparison: Path, relative: str) -> None:
+    sources_path = comparison / "sources_manifest.json"
+    document = json.loads(sources_path.read_text(encoding="utf-8"))
+    record = next(item for item in document["files"] if item["path"] == relative)
+    target = comparison / relative
+    record["published_sha256"] = sha256_file(target)
+    record["bytes"] = target.stat().st_size
+    _write_json(sources_path, document)
+
+
 def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
     project = tmp_path / "project"
     project.mkdir()
@@ -229,7 +241,7 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
     onnx = release_weights / "yolo11m" / "model.onnx"
     checkpoint.parent.mkdir(parents=True)
     onnx.parent.mkdir(parents=True)
-    checkpoint.write_bytes(b"trained-native-checkpoint")
+    checkpoint.write_bytes(b"PK\x03\x04trained-native-checkpoint")
     onnx.write_bytes(b"verified-onnx-graph")
     source_original_sha = "1" * 64
     comparison = project / "runs" / "comparisons" / "campaign_full"
@@ -311,13 +323,15 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
             for source in (manifest, epoch_metrics, final_metrics, latency, gpu):
                 destination = comparison / "sources" / candidate_id / source.name
                 destination.parent.mkdir(parents=True, exist_ok=True)
-                destination.write_bytes(source.read_bytes())
+                published = publish_evidence_file(
+                    source,
+                    destination,
+                    project_root=project,
+                )
                 source_records.append({
                     "run_id": candidate_id,
                     "path": destination.relative_to(comparison).as_posix(),
-                    "source_original_sha256": sha256_file(source),
-                    "published_sha256": sha256_file(destination),
-                    "bytes": destination.stat().st_size,
+                    **published,
                 })
                 local_bindings.append({
                     "run_id": candidate_id,
@@ -730,6 +744,53 @@ def test_promote_comparison_copies_only_verified_allowlist(
     assert artifact["weights_included"] is False
     assert artifact["source_scan"]["unlisted_files"] == []
     assert not (destination / "local_source_bindings.json").exists()
+    assert validate_published_comparison_release(destination)["status"] == "PASS"
+
+    extra = destination / "nested" / "artifact_manifest.json"
+    extra.parent.mkdir()
+    extra.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="file set differs.*extra"):
+        validate_published_comparison_release(destination)
+
+
+def test_public_clone_recomputes_hash_size_and_privacy_scan(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = _build_release_fixture(tmp_path)
+    script = Path(__file__).resolve().parents[1] / "scripts" / "promote_comparison.py"
+    spec = importlib.util.spec_from_file_location("promote_comparison_scan_fixture", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "PROJECT_ROOT", paths["project"])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(script),
+            "--comparison-dir",
+            str(paths["comparison"]),
+            "--release-name",
+            "scan-recompute",
+        ],
+    )
+    assert module.main() == 0
+    destination = paths["project"] / "reports" / "comparisons" / "scan-recompute"
+    terminal = destination / "comparison_terminal.txt"
+    terminal.write_text(
+        terminal.read_text(encoding="utf-8") + "private=/var/private/build/file\n",
+        encoding="utf-8",
+    )
+    artifact_path = destination / "artifact_manifest.json"
+    artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+    record = next(item for item in artifact["files"] if item["path"] == terminal.name)
+    record["bytes"] = terminal.stat().st_size
+    record["published_sha256"] = sha256_file(terminal)
+    _write_json(artifact_path, artifact)
+
+    with pytest.raises(ValueError, match="absolute local path"):
+        validate_published_comparison_release(destination)
 
 
 def test_promoted_comparison_chain_verifies_without_private_local_bindings(tmp_path: Path) -> None:
@@ -802,6 +863,64 @@ def test_formal_validation_requires_exact_false_in_protocol_artifacts(
 
     with pytest.raises(ValueError, match="exact generative_ai_used_for_images=false"):
         validate_formal_comparison(paths["comparison"])
+
+
+@pytest.mark.parametrize("invalid_seed", [True, "42", 42.0])
+@pytest.mark.parametrize("surface", ["expectation", "manifest", "row", "overlay"])
+def test_formal_validation_requires_exact_integer_seed_types(
+    tmp_path: Path,
+    invalid_seed: object,
+    surface: str,
+) -> None:
+    paths = _build_release_fixture(tmp_path)
+    comparison = paths["comparison"]
+    if surface == "expectation":
+        path = comparison / "protocol_compatibility.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["release_expectations"]["seeds"][0] = invalid_seed
+        _write_json(path, document)
+        match = "release expectations"
+    elif surface == "manifest":
+        relative = "sources/yolo11_seed42/run_manifest.json"
+        path = comparison / relative
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["protocol"]["seed"] = invalid_seed
+        _write_json(path, document)
+        _rewrite_source_record(comparison, relative)
+        match = "run seed.*exact JSON integer"
+    elif surface == "row":
+        path = comparison / "comparison.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document[0]["seed"] = invalid_seed
+        _write_json(path, document)
+        match = "comparison row differs"
+    else:
+        path = comparison / "formal_execution_status.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["seeds"][0] = invalid_seed
+        document["runs"][0]["seed"] = invalid_seed
+        _write_json(path, document)
+        match = "execution-status seeds.*exact JSON integer"
+
+    with pytest.raises(ValueError, match=match):
+        validate_formal_comparison(comparison)
+
+
+def test_formal_validation_rejects_parse_equal_reformatted_source_after_rehash(
+    tmp_path: Path,
+) -> None:
+    paths = _build_release_fixture(tmp_path)
+    comparison = paths["comparison"]
+    relative = "sources/yolo11_seed42/run_manifest.json"
+    published = comparison / relative
+    document = json.loads(published.read_text(encoding="utf-8"))
+    published.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8", newline="")
+    _rewrite_source_record(comparison, relative)
+    _rehash_evidence_record(comparison, relative)
+    _rehash_evidence_record(comparison, "sources_manifest.json")
+
+    with pytest.raises(ValueError, match="unapproved nonnumeric change"):
+        create_formal_validation(comparison)
 
 
 def test_formal_validation_rejects_duplicate_terminal_labels_after_rehash(
@@ -922,7 +1041,22 @@ def test_runtime_gate_rejects_tampered_published_formal_report(tmp_path: Path) -
     destination = paths["project"] / "reports" / "deployments" / manifest["release_name"]
     (destination / "test" / "onnx_split_evaluation.json").write_text("{}", encoding="utf-8")
 
-    with pytest.raises(ValueError, match="Published deployment report SHA-256 mismatch"):
+    with pytest.raises(ValueError, match="Published deployment (byte-size|report SHA-256) mismatch"):
+        validate_promoted_deployment_for_runtime(
+            project_root=paths["project"],
+            release_manifest_path=destination / "deployment_release_manifest.json",
+            deployment_metadata_path=paths["deployment_metadata"],
+            onnx_path=paths["onnx"],
+        )
+
+
+def test_runtime_gate_rejects_unlisted_public_clone_file(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    manifest = _promote(paths)
+    destination = paths["project"] / "reports" / "deployments" / manifest["release_name"]
+    (destination / "rogue.txt").write_text("unlisted\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="file set differs.*extra"):
         validate_promoted_deployment_for_runtime(
             project_root=paths["project"],
             release_manifest_path=destination / "deployment_release_manifest.json",

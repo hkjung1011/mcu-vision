@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .common import portable_path, safe_stem, sha256_file, write_json
-from .methodology import load_protocol, write_protocol_artifacts
+from .methodology import canonical_text_sha256, load_protocol, write_protocol_artifacts
 from .publishing import create_formal_validation, publish_evidence_file
 from .run_provenance import verify_run_provenance
 from .runlog import (
@@ -1346,14 +1346,40 @@ def _protocol_compatibility(
         if len(set(present)) > 1:
             mismatches.append({"field": field, "values": values})
     seeds_by_model: dict[str, set[Any]] = defaultdict(set)
+    invalid_run_seed_types: dict[str, str] = {}
     for run in runs:
-        seeds_by_model[str(run["model"])].add(value(run, "seed"))
+        seed_value = value(run, "seed")
+        if type(seed_value) is not int:
+            invalid_run_seed_types[str(run["run_id"])] = type(seed_value).__name__
+            seed_value = f"<INVALID_{type(seed_value).__name__}:{seed_value!r}>"
+        seeds_by_model[str(run["model"])].add(seed_value)
     seed_sets = {model: sorted(seeds, key=str) for model, seeds in seeds_by_model.items()}
     if len({json.dumps(seeds, sort_keys=True) for seeds in seed_sets.values()}) > 1:
         mismatches.append({"field": "seed_set", "values": seed_sets})
     expected_models = [str(item) for item in rules.get("required_models", [])]
     expected_seeds = list(common.get("seeds", []))
     release_blockers: list[dict[str, Any]] = []
+    invalid_expected_seed_types = [
+        {"value": repr(seed), "type": type(seed).__name__}
+        for seed in expected_seeds
+        if type(seed) is not int
+    ]
+    if invalid_expected_seed_types:
+        release_blockers.append(
+            {
+                "field": "expected_seed_types",
+                "required_type": "int (bool/string/float forbidden)",
+                "invalid": invalid_expected_seed_types,
+            }
+        )
+    if invalid_run_seed_types:
+        release_blockers.append(
+            {
+                "field": "run_seed_types",
+                "required_type": "int (bool/string/float forbidden)",
+                "invalid": invalid_run_seed_types,
+            }
+        )
     if mismatches:
         release_blockers.append(
             {"field": "protocol_comparability", "reason": "critical settings differ between runs"}
@@ -1384,7 +1410,7 @@ def _protocol_compatibility(
                 "actual": sorted(seed_sets),
             }
         )
-    expected_seed_set = set(expected_seeds)
+    expected_seed_set = {seed for seed in expected_seeds if type(seed) is int}
     for normalized_model in sorted(expected_model_set):
         display_model = actual_model_map.get(normalized_model)
         actual_seeds = set(seed_sets.get(display_model, [])) if display_model else set()
@@ -1393,11 +1419,19 @@ def _protocol_compatibility(
                 {
                     "field": f"seed_set:{display_model or normalized_model}",
                     "expected": sorted(expected_seed_set),
-                    "actual": sorted(actual_seeds),
+                    "actual": sorted(actual_seeds, key=str),
                 }
             )
     expected_pairs = {(model, seed) for model in expected_model_set for seed in expected_seed_set}
-    actual_pairs = [(_normalize_model_name(run["model"]), value(run, "seed")) for run in runs]
+    actual_pairs = [
+        (
+            _normalize_model_name(run["model"]),
+            value(run, "seed")
+            if type(value(run, "seed")) is int
+            else f"<INVALID_{type(value(run, 'seed')).__name__}:{value(run, 'seed')!r}>",
+        )
+        for run in runs
+    ]
     if len(actual_pairs) != len(expected_pairs) or set(actual_pairs) != expected_pairs:
         release_blockers.append(
             {
@@ -1609,7 +1643,7 @@ def _formal_execution_status(
         (
             {
                 "model": str(row["model"]),
-                "seed": int(row["seed"]),
+                "seed": row["seed"],
                 "run_id": str(row["run_id"]),
                 "status": str(row["status"]),
                 "observed_epoch_rows": epoch_counts[str(row["run_id"])],
@@ -1634,7 +1668,7 @@ def _formal_execution_status(
             "complete_epoch_evidence": "PASS",
             "formal_artifact_binding": "PASS",
         },
-        "protocol_snapshot_sha256": sha256_file(protocol_path),
+        "protocol_snapshot_sha256": canonical_text_sha256(protocol_path),
         "protocol_compatibility_sha256": sha256_file(
             output_dir / "protocol_compatibility.json"
         ),

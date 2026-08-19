@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import shutil
 import sys
 from pathlib import Path
 
@@ -12,13 +11,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mcu_data.common import sha256_file, write_json
-from mcu_data.checkpoint_publishing import sanitize_yolo11_checkpoint
+from mcu_data.checkpoint_publishing import (
+    publish_yolox_checkpoint,
+    sanitize_yolo11_checkpoint,
+)
 from mcu_data.publishing import (
     IMAGE_SUFFIXES,
     WEIGHT_SUFFIXES,
-    publish_evidence_file,
+    copy_public_file_exact,
+    load_json_strict,
+    scan_public_file,
     validate_comparison_for_run,
     validate_formal_comparison,
+    validate_published_run_release,
     validated_formal_publication_plan,
 )
 
@@ -36,7 +41,7 @@ def main() -> int:
     args = parser.parse_args()
     run_dir = args.run_dir.resolve()
     manifest_path = run_dir / "run_manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = load_json_strict(manifest_path)
     if manifest.get("status") != "complete":
         parser.error(f"Only complete runs can be promoted: status={manifest.get('status')}")
     if manifest.get("stage") == "smoke_not_comparable":
@@ -97,16 +102,11 @@ def main() -> int:
             project_root=PROJECT_ROOT,
         )
     else:
-        shutil.copy2(checkpoint, promoted_checkpoint)
-        checkpoint_publication = {
-            "source_original_sha256": actual_sha256,
-            "published_sha256": sha256_file(promoted_checkpoint),
-            "bytes": promoted_checkpoint.stat().st_size,
-            "metadata_sanitized": False,
-            "state_dict_bitwise_equal": True,
-            "forward_max_abs_difference": 0.0,
-            "ultralytics_load": "NOT_APPLICABLE",
-        }
+        checkpoint_publication = publish_yolox_checkpoint(
+            checkpoint,
+            promoted_checkpoint,
+            project_root=PROJECT_ROOT,
+        )
     promoted_weight_files = sorted(
         path.relative_to(weight_root).as_posix()
         for path in weight_root.rglob("*")
@@ -131,7 +131,7 @@ def main() -> int:
         source = comparison_root / str(source_record["path"])
         relative_path = (Path("run_evidence") / str(source_record["filename"])).as_posix()
         destination = report_root / relative_path
-        record = publish_evidence_file(source, destination, project_root=PROJECT_ROOT)
+        record = copy_public_file_exact(source, destination)
         publication_records.append(
             {
                 "path": relative_path,
@@ -146,7 +146,7 @@ def main() -> int:
         source = comparison_root / relative_text
         relative_path = (Path("formal_comparison") / relative_text).as_posix()
         destination = report_root / relative_path
-        record = publish_evidence_file(source, destination, project_root=PROJECT_ROOT)
+        record = copy_public_file_exact(source, destination)
         publication_records.append({"path": relative_path, **record})
         copied_reports.append(relative_path)
 
@@ -176,8 +176,38 @@ def main() -> int:
         raise ValueError(f"Run report payload unexpectedly contains weights: {report_weight_files}")
     if raw_image_files:
         raise ValueError(f"Run report payload contains undeclared raw images: {raw_image_files}")
+    checkpoint_record = {
+        "path": promoted_checkpoint.relative_to(PROJECT_ROOT).as_posix(),
+        "bytes": checkpoint_publication["bytes"],
+        "sha256": checkpoint_publication["published_sha256"],
+        "source_original_sha256": checkpoint_publication["source_original_sha256"],
+    }
+    if is_yolo11:
+        checkpoint_record.update(
+            {
+                "metadata_sanitized": checkpoint_publication["metadata_sanitized"],
+                "state_dict_bitwise_equal": checkpoint_publication["state_dict_bitwise_equal"],
+                "forward_max_abs_difference": checkpoint_publication[
+                    "forward_max_abs_difference"
+                ],
+                "source_forward_captured_before_scrub": checkpoint_publication.get(
+                    "source_forward_captured_before_scrub", False
+                ),
+                "ultralytics_load": checkpoint_publication["ultralytics_load"],
+            }
+        )
+    else:
+        checkpoint_record["proof"] = checkpoint_publication["proof"]
+    report_scans = [
+        scan_public_file(report_root / relative, relative_path=relative)
+        for relative in sorted(report_files)
+    ]
+    weight_scan = scan_public_file(
+        promoted_checkpoint,
+        relative_path=(Path("weights") / promoted_checkpoint.name).as_posix(),
+    )
     artifact = {
-        "schema_version": 2,
+        "schema_version": 3,
         "status": "PASS",
         "formal_release": True,
         "release_name": release_name,
@@ -187,19 +217,7 @@ def main() -> int:
         "local_source_path_included": False,
         "model": manifest.get("model"),
         "stage": manifest.get("stage"),
-        "checkpoint": {
-            "path": promoted_checkpoint.relative_to(PROJECT_ROOT).as_posix(),
-            "bytes": checkpoint_publication["bytes"],
-            "sha256": checkpoint_publication["published_sha256"],
-            "source_original_sha256": checkpoint_publication["source_original_sha256"],
-            "metadata_sanitized": checkpoint_publication["metadata_sanitized"],
-            "state_dict_bitwise_equal": checkpoint_publication["state_dict_bitwise_equal"],
-            "forward_max_abs_difference": checkpoint_publication["forward_max_abs_difference"],
-            "source_forward_captured_before_scrub": checkpoint_publication.get(
-                "source_forward_captured_before_scrub", False
-            ),
-            "ultralytics_load": checkpoint_publication["ultralytics_load"],
-        },
+        "checkpoint": checkpoint_record,
         "reports": sorted(set(copied_reports)),
         "published_evidence": sorted(publication_records, key=lambda item: str(item["path"])),
         "source_scan": {
@@ -213,11 +231,17 @@ def main() -> int:
             ],
             "weight_payload_files_scanned": all_weight_payload_files,
         },
+        "public_scan": {
+            "status": "PASS",
+            "report_files": report_scans,
+            "weight_files": [weight_scan],
+        },
         "publication_note": (
             "Repository copies redact local user/project paths and raw nvidia-smi process listings. "
             "Original and published SHA-256 values are recorded per file; numeric metrics are unchanged. "
-            "YOLO11 checkpoints additionally require bitwise-equal tensors, zero forward difference, "
-            "and a successful Ultralytics reload after metadata sanitization."
+            "YOLO11 checkpoints require bitwise-equal tensors, zero forward difference, and a "
+            "successful Ultralytics reload after metadata sanitization. YOLOX checkpoints are exact "
+            ".pth copies restricted-loaded on CPU with a known model state_dict; no forward test is claimed."
         ),
         "raw_images_included": bool(raw_image_files),
         "predictions_included": bool(prediction_files),
@@ -225,6 +249,11 @@ def main() -> int:
         "promoted_checkpoint_count": len(promoted_weight_files),
     }
     write_json(report_root / "artifact_manifest.json", artifact)
+    validate_published_run_release(
+        report_root,
+        weight_root,
+        project_root=PROJECT_ROOT,
+    )
     print(json.dumps(artifact, indent=2, ensure_ascii=False))
     print("\nReady for review, then git add/commit/push. Checkpoint is covered by Git LFS.")
     return 0
