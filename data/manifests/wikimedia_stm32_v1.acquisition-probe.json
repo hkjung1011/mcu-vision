@@ -1,0 +1,342 @@
+{
+  "schema_version": 1,
+  "status": "QUARANTINE_REVIEWED_INSUFFICIENT",
+  "checked_at": "2026-08-19T17:50:52+09:00",
+  "source": {
+    "provider": "Wikimedia Commons",
+    "api_url": "https://commons.wikimedia.org/w/api.php",
+    "collector_commit": "3d21475d7cdb7a706966134b5f3956309023144e",
+    "collection_config_sha256": "e05b54279dbd88156e89d7133aaa74b8a8de2008faa5a1d2f1877c37cf4d31a4",
+    "tracked_images": false,
+    "quarantine_only": true,
+    "source_page_revision_ids_recorded": false,
+    "source_page_revision_note": "Collector v1 recorded mutable File page URLs and file metadata but did not freeze page revision IDs or raw API responses; candidates must be re-bound before promotion."
+  },
+  "collection": {
+    "stm32_dev_board": {
+      "discovered_titles": 47,
+      "technically_acquired": 11,
+      "visual_candidates": 11,
+      "visually_rejected": 0
+    },
+    "stm32_bare_ic": {
+      "discovered_titles": 40,
+      "technically_acquired": 10,
+      "visual_candidates": 0,
+      "mounted_package_rejects": 5,
+      "die_micrograph_rejects": 3,
+      "rerouted_dev_board_candidates": 2
+    }
+  },
+  "quarantine_integrity": {
+    "records_rehashed": 21,
+    "missing_files": 0,
+    "sha256_mismatches": 0,
+    "verified_at": "2026-08-19T17:50:52+09:00",
+    "note": "Local Git-ignored files were rehashed against the collector JSONL records; images remain excluded from Git."
+  },
+  "dev_board_grouping": {
+    "policy": "Conservative model/view groups for leakage control; these are not verified physical-item IDs.",
+    "groups": [
+      {
+        "group_id": "stm32f1_discovery_family",
+        "source_page_ids": [17582795, 81008735, 81008736]
+      },
+      {
+        "group_id": "stm32_nucleo_family",
+        "source_page_ids": [48272638, 48272883]
+      },
+      {
+        "group_id": "stm32f0_discovery_family",
+        "source_page_ids": [81008737, 81008738]
+      },
+      {
+        "group_id": "stm32f3_discovery_family",
+        "source_page_ids": [81008739]
+      },
+      {
+        "group_id": "stm32f4_discovery_family",
+        "source_page_ids": [81008740, 81008742]
+      },
+      {
+        "group_id": "blue_pill_family",
+        "source_page_ids": [91299007]
+      },
+      {
+        "group_id": "stm32_f407_red_board",
+        "source_page_ids": [48272890]
+      },
+      {
+        "group_id": "stm32_f103_core_learning_board",
+        "source_page_ids": [72559480]
+      }
+    ]
+  },
+  "review_records": [
+    {
+      "source_page_id": 17582795,
+      "source_page_title": "File:STM32 LV Discovery board.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32_LV_Discovery_board.jpg",
+      "sha256": "50eb20e6506bb45076ac43a745fb63e7a187c07947782df611dd6cd1c4109ed7",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "artist": "Viswesr",
+      "collection_route": "stm32_dev_board",
+      "visual_decision": "CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "Whole STM32 Discovery development board is visible; bbox, page revision, and physical-item identity are not approved."
+    },
+    {
+      "source_page_id": 48272638,
+      "source_page_title": "File:Embedded World 2016, Stm32 Nucleo.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:Embedded_World_2016%2C_Stm32_Nucleo.jpg",
+      "sha256": "0cc203ee8a8d4787a25c85ab0264c2acc8d49c5643efaebf8cce618aa62c33c1",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "artist": "Ordercrazy",
+      "collection_route": "stm32_dev_board",
+      "visual_decision": "CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "Whole STM32 Nucleo development board is visible; bbox, page revision, and physical-item identity are not approved."
+    },
+    {
+      "source_page_id": 48272883,
+      "source_page_title": "File:Embedded World 2016, STM Nucleo 401.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:Embedded_World_2016%2C_STM_Nucleo_401.jpg",
+      "sha256": "91dbe9d908091c9344f3f4b5b6a60759dc28cbbff9915ac524edda04f2c0c6a5",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "artist": "Ordercrazy",
+      "collection_route": "stm32_dev_board",
+      "visual_decision": "CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "Whole STM32 Nucleo F401 development board is visible; bbox, page revision, and physical-item identity are not approved."
+    },
+    {
+      "source_page_id": 81008735,
+      "source_page_title": "File:STM32F1 Discovery (9067308113).jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32F1_Discovery_(9067308113).jpg",
+      "sha256": "809ea9606e6237651661221c23f334f2c74a7158c099a16eed8cf3f8a2167142",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "artist": "Teardown Central",
+      "collection_route": "stm32_dev_board",
+      "visual_decision": "CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "STM32F1 Discovery front view; paired views must remain in one leakage group."
+    },
+    {
+      "source_page_id": 81008736,
+      "source_page_title": "File:STM32F1 Discovery (9067306811).jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32F1_Discovery_(9067306811).jpg",
+      "sha256": "055e97712bf3cd2e10a3ecf4cc49cd4693ba41b5e6fedba88bfd1929f01d0bea",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "artist": "Teardown Central",
+      "collection_route": "stm32_dev_board",
+      "visual_decision": "CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "STM32F1 Discovery back view; paired views must remain in one leakage group."
+    },
+    {
+      "source_page_id": 81008737,
+      "source_page_title": "File:STM32F0 Discovery (9069526462).jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32F0_Discovery_(9069526462).jpg",
+      "sha256": "ee5d0f504ee6e3b776d7ca685a392a5c03732b625d9bff04fa1abd0e70035431",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "artist": "Teardown Central",
+      "collection_route": "stm32_dev_board",
+      "visual_decision": "CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "STM32F0 Discovery front view; paired views must remain in one leakage group."
+    },
+    {
+      "source_page_id": 81008738,
+      "source_page_title": "File:STM32F0 Discovery (9067301585).jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32F0_Discovery_(9067301585).jpg",
+      "sha256": "e7c9cd41d69f06d8f478dabb958cbb1274c6891b920ddeceb09530801fca7869",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "artist": "Teardown Central",
+      "collection_route": "stm32_dev_board",
+      "visual_decision": "CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "STM32F0 Discovery back view; paired views must remain in one leakage group."
+    },
+    {
+      "source_page_id": 81008739,
+      "source_page_title": "File:STM32F3 Discovery (9069527432).jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32F3_Discovery_(9069527432).jpg",
+      "sha256": "bc6fd7e4c06195202957f88a5e81529a147a6544137e0e8e585be73a574197c7",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "artist": "Teardown Central",
+      "collection_route": "stm32_dev_board",
+      "visual_decision": "CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "STM32F3 Discovery back view is class-compatible through visible board context and source title; bbox and independent identity are not approved."
+    },
+    {
+      "source_page_id": 81008740,
+      "source_page_title": "File:STM32F4 Discovery (9067300323).jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32F4_Discovery_(9067300323).jpg",
+      "sha256": "ddd892fd716d0354d7777fc7bb33b33970133c08a16fb04857310c262fdafe52",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "artist": "Teardown Central",
+      "collection_route": "stm32_dev_board",
+      "visual_decision": "CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "STM32F4 Discovery front view; paired views must remain in one leakage group."
+    },
+    {
+      "source_page_id": 81008742,
+      "source_page_title": "File:STM32F4 Discovery (9067299045).jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32F4_Discovery_(9067299045).jpg",
+      "sha256": "f74693b8cd3c16a765cd756487665ad842650da5af5ea26f118ac6ceb4ddf188",
+      "license": "CC BY-SA 2.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "artist": "Teardown Central",
+      "collection_route": "stm32_dev_board",
+      "visual_decision": "CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "STM32F4 Discovery back view; paired views must remain in one leakage group."
+    },
+    {
+      "source_page_id": 91299007,
+      "source_page_title": "File:Blue Pill.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:Blue_Pill.jpg",
+      "sha256": "de59fee7edef1e39683a9e3eed52fee6adccb5c28a24c9332db9827ad3e2bf93",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "artist": "Avandalen",
+      "collection_route": "stm32_dev_board",
+      "visual_decision": "CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "Whole Blue Pill STM32 development board is visible; bbox, page revision, and physical-item identity are not approved."
+    },
+    {
+      "source_page_id": 9966419,
+      "source_page_title": "File:MicroSTM32.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:MicroSTM32.jpg",
+      "sha256": "478eda658776566fea5601927f9c70ad557770b1d128aa234c7e95992c5a7511",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "artist": "Golonlutoj",
+      "collection_route": "stm32_bare_ic",
+      "visual_decision": "REJECT_STM32_BARE_IC_MOUNTED_PACKAGE",
+      "reason": "STM32 package is mounted on a PCB; canonical class requires an individual package not mounted on a development board."
+    },
+    {
+      "source_page_id": 25044176,
+      "source_page_title": "File:STM32F100C4T6B-HD.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32F100C4T6B-HD.jpg",
+      "sha256": "341dd338ec3bfdc290c13292933f6180283a4953d7d14351afe772ec5e559c1f",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0",
+      "artist": "ZeptoBars",
+      "collection_route": "stm32_bare_ic",
+      "visual_decision": "REJECT_STM32_BARE_IC_DIE_MICROGRAPH",
+      "reason": "Exposed silicon die micrograph is not an IC package."
+    },
+    {
+      "source_page_id": 25044208,
+      "source_page_title": "File:STM32F103VGT6-HD.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32F103VGT6-HD.jpg",
+      "sha256": "a8945ef7c01e0f450db74d8f38ba9462d983b269df866f0049f85a3cf80a333f",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0",
+      "artist": "ZeptoBars",
+      "collection_route": "stm32_bare_ic",
+      "visual_decision": "REJECT_STM32_BARE_IC_DIE_MICROGRAPH",
+      "reason": "Exposed silicon die micrograph is not an IC package."
+    },
+    {
+      "source_page_id": 48272890,
+      "source_page_title": "File:Embedded World 2016, STM32 F407 VGT6.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:Embedded_World_2016%2C_STM32_F407_VGT6.jpg",
+      "sha256": "33d3fe2afa813d4ca49e55ef764a2611ddc4396ad656cf9c138ec0e54daee73c",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "artist": "Ordercrazy",
+      "collection_route": "stm32_bare_ic",
+      "visual_decision": "REROUTE_CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "The image depicts a development board rather than an individual package."
+    },
+    {
+      "source_page_id": 72559480,
+      "source_page_title": "File:Core Learning Board module Arduino STM32 F103 C8T6.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:Core_Learning_Board_module_Arduino_STM32_F103_C8T6.jpg",
+      "sha256": "64717abb2686c44efea01cf20a18044aa2e6fe5a8b3420b81c968008c24f9185",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "artist": "Popolon",
+      "collection_route": "stm32_bare_ic",
+      "visual_decision": "REROUTE_CANDIDATE_STM32_DEV_BOARD_NOT_APPROVED",
+      "reason": "The image depicts a development board rather than an individual package."
+    },
+    {
+      "source_page_id": 97276378,
+      "source_page_title": "File:STM32F217 (7360288340).jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32F217_(7360288340).jpg",
+      "sha256": "4a8150a7d08103f46b381c7408d9760f8cf32d85d92552665baa6c02613cccc4",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "artist": "Travis Goodspeed",
+      "collection_route": "stm32_bare_ic",
+      "visual_decision": "REJECT_STM32_BARE_IC_DIE_MICROGRAPH",
+      "reason": "Exposed silicon die micrograph is not an IC package."
+    },
+    {
+      "source_page_id": 111727965,
+      "source_page_title": "File:STMicroelectronics STM32F303-4570.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STMicroelectronics_STM32F303-4570.jpg",
+      "sha256": "52867ec5170b52dd2c9884eebf80667d8d7f5902a1b107679665785cf104ac7f",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "artist": "Raimond Spekking",
+      "collection_route": "stm32_bare_ic",
+      "visual_decision": "REJECT_STM32_BARE_IC_MOUNTED_PACKAGE",
+      "reason": "STM32 package is visibly soldered to a PCB; it is not an individual package."
+    },
+    {
+      "source_page_id": 152826704,
+      "source_page_title": "File:Numark Mixdeck - lower part - board 2 - STMicroelectronics STM32F102-1180.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:Numark_Mixdeck_-_lower_part_-_board_2_-_STMicroelectronics_STM32F102-1180.jpg",
+      "sha256": "2c6f8ff863cc5589a6eac7ad5ac95eb3a9ed208864b864c89e132edaae3e825c",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "artist": "Raimond Spekking",
+      "collection_route": "stm32_bare_ic",
+      "visual_decision": "REJECT_STM32_BARE_IC_MOUNTED_PACKAGE",
+      "reason": "STM32 package is visibly soldered to a PCB; it is not an individual package."
+    },
+    {
+      "source_page_id": 156411169,
+      "source_page_title": "File:STM32F429ZIT6U.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:STM32F429ZIT6U.jpg",
+      "sha256": "1b2b414a4644dfacc6fbeacb3b8e3a3c98dc6e9d2fd60945ca5a62e19ad8a12c",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "artist": "沈澄心",
+      "collection_route": "stm32_bare_ic",
+      "visual_decision": "REJECT_STM32_BARE_IC_MOUNTED_PACKAGE",
+      "reason": "Visual context indicates a mounted package rather than a verified loose individual package."
+    },
+    {
+      "source_page_id": 185379194,
+      "source_page_title": "File:MikroTik RouterBoard RB260GS - board - STMicroelectronics STM32F107RBT6-9170.jpg",
+      "source_page_url": "https://commons.wikimedia.org/wiki/File:MikroTik_RouterBoard_RB260GS_-_board_-_STMicroelectronics_STM32F107RBT6-9170.jpg",
+      "sha256": "1310e1d997800a6165e1307fb36ff6142fc7141ade08fd58e35852a1fff6f311",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "artist": "Raimond Spekking",
+      "collection_route": "stm32_bare_ic",
+      "visual_decision": "REJECT_STM32_BARE_IC_MOUNTED_PACKAGE",
+      "reason": "STM32 package is visibly soldered to a RouterBoard PCB; it is not an individual package."
+    }
+  ],
+  "training_use": {
+    "allowed": false,
+    "formal_evaluation_allowed": false,
+    "approved_images": 0,
+    "approved_annotations": 0,
+    "required_actions": [
+      "Re-collect or re-bind candidates with immutable Commons revision and API metadata evidence",
+      "Create and review complete object-detection bounding boxes for every target instance",
+      "Assign physical-item or conservative model/view groups before splitting",
+      "Acquire first-party loose STM32 package photographs with verified part marking for stm32_bare_ic",
+      "Promote only through the trusted registry and CVAT review gates"
+    ]
+  }
+}

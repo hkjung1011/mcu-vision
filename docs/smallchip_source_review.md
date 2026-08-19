@@ -18,7 +18,7 @@ class뿐입니다. Roboflow 인증 후 받은 raw-images COCO ZIP도 곧바로 �
 | DeteksiKomponen | [Roboflow project](https://universe.roboflow.com/yolopcv/deteksikomponen) | 158 source images, `esp32`·`stm32`; v5 379 generated images | uploader CC BY 4.0 표시, export login 필요; 촬영 provenance 없음 | board bbox는 4에 조건부 mapping | **보류** |
 | Microcontroller Detection | [Roboflow project](https://universe.roboflow.com/nguyen-phutn/microcontroller-detection-zgjau) | 510 source images, 4 classes 중 `stm32 blue pill` | uploader CC BY 4.0 표시; advertised v3 archive URL은 2026-08-19 기준 404 | 의미상 4에 mapping 가능 | **archive 접근 복구 전 보류** |
 | DoAnTN | [Roboflow project](https://universe.roboflow.com/minh-73cyf/doantn-ttmtb) | 101 source images, 20 classes 중 `IC STM32F`; v1 243 generated | uploader CC BY 4.0 표시, 촬영 provenance 없음 | 공개 sample은 board-mounted IC이므로, 개발 보드에 실장되지 않은 개별 package를 뜻하는 5에 직접 mapping 불가 | **직접 mapping 제외** |
-| Wikimedia Commons | [Commons API 설정](../configs/sources.wikimedia.yaml) | 현재 dry-run: board 13, IC 13 keyword 후보; bbox 없음 | 파일별 CC0/CC BY/CC BY-SA와 attribution을 기록 | 사람 QA와 bbox 작성 후 4–5에만 사용 가능 | **보조 후보 / 수량 부족** |
+| Wikimedia Commons | [Commons API 설정](../configs/sources.wikimedia.yaml), [육안 검수 기록](../data/manifests/wikimedia_stm32_v1.acquisition-probe.json) | 격리 수집 21건; board 후보 13건, 단품 IC package 적합 0건; bbox 없음 | 파일별 CC0/CC BY/CC BY-SA와 attribution을 기록했으나 v1 수집기는 page revision을 동결하지 않음 | board 후보만 4에 조건부 mapping; mounted package·die는 5에서 제외 | **quarantine 검수 완료 / 승인 0장** |
 | ElectroCom61 v2 | [Mendeley Data DOI](https://doi.org/10.17632/6scy6h8sjz.2) | 2,121 images, 12,937 annotations, 61 classes, YOLO | CC BY 4.0, 공개 다운로드 | generic component·`IC-chip`은 SMD 또는 STM32 정체성을 입증하지 않음 | **직접 mapping 제외** |
 | PCB-Vision | [RODARE record](https://rodare.hzdr.de/record/2704) | 53 RGB + 53 hyperspectral cubes, semantic masks | CC BY 4.0, Open Access | generic `IC`·`Capacitors`; STM32/SMD identity 없음 | **직접 mapping 제외** |
 | PCB DSLR | [Zenodo 3886553](https://doi.org/10.5281/zenodo.3886553) | 748 PCB images, 9,313 generic IC boxes | non-commercial research use로 명시 | IC box는 STM32 여부를 구분하지 않음 | **공개 배포 학습에서 제외** |
@@ -55,20 +55,33 @@ README는 resize 640×640 stretch, augmentation 없음으로 기록합니다. �
 physical item/session group을 새로 구성해야 합니다. 기계 판독 결과는
 [`iotkits_v1.acquisition-probe.json`](../data/manifests/iotkits_v1.acquisition-probe.json)에 보존합니다.
 
-## Commons diagnostic probe
+## Commons quarantine 수집 및 육안 검수
 
-`mcu-collect-commons --dry-run --limit 50`으로 파일을 받지 않고 title discovery를 수행했습니다.
+`mcu-collect-commons --limit 50`으로 원본을 Git-ignore 격리 경로에만 내려받고, 모든 취득 파일을 직접
+확인했습니다. 수집기의 `status=ACCEPTED`는 **기술적으로 다운로드·decode·license prefix 검사를 통과했다는
+뜻일 뿐**, canonical dataset 승인이나 label 승격을 뜻하지 않습니다.
 
-| class route | discovered titles | keyword-filtered candidates | 승인 수량 |
-|---|---:|---:|---:|
-| `stm32_dev_board` | 47 | 13 | 0 |
-| `stm32_bare_ic` | 40 | 13 | 0 |
+| class route | discovered titles | 기술적 취득 | 육안상 해당 class 후보 | canonical 승인 |
+|---|---:|---:|---:|---:|
+| `stm32_dev_board` | 47 | 11 | 11 | 0 |
+| `stm32_bare_ic` | 40 | 10 | 0 | 0 |
 
-제외어 보강 전 초기 설정에서 격리한 `stm32_bare_ic` 후보 7개를 품질 점검했습니다. 구성은 STM32 package
-close-up 1개, 개발 보드 2개, exposed die/SEM microscopy 4개였습니다. 이는 검색 title과 category가
-class label이 될 수 없음을 보여 주는 diagnostic sample이며 dataset 수량으로 계산하지 않습니다. 원본과
-임시 manifest는 Git에 넣지 않았습니다. 설정에는 board/die 관련 명시적 제외어를 추가했지만 최종 승인은
-여전히 사람이 image content와 marking을 확인해야 합니다.
+`stm32_bare_ic` 경로의 10건은 mounted STM32 package 5건, exposed die micrograph 3건, 개발 보드 2건으로
+분류했습니다. 개발 보드 2건은 ID 4의 후보로만 재분류했고, 단품 IC package 후보는 한 건도 없었습니다.
+따라서 filename·category·검색어를 class label 근거로 사용하지 않습니다. Board 후보 13건도 front/back 및
+동일 family가 반복되어 보수적인 8개 model/view group으로 묶었습니다. 이는 specimen ID가 아니며 bbox도
+없으므로 학습 수량으로 계산하지 않습니다.
+
+수집 당시 설정 SHA-256, Commons page ID·URL, file SHA-256, 표시 license·creator, 개별 육안 판정과 group은
+[`wikimedia_stm32_v1.acquisition-probe.json`](../data/manifests/wikimedia_stm32_v1.acquisition-probe.json)에
+기록했습니다. v1 수집기는 Commons page revision과 raw API response를 동결하지 않았으므로, 향후 승격
+대상은 보강된 수집기로 다시 binding해야 합니다. 현재 collector schema v2는 양수 page revision,
+image timestamp와 SHA1을 모두 요구하고 oldid URL, API metadata snapshot SHA-256, config SHA-256,
+original/effective URL을 기록합니다. Download 후 같은 source를 다시 조회해 revision·SHA1·license snapshot이
+변하지 않았는지 확인하며, output·manifest dual lock으로 동시 writer를 차단합니다. Wikimedia 외부
+redirect·path escape·손상/과대/다중-frame 이미지·불완전 license metadata·`CC BY-NC/ND`도 fail-closed로
+거부합니다. 이 변경은 기존 v1 record를 소급 승격하지 않으므로 새 run root에서 다시 수집해야 합니다.
+원본 이미지는 계속 Git에 포함하지 않습니다.
 
 ## 반입 Gate
 

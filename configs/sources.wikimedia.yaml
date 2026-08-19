@@ -12,6 +12,9 @@ download:
   min_width_px: 320
   min_height_px: 240
   max_file_bytes: 31457280
+  max_decoded_pixels: 25000000
+  max_decoded_dimension_px: 8192
+  max_frames: 1
   request_delay_seconds: 0.15
   timeout_seconds: 30
 discovery:
@@ -91,14 +94,18 @@ classes:
       - nucleo
       - discovery
       - development board
+      - board
       - maple
       - evaluation board
+      - embedded world
+      - microstm32
       - die photo
       - die image
       - microscopy
       - micrograph
       - sram
       - sem-hd
+      - "-hd"
       - logo
       - schematic
       - diagram
