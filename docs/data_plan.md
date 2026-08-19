@@ -19,14 +19,15 @@ Raspberry Pi bootstrap 공개 데이터와 자체 컨베이어 촬영을 병행�
 | 1 | `smd_resistor` | SMD 저항기 | 1,000+ | Dainius v2 4-class 원천에 포함, archive 미반입 | AUTH/DATA WAITING |
 | 2 | `smd_diode` | SMD 다이오드 | 1,000+ | Dainius v2 4-class 원천에 포함, archive 미반입 | AUTH/DATA WAITING |
 | 3 | `smd_transistor` | SMD 트랜지스터 | 1,000+ | Dainius v2 4-class 원천에 포함, archive 미반입 | AUTH/DATA WAITING |
-| 4 | `stm32_dev_board` | STM32 개발 보드 | 1,000+ | IoTKITs source-label 100장 quarantine; Commons 육안 후보 13건(보수적 model/view group 8개) | BLOCKED / 자체 촬영 필요 |
-| 5 | `stm32_bare_ic` | STM32 단품 IC 패키지 | 1,000+ | Commons 취득 10건 전부 mounted package·die·board로 제외; 후보 0건 | INSUFFICIENT / 자체 촬영 필요 |
+| 4 | `stm32_dev_board` | STM32 개발 보드 | 1,000+ | IoTKITs source-label 100장 quarantine; Commons v2 육안 후보 11건(보수적 model/view group 6개) | BLOCKED / 자체 촬영 필요 |
+| 5 | `stm32_bare_ic` | STM32 단품 IC 패키지 | 1,000+ | Commons v2 취득 3건 전부 mounted package·die로 제외; 후보 0건 | INSUFFICIENT / 자체 촬영 필요 |
 
 Dainius의 2,997장은 네 SMD class를 합친 source 표시 수량이며 class별 승인 수량이 아닙니다. ZIP을
 실제로 반입해 decode·bbox·중복·class 분포를 감사하기 전에는 어느 class도 확보된 것으로 계산하지
-않습니다. Commons 수치는 2026-08-19 격리 수집분 21건을 전수 육안 검수한 결과입니다. `stm32_dev_board`
-후보 13건은 bbox가 없고 front/back·동일 family가 반복되며, `stm32_bare_ic`로 적합한 단품 package는
-0건이었습니다. 따라서 keyword 검색을 사람 검수 없이 label 근거로 사용할 수 없습니다.
+않습니다. 최신 Commons 수치는 page revision·source SHA-1·metadata snapshot을 고정한 schema-v2 격리
+수집분 14건을 전수 육안 검수한 결과입니다. `stm32_dev_board` 후보 11건은 bbox가 없고 front/back·동일
+family가 반복되며, `stm32_bare_ic`로 적합한 단품 package는 0건이었습니다. 따라서 keyword 검색을 사람
+검수 없이 label 근거로 사용할 수 없습니다.
 
 IoTKITs v1 archive는 공식 Mendeley 파일에서 확보해 SHA-256과 COCO 구조를 검사했지만 승인하지
 않았습니다. `STM32` 100장 중 exact unique image는 92개였고, pHash≤4 기준 32개 connected component와

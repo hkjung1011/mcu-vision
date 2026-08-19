@@ -1,5 +1,5 @@
-revision: 1
-as_of: 2026-08-16
+revision: 2
+as_of: 2026-08-19
 counting_rule: Augmentations and adjacent video frames do not count as independent real images.
 
 classes:
@@ -24,16 +24,22 @@ classes:
   stm32_dev_board:
     local_candidate_images: 0
     accepted_for_bootstrap: 0
+    quarantine_visual_candidates: 11
+    conservative_model_view_groups: 6
+    provenance_probe: data/manifests/wikimedia_stm32_v2.acquisition-probe.json
     target: 1000
     status: SOURCE_GAP
-    limitation: Nucleo, Discovery, and third-party boards must remain separate or have an explicit merge rule.
+    limitation: Commons candidates have revision-bound provenance but no reviewed bboxes or verified physical-item IDs; Nucleo, Discovery, and third-party boards also require explicit grouping rules.
 
   stm32_bare_ic:
     local_candidate_images: 0
     accepted_for_bootstrap: 0
+    quarantine_technical_acquisitions: 3
+    quarantine_visual_candidates: 0
+    provenance_probe: data/manifests/wikimedia_stm32_v2.acquisition-probe.json
     target: 1000
     status: SOURCE_GAP
-    limitation: Package shape alone cannot verify STM32; a legible marking or trusted specimen metadata is required.
+    limitation: The three revision-bound Commons acquisitions are two PCB-mounted packages and one die micrograph; a loose package with legible marking or trusted specimen metadata is required.
 
   small_component_generic:
     local_candidate_images: 0

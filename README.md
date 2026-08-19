@@ -21,6 +21,7 @@ third-party model·dataset에는 해당 원 라이선스가 함께 적용됩니�
 | 독립성 | physical item·새 camera session 독립성 증빙 없음 | **NOT VERIFIED** |
 | MCU/SMD ontology | canonical 6-class ID 동결, 한국어는 presentation-only sidecar | **CONTRACT PASS / DATA EMPTY** |
 | 소형칩 반입·CVAT·오토라벨 경로 | provenance·hash·specimen·round-trip·승격 gate 구현 | **CODE PASS / SOURCE BLOCKED** |
+| STM32 공개 원천 검수 | Wikimedia schema-v2 14건 revision 고정·육안 QA: board 후보 11, 단품 IC 후보 0 | **REVIEWED / APPROVED 0** |
 | STM32/SMD 승인 실사 | trusted registry에 승인된 실제 학습 dataset 없음 | **NOT VERIFIED** |
 | Ubuntu 실제 카메라 시험 | ONNX artifact 준비, 현장 capture·latency·정확도 미측정 | **NOT VERIFIED** |
 
