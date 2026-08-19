@@ -61,6 +61,12 @@ validation에서 threshold와 tolerance를 고정한 다음 test를 한 번 실�
 수치 동등성 gate는 validation에서 같은 run의 `final_metrics.json`으로 이미 통과해야 하며, test는
 고정된 ONNX의 held-out bootstrap 수치를 한 번 산출하는 용도로 사용합니다.
 
+test 산출물은 threshold 보정 자료가 아닙니다. `final_metrics.json`과
+`onnx_split_evaluation.json`은 `threshold_selection.status=NOT_FOR_THRESHOLD_SELECTION`,
+`usage=diagnostic_metrics_only`를 명시하고, test에서는 `best_f1_confidence`와
+`autolabel_thresholds.csv`를 생성하지 않습니다. test 결과를 보고 confidence·pseudo-label·autolabel
+threshold를 다시 고르면 독립 평가가 아니므로 deployment promotion이 이를 fail-closed로 거부합니다.
+
 ```powershell
 .\.venv-deploy-eval\Scripts\python.exe scripts\evaluate_onnx_split.py `
   --metadata weights\trained\<RELEASE>\yolo11m\yolo11m_rpi_b1_640.deployment.json `
@@ -88,6 +94,9 @@ metadata, release, output run 경로를 모두 YOLOX-S 값으로 바꿔 한 쌍�
 | `final_metrics.json` 및 CSV/PNG | 공통 COCO/운영점 evaluator 결과 |
 | `onnx_split_evaluation.json` | 모든 입력·산출물 hash, runtime, latency, metric gate |
 
+validation의 `autolabel_thresholds.csv`는 사람 검수가 필요한 후보값일 뿐입니다. test bundle에는 이
+파일이 없어야 하며 confidence curve가 남더라도 진단용 수치 시각화로만 해석합니다.
+
 ## 최종 deployment release 승격
 
 각 모델의 **동일한 ONNX**에 대해 formal val과 formal test를 모두 완료한 뒤에만 다음 명령을
@@ -112,6 +121,7 @@ YOLOX-S는 세 모델 경로를 `yolox_s` release 경로로 바꿔 별도로 실
 - 원 comparison의 run manifest와 `final_metrics.json` SHA-256 일치
 - val/test 모두 `status=PASS`, `mode=formal`, protocol/split binding PASS
 - val의 native metric equivalence PASS 및 비교에 동결된 native metric SHA-256 일치
+- test의 `NOT_FOR_THRESHOLD_SELECTION` 선언 및 pseudo-label/autolabel 후보값 부재
 - ONNX, metadata, COCO annotation, image manifest, prediction, metric 파일의 실제 SHA-256/byte 검증
 - `.pt`/`.pth`와 `.onnx`의 Git LFS rule 존재
 
@@ -119,6 +129,13 @@ YOLOX-S는 세 모델 경로를 `yolox_s` release 경로로 바꿔 별도로 실
 JSON/CSV와 evaluator가 실제 수치로 만든 PNG만 복사하며, 원본 이미지와
 `predictions.coco.json`은 복사하지 않습니다. checkpoint와 ONNX는
 `weights/trained/<RELEASE>/`의 Git LFS 대상 파일을 그대로 참조합니다.
+
+native run manifest schema 4는 weight release를 임의 파일 허용 디렉터리로 취급하지 않습니다. 루트의
+native checkpoint exact inventory와 `formal_deployment_bundle_v1` 확장 계약을 미리 선언하며, 각
+model subdirectory는 같은 stem의 `*.deployment.json`·`*.onnx` 정확히 두 파일만 가질 수 있습니다.
+metadata는 native artifact/checkpoint/comparison와 ONNX byte size·SHA-256을 모두 결합해야 합니다.
+임의 extra, 중첩 경로, stem 불일치 또는 hash 불일치는 native release 자체를 무효화합니다. 기존
+schema 3 release는 checkpoint 단독일 때만 읽기 호환되며 deployment 확장은 허용하지 않습니다.
 
 phash_v2 test는 condition/pHash 연결요소가 train/val과 겹치지 않는 bootstrap test이지만, 새
 physical item/촬영 session/Ubuntu conveyor camera의 독립 acceptance test를 대체하지 않습니다.

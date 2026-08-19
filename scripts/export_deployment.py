@@ -31,7 +31,11 @@ from mcu_data.deployment import (
     restore_boxes,
 )
 from mcu_data.framework_provenance import verify_yolox_source
-from mcu_data.publishing import load_json_strict, validate_comparison_for_run
+from mcu_data.publishing import (
+    load_json_strict,
+    validate_comparison_for_run,
+    validate_run_weight_payload_contract,
+)
 
 
 DEFAULT_YOLOX_CONFIG = PROJECT_ROOT / "configs" / "yolox_s_micropcb.py"
@@ -490,6 +494,17 @@ def main() -> int:
             output_dir.relative_to(trained_root)
         except ValueError as error:
             raise ValueError("Formal deployment artifacts must be written under weights/trained") from error
+        release_weight_root = checkpoint.parent
+        try:
+            deployment_relative = output_dir.relative_to(release_weight_root)
+        except ValueError as error:
+            raise ValueError(
+                "Formal deployment artifacts must be placed inside the native checkpoint release"
+            ) from error
+        if len(deployment_relative.parts) != 1:
+            raise ValueError(
+                "Formal deployment output must be one bundle directory below the native checkpoint"
+            )
         formal_values = {
             "absolute_tolerance": (float(args.absolute_tolerance), FORMAL_ABSOLUTE_TOLERANCE),
             "relative_tolerance": (float(args.relative_tolerance), FORMAL_RELATIVE_TOLERANCE),
@@ -731,6 +746,21 @@ def main() -> int:
     if failure:
         deployment["failure"] = failure
     write_json(metadata_path, deployment)
+    if status == "PASS" and not args.diagnostic:
+        native_artifact_path = args.native_artifact.resolve()
+        native_artifact_document = load_json_strict(
+            native_artifact_path,
+            label="native artifact manifest",
+        )
+        if not isinstance(native_artifact_document, dict):
+            raise ValueError("Native artifact manifest must be a JSON object")
+        release_weight_root = checkpoint.parent
+        validate_run_weight_payload_contract(
+            native_artifact_document,
+            native_artifact_path.parent,
+            release_weight_root,
+            project_root=PROJECT_ROOT,
+        )
 
     print(f"DEPLOYMENT EXPORT: {status}")
     print(f"framework       {args.framework}")

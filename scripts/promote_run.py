@@ -18,6 +18,7 @@ from mcu_data.checkpoint_publishing import (
 from mcu_data.publishing import (
     IMAGE_SUFFIXES,
     WEIGHT_SUFFIXES,
+    build_run_weight_payload_contract,
     copy_public_file_exact,
     load_json_strict,
     scan_public_file,
@@ -207,7 +208,7 @@ def main() -> int:
         relative_path=(Path("weights") / promoted_checkpoint.name).as_posix(),
     )
     artifact = {
-        "schema_version": 3,
+        "schema_version": 4,
         "status": "PASS",
         "formal_release": True,
         "release_name": release_name,
@@ -218,6 +219,11 @@ def main() -> int:
         "model": manifest.get("model"),
         "stage": manifest.get("stage"),
         "checkpoint": checkpoint_record,
+        "weight_payload_contract": build_run_weight_payload_contract(
+            checkpoint_relative=promoted_checkpoint.relative_to(weight_root).as_posix(),
+            checkpoint_bytes=promoted_checkpoint.stat().st_size,
+            checkpoint_sha256=checkpoint_publication["published_sha256"],
+        ),
         "reports": sorted(set(copied_reports)),
         "published_evidence": sorted(publication_records, key=lambda item: str(item["path"])),
         "source_scan": {

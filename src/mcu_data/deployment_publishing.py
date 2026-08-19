@@ -19,6 +19,7 @@ from .publishing import (
     publish_evidence_file,
     scan_public_file,
     validate_formal_comparison,
+    validate_run_weight_payload_contract,
 )
 from .release_policy import load_formal_release_policy, public_policy_binding
 
@@ -50,12 +51,14 @@ COMPARISON_REPORT_FILES = (
 )
 REQUIRED_RELEASE_GATES = {
     "native_release",
+    "native_weight_payload_contract",
     "deployment_release_validation",
     "native_onnx_numeric_equivalence",
     "validation_formal_split",
     "validation_native_metric_equivalence",
     "validation_native_reference_binding",
     "test_formal_split",
+    "test_threshold_selection_forbidden",
     "protocol_binding",
     "split_binding",
     "artifact_hashes_and_sizes",
@@ -282,7 +285,7 @@ def _verify_final_metrics(
     *,
     split: str,
     summary_metrics: Mapping[str, Any],
-) -> None:
+) -> dict[str, Any]:
     final_metrics = _read_object(final_metrics_path, f"{split} final metrics")
     if final_metrics.get("evaluation_set") != split:
         raise ValueError(
@@ -296,6 +299,60 @@ def _verify_final_metrics(
     predictions = _mapping(final_metrics.get("predictions"), f"{split} final_metrics.predictions")
     if str(predictions.get("sha256", "")).lower() != sha256_file(predictions_path):
         raise ValueError(f"{split} final metrics prediction SHA-256 mismatch")
+    return final_metrics
+
+
+def _verify_threshold_selection_policy(
+    *,
+    split: str,
+    summary: Mapping[str, Any],
+    final_metrics: Mapping[str, Any],
+    evaluation_dir: Path,
+) -> dict[str, Any]:
+    policy = _mapping(summary.get("threshold_selection"), f"{split} threshold selection policy")
+    final_policy = _mapping(
+        final_metrics.get("threshold_selection"), f"{split} final threshold selection policy"
+    )
+    if policy != final_policy:
+        raise ValueError(f"{split} threshold selection policy differs from final_metrics.json")
+    if split == "val":
+        if (
+            policy.get("status") != "VALIDATION_DERIVED_CANDIDATE"
+            or policy.get("test_data_used") is not False
+        ):
+            raise ValueError("Validation threshold selection policy is not candidate-only")
+        return dict(policy)
+    if (
+        policy.get("status") != "NOT_FOR_THRESHOLD_SELECTION"
+        or policy.get("usage") != "diagnostic_metrics_only"
+        or policy.get("test_data_used_for_selection") is not False
+    ):
+        raise ValueError("Test split is not explicitly NOT_FOR_THRESHOLD_SELECTION")
+    if (evaluation_dir / "autolabel_thresholds.csv").exists():
+        raise ValueError("Test split must not contain autolabel_thresholds.csv")
+    metrics = _mapping(final_metrics.get("metrics"), "test final metrics")
+    if "best_f1" in metrics or "best_f1_confidence" in metrics:
+        raise ValueError("Test metrics must not expose a threshold-selection optimum")
+    calibration = _mapping(
+        final_metrics.get("pseudo_label_calibration"), "test pseudo-label calibration"
+    )
+    if (
+        calibration.get("status") != "NOT_FOR_THRESHOLD_SELECTION"
+        or calibration.get("confidence") is not None
+    ):
+        raise ValueError("Test pseudo-label calibration is not disabled")
+    by_class = final_metrics.get("pseudo_label_calibration_by_class")
+    if not isinstance(by_class, list) or any(
+        not isinstance(row, dict)
+        or row.get("status") != "NOT_FOR_THRESHOLD_SELECTION"
+        or row.get("confidence") is not None
+        for row in by_class
+    ):
+        raise ValueError("Test per-class pseudo-label calibration is not disabled")
+    protocol = _mapping(final_metrics.get("protocol"), "test final metrics protocol")
+    if any(key.startswith("pseudo_label_") for key in protocol):
+        raise ValueError("Test protocol must not expose pseudo-label calibration targets")
+    return dict(policy)
 
 
 def _verify_evaluation(
@@ -432,12 +489,18 @@ def _verify_evaluation(
             )
 
     metrics = _mapping(summary.get("metrics"), f"{split} summary metrics")
-    _verify_final_metrics(
+    final_metrics = _verify_final_metrics(
         verified_paths["final_metrics"],
         verified_paths["predictions"],
         verified_paths["coco_annotations"],
         split=split,
         summary_metrics=metrics,
+    )
+    threshold_selection = _verify_threshold_selection_policy(
+        split=split,
+        summary=summary,
+        final_metrics=final_metrics,
+        evaluation_dir=evaluation_dir,
     )
     image_manifest = _read_object(verified_paths["image_manifest"], f"{split} image manifest")
     image_count = int(inputs.get("image_count", -2))
@@ -460,6 +523,7 @@ def _verify_evaluation(
         "summary_path": summary_path,
         "verified_paths": verified_paths,
         "metrics": metrics,
+        "threshold_selection": threshold_selection,
         "protocol": dict(protocol),
         "protocol_id": protocol_id,
         "protocol_sha256": sha256_file(verified_paths["protocol"]),
@@ -638,6 +702,18 @@ def validate_promoted_deployment_for_runtime(
         checkpoint_record,
         "promoted native checkpoint",
     )
+    native_artifact_path = (
+        project_root / "reports" / "runs" / release_name / "artifact_manifest.json"
+    )
+    native_artifact = _read_object(native_artifact_path, "native artifact manifest")
+    native_weight_payload = validate_run_weight_payload_contract(
+        native_artifact,
+        native_artifact_path.parent,
+        checkpoint_path.parent,
+        project_root=project_root,
+    )
+    if manifest.get("native_weight_payload") != native_weight_payload:
+        raise ValueError("Deployment native weight payload differs from the release manifest")
 
     published_rows = manifest.get("published_files")
     if not isinstance(published_rows, list):
@@ -755,6 +831,24 @@ def validate_promoted_deployment_for_runtime(
             ):
                 raise ValueError(
                     f"Published {expected_split} evaluation is not a formal PASS"
+                )
+            published_final_metrics = _read_object(
+                release_dir / expected_split / "final_metrics.json",
+                f"published {expected_split} final metrics",
+            )
+            threshold_selection = _verify_threshold_selection_policy(
+                split=expected_split,
+                summary=summary,
+                final_metrics=published_final_metrics,
+                evaluation_dir=release_dir / expected_split,
+            )
+            recorded_evaluation = _mapping(
+                formal_evaluations.get(expected_split),
+                f"deployment {expected_split} evaluation record",
+            )
+            if recorded_evaluation.get("threshold_selection") != threshold_selection:
+                raise ValueError(
+                    f"Published {expected_split} threshold policy differs from release manifest"
                 )
 
     return {
@@ -933,6 +1027,12 @@ def promote_deployment_release(
     onnx["path"] = onnx_path.relative_to(project_root).as_posix()
     assert_binary_has_no_local_paths(onnx_path, project_root)
     metadata_sha = sha256_file(deployment_metadata_path)
+    native_weight_payload = validate_run_weight_payload_contract(
+        native,
+        native_artifact_path.parent,
+        release_weight_root,
+        project_root=project_root,
+    )
 
     comparison_binding_keys = [
         "comparison_id",
@@ -1095,14 +1195,16 @@ def promote_deployment_release(
             "source_run_id": run_id,
             "model": native.get("model"),
             "protocol_id": val["protocol_id"],
-        "gates": {
+            "gates": {
                 "native_release": "PASS",
+                "native_weight_payload_contract": "PASS",
                 "deployment_release_validation": "PASS",
                 "native_onnx_numeric_equivalence": "PASS",
                 "validation_formal_split": "PASS",
                 "validation_native_metric_equivalence": "PASS",
                 "validation_native_reference_binding": "PASS",
                 "test_formal_split": "PASS",
+                "test_threshold_selection_forbidden": "PASS",
                 "protocol_binding": "PASS",
                 "split_binding": "PASS",
                 "artifact_hashes_and_sizes": "PASS",
@@ -1115,6 +1217,7 @@ def promote_deployment_release(
             else {}
         ),
             "native_checkpoint": checkpoint,
+            "native_weight_payload": native_weight_payload,
             "onnx": onnx,
             "deployment_metadata": {
                 "source_sha256": metadata_sha,
@@ -1133,11 +1236,13 @@ def promote_deployment_release(
                     "metrics": val["metrics"],
                     "native_metric_equivalence": "PASS",
                     "native_reference_sha256": val["native_final_metrics_sha256"],
+                    "threshold_selection": val["threshold_selection"],
                 },
                 "test": {
                     "source_sha256": sha256_file(test_summary_path),
                     "published_path": "test/onnx_split_evaluation.json",
                     "metrics": test["metrics"],
+                    "threshold_selection": test["threshold_selection"],
                 },
             },
             "git_lfs": lfs,

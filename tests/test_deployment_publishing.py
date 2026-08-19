@@ -12,10 +12,12 @@ import pytest
 
 from mcu_data.common import sha256_file
 from mcu_data.publishing import (
+    build_run_weight_payload_contract,
     create_formal_validation,
     publish_evidence_file,
     validate_formal_comparison,
     validate_published_comparison_release,
+    validate_run_weight_payload_contract,
     validated_formal_publication_plan,
 )
 from mcu_data.deployment_publishing import (
@@ -383,6 +385,9 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
     _write_json(
         native_artifact,
         {
+            "schema_version": 4,
+            "status": "PASS",
+            "formal_release": True,
             "release_name": release,
             "source_run_id": run_id,
             "source_run_manifest_sha256": run_manifest_sha,
@@ -391,6 +396,11 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
             "model": "yolo11m",
             "stage": "fine_tune_candidate",
             "checkpoint": _record(checkpoint, project) | checkpoint_publication,
+            "weight_payload_contract": build_run_weight_payload_contract(
+                checkpoint_relative=checkpoint.name,
+                checkpoint_bytes=checkpoint.stat().st_size,
+                checkpoint_sha256=sha256_file(checkpoint),
+            ),
         },
     )
 
@@ -428,6 +438,7 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
             "verification": {"status": "PASS", "numeric": {"status": "PASS"}},
             "artifacts": {
                 "checkpoint": _record(checkpoint, project),
+                "native_artifact": _record(native_artifact, project),
                 "run_manifest": _record(run_manifest, project),
                 "onnx": {**_record(onnx, project), "file_name": onnx.name},
             },
@@ -450,6 +461,21 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
             "precision": 0.91,
             "recall": 0.89,
         }
+        threshold_selection = (
+            {
+                "status": "VALIDATION_DERIVED_CANDIDATE",
+                "source_split": "val",
+                "usage": "candidate_only_human_review_required",
+                "test_data_used": False,
+            }
+            if split == "val"
+            else {
+                "status": "NOT_FOR_THRESHOLD_SELECTION",
+                "source_split": "test",
+                "usage": "diagnostic_metrics_only",
+                "test_data_used_for_selection": False,
+            }
+        )
         final_metrics = _write_json(
             directory / "final_metrics.json",
             {
@@ -457,6 +483,32 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
                 "ground_truth": {"sha256": sha256_file(coco)},
                 "predictions": {"sha256": sha256_file(predictions)},
                 "metrics": metrics,
+                "protocol": (
+                    {
+                        "pseudo_label_target_precision": 0.98,
+                        "pseudo_label_minimum_precision_wilson_lower_95": 0.95,
+                    }
+                    if split == "val"
+                    else {}
+                ),
+                "threshold_selection": threshold_selection,
+                "pseudo_label_calibration": (
+                    {"status": "NOT_AVAILABLE", "confidence": None}
+                    if split == "val"
+                    else {"status": "NOT_FOR_THRESHOLD_SELECTION", "confidence": None}
+                ),
+                "pseudo_label_calibration_by_class": [
+                    {
+                        "category_id": 1,
+                        "category_name": "raspberry_pi_sbc",
+                        "status": (
+                            "NOT_AVAILABLE"
+                            if split == "val"
+                            else "NOT_FOR_THRESHOLD_SELECTION"
+                        ),
+                        "confidence": None,
+                    }
+                ],
             },
         )
         image_manifest = _write_json(
@@ -519,6 +571,7 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
             },
             "artifacts": artifacts,
             "metrics": metrics,
+            "threshold_selection": threshold_selection,
             "native_metric_equivalence": {
                 "status": "PASS" if native else "NOT_REQUESTED"
             },
@@ -573,6 +626,13 @@ def test_promote_deployment_creates_sanitized_hash_bound_release(tmp_path: Path)
     assert (destination / "deployment_metadata.json").is_file()
     assert (destination / "val" / "onnx_split_evaluation.json").is_file()
     assert (destination / "test" / "final_metrics.json").is_file()
+    assert not (destination / "test" / "autolabel_thresholds.csv").exists()
+    assert manifest["gates"]["native_weight_payload_contract"] == "PASS"
+    assert manifest["gates"]["test_threshold_selection_forbidden"] == "PASS"
+    assert (
+        manifest["formal_evaluations"]["test"]["threshold_selection"]["status"]
+        == "NOT_FOR_THRESHOLD_SELECTION"
+    )
     assert not (destination / "val" / "predictions.coco.json").exists()
     published_image_manifest = (destination / "val" / "image_manifest.json").read_text(
         encoding="utf-8"
@@ -586,6 +646,93 @@ def test_promote_deployment_creates_sanitized_hash_bound_release(tmp_path: Path)
         onnx_path=paths["onnx"],
     )
     assert runtime_evidence["status"] == "PASS"
+
+
+def test_native_weight_contract_accepts_exact_bound_deployment_pair(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    native = json.loads(paths["native_artifact"].read_text(encoding="utf-8"))
+    weight_root = paths["onnx"].parent.parent
+
+    result = validate_run_weight_payload_contract(
+        native,
+        paths["native_artifact"].parent,
+        weight_root,
+        project_root=paths["project"],
+    )
+
+    assert result["status"] == "PASS"
+    assert result["files"] == [
+        "best.pt",
+        "yolo11m/model.deployment.json",
+        "yolo11m/model.onnx",
+    ]
+    assert [row["bundle"] for row in result["deployment_bundles"]] == ["yolo11m"]
+
+
+def test_native_weight_contract_rejects_arbitrary_extra_file(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    native = json.loads(paths["native_artifact"].read_text(encoding="utf-8"))
+    weight_root = paths["onnx"].parent.parent
+    (weight_root / "yolo11m" / "notes.txt").write_text("not declared\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="exactly one metadata/ONNX pair"):
+        validate_run_weight_payload_contract(
+            native,
+            paths["native_artifact"].parent,
+            weight_root,
+            project_root=paths["project"],
+        )
+
+
+def test_native_weight_contract_rejects_mismatched_deployment_binding(
+    tmp_path: Path,
+) -> None:
+    paths = _build_release_fixture(tmp_path)
+    native = json.loads(paths["native_artifact"].read_text(encoding="utf-8"))
+    metadata = json.loads(paths["deployment_metadata"].read_text(encoding="utf-8"))
+    metadata["artifacts"]["onnx"]["sha256"] = "f" * 64
+    _write_json(paths["deployment_metadata"], metadata)
+
+    with pytest.raises(ValueError, match="formal deployment ONNX SHA-256 mismatch"):
+        validate_run_weight_payload_contract(
+            native,
+            paths["native_artifact"].parent,
+            paths["onnx"].parent.parent,
+            project_root=paths["project"],
+        )
+
+
+def test_promote_deployment_rejects_test_threshold_candidate(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    final_path = paths["test_summary"].parent / "final_metrics.json"
+    final_metrics = json.loads(final_path.read_text(encoding="utf-8"))
+    candidate = {
+        "status": "VALIDATION_DERIVED_CANDIDATE",
+        "source_split": "test",
+        "usage": "candidate_only_human_review_required",
+        "test_data_used": True,
+    }
+    final_metrics["threshold_selection"] = candidate
+    final_metrics["pseudo_label_calibration"] = {"status": "CANDIDATE", "confidence": 0.7}
+    _write_json(final_path, final_metrics)
+    summary = json.loads(paths["test_summary"].read_text(encoding="utf-8"))
+    summary["threshold_selection"] = candidate
+    summary["artifacts"]["final_metrics"] = _record(final_path, paths["project"])
+    _write_json(paths["test_summary"], summary)
+
+    with pytest.raises(ValueError, match="Test split is not explicitly NOT_FOR_THRESHOLD_SELECTION"):
+        _promote(paths)
+
+
+def test_promote_deployment_rejects_test_autolabel_threshold_file(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    (paths["test_summary"].parent / "autolabel_thresholds.csv").write_text(
+        "category_id,confidence\n1,0.7\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Test split must not contain autolabel_thresholds.csv"):
+        _promote(paths)
 
 
 def test_promote_deployment_rejects_checkpoint_mismatch(tmp_path: Path) -> None:

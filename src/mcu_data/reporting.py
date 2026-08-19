@@ -537,6 +537,7 @@ def evaluate_predictions(
     match_iou: float = 0.50,
     pseudo_label_target_precision: float = 0.98,
     pseudo_label_minimum_precision_lcb: float = 0.95,
+    evaluation_set: str = "validation",
 ) -> dict[str, Any]:
     from pycocotools.coco import COCO
     from pycocotools.cocoeval import COCOeval
@@ -646,17 +647,39 @@ def evaluate_predictions(
                 }
             )
     best_threshold = max(threshold_rows, key=lambda row: row["f1"])
-    pseudo_label_calibration = _select_precision_threshold(
-        threshold_rows,
-        pseudo_label_target_precision,
-        pseudo_label_minimum_precision_lcb,
+    if evaluation_set not in {"validation", "val", "test"}:
+        raise ValueError(f"Unsupported evaluation_set: {evaluation_set!r}")
+    threshold_selection_allowed = evaluation_set in {"validation", "val"}
+    pseudo_label_calibration = (
+        _select_precision_threshold(
+            threshold_rows,
+            pseudo_label_target_precision,
+            pseudo_label_minimum_precision_lcb,
+        )
+        if threshold_selection_allowed
+        else {
+            "status": "NOT_FOR_THRESHOLD_SELECTION",
+            "confidence": None,
+            "reason": (
+                "Test observations are diagnostic-only and must not select or revise operating, "
+                "pseudo-label, or autolabel thresholds."
+            ),
+        }
     )
     pseudo_label_class_rows = []
     for category_id, category_name in categories.items():
-        calibration = _select_precision_threshold(
-            per_class_threshold_rows[category_id],
-            pseudo_label_target_precision,
-            pseudo_label_minimum_precision_lcb,
+        calibration = (
+            _select_precision_threshold(
+                per_class_threshold_rows[category_id],
+                pseudo_label_target_precision,
+                pseudo_label_minimum_precision_lcb,
+            )
+            if threshold_selection_allowed
+            else {
+                "status": "NOT_FOR_THRESHOLD_SELECTION",
+                "confidence": None,
+                "reason": "Test observations are diagnostic-only; threshold selection is forbidden.",
+            }
         )
         pseudo_label_class_rows.append(
             {"category_id": category_id, "category_name": category_name, **calibration}
@@ -695,10 +718,45 @@ def evaluate_predictions(
         out=np.zeros_like(confusion, dtype=float),
         where=row_sums != 0,
     )
+    threshold_selection = (
+        {
+            "status": "VALIDATION_DERIVED_CANDIDATE",
+            "source_split": "val" if evaluation_set == "val" else "validation",
+            "usage": "candidate_only_human_review_required",
+            "test_data_used": False,
+        }
+        if threshold_selection_allowed
+        else {
+            "status": "NOT_FOR_THRESHOLD_SELECTION",
+            "source_split": "test",
+            "usage": "diagnostic_metrics_only",
+            "test_data_used_for_selection": False,
+        }
+    )
+    metric_values = {
+        **ap_values,
+        "precision": precision_value,
+        "recall": recall_value,
+        "f1": f1_value,
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+    }
+    if threshold_selection_allowed:
+        metric_values.update(
+            {
+                "best_f1": best_threshold["f1"],
+                "best_f1_confidence": best_threshold["confidence"],
+            }
+        )
     result = {
         "schema_version": 2,
-        "evaluation_set": "validation",
-        "warning": "This is validation data, not an independent conveyor-camera test set.",
+        "evaluation_set": evaluation_set,
+        "warning": (
+            "This is validation data, not an independent conveyor-camera test set."
+            if threshold_selection_allowed
+            else "Independent test metrics are diagnostic-only and forbidden for threshold selection."
+        ),
         "ground_truth": {
             "path": portable_path(ground_truth_path),
             "sha256": sha256_file(ground_truth_path),
@@ -717,20 +775,17 @@ def evaluate_predictions(
             "operating_max_dets_per_image": operating_max_detections,
             "operating_confidence": confidence,
             "operating_match_iou": match_iou,
-            "pseudo_label_target_precision": pseudo_label_target_precision,
-            "pseudo_label_minimum_precision_wilson_lower_95": pseudo_label_minimum_precision_lcb,
-        },
-        "metrics": {
-            **ap_values,
-            "precision": precision_value,
-            "recall": recall_value,
-            "f1": f1_value,
-            "tp": tp,
-            "fp": fp,
-            "fn": fn,
-            "best_f1": best_threshold["f1"],
-            "best_f1_confidence": best_threshold["confidence"],
-        },
+        }
+        | (
+            {
+                "pseudo_label_target_precision": pseudo_label_target_precision,
+                "pseudo_label_minimum_precision_wilson_lower_95": pseudo_label_minimum_precision_lcb,
+            }
+            if threshold_selection_allowed
+            else {}
+        ),
+        "threshold_selection": threshold_selection,
+        "metrics": metric_values,
         "per_class": per_class_rows,
         "area_ground_truth_counts": area_counts,
         "pseudo_label_calibration": pseudo_label_calibration,
@@ -739,11 +794,12 @@ def evaluate_predictions(
     write_json(output_dir / "final_metrics.json", result)
     _write_csv(output_dir / "per_class_metrics.csv", list(per_class_rows[0]) if per_class_rows else [], per_class_rows)
     _write_csv(output_dir / "confidence_curve.csv", list(threshold_rows[0]), threshold_rows)
-    _write_csv(
-        output_dir / "autolabel_thresholds.csv",
-        list(pseudo_label_class_rows[0]) if pseudo_label_class_rows else [],
-        pseudo_label_class_rows,
-    )
+    if threshold_selection_allowed:
+        _write_csv(
+            output_dir / "autolabel_thresholds.csv",
+            list(pseudo_label_class_rows[0]) if pseudo_label_class_rows else [],
+            pseudo_label_class_rows,
+        )
     _write_confusion_csv(output_dir / "confusion_counts.csv", confusion_labels, confusion)
     _write_confusion_csv(
         output_dir / "confusion_normalized.csv", confusion_labels, normalized_confusion
@@ -766,7 +822,7 @@ def evaluate_predictions(
 def print_evaluation(result: dict[str, Any]) -> None:
     metrics = result["metrics"]
     calibration = result.get("pseudo_label_calibration", {})
-    print("\nCOMMON COCO EVALUATION (VALIDATION SET)")
+    print(f"\nCOMMON COCO EVALUATION ({str(result.get('evaluation_set', 'validation')).upper()} SET)")
     print("=" * 92)
     print(f"AP50-95 : {metrics['ap50_95']:.4f} ({metrics['ap50_95'] * 100:.2f}%)")
     print(f"AP50    : {metrics['ap50']:.4f} ({metrics['ap50'] * 100:.2f}%)")
@@ -782,6 +838,10 @@ def print_evaluation(result: dict[str, Any]) -> None:
     )
     print(f"P/R/F1  : {metrics['precision']:.4f} / {metrics['recall']:.4f} / {metrics['f1']:.4f}")
     print(f"TP/FP/FN: {metrics['tp']} / {metrics['fp']} / {metrics['fn']}")
+    if result.get("threshold_selection", {}).get("status") == "NOT_FOR_THRESHOLD_SELECTION":
+        print("threshold: NOT_FOR_THRESHOLD_SELECTION (test metrics are diagnostic-only)")
+        print("NOTICE  : test observations cannot select or revise deployment/autolabel thresholds")
+        return
     print(
         f"best F1 : {metrics['best_f1']:.4f} at confidence={metrics['best_f1_confidence']:.2f}"
     )

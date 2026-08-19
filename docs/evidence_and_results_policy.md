@@ -70,6 +70,11 @@ AP/AR는 `pycocotools==2.0.11` COCOeval, 운영점 수치는 별도 공통 match
 또는 best-F1 threshold를 선택하고 independent test 전에 동결합니다. 오토라벨 threshold도 같은 방식으로
 class별 calibration하되 사람 검수를 생략하지 않습니다.
 
+threshold는 validation에서만 후보를 산출하고 independent test 전에 동결합니다. test 결과에는
+`NOT_FOR_THRESHOLD_SELECTION`을 명시하며 `best_f1_confidence`와
+`autolabel_thresholds.csv`를 제공하지 않습니다. test 수치를 보고 운영·pseudo-label·autolabel
+threshold를 선택하거나 수정하면 독립 test 주장을 철회하고 새 test set을 마련해야 합니다.
+
 `AP_small`은 학습 전처리로 640에 resize된 뒤의 pixel 크기가 아니라 원본 COCO annotation area로
 구분됩니다. 따라서 실제 소형 칩 판단에는 letterbox/resize 후 bbox width·height·area 분포와 pixel-size
 bin별 recall 또는 AP를 함께 보고합니다.
@@ -83,6 +88,11 @@ bin별 recall 또는 AP를 함께 보고합니다.
 5. 검증된 formal allowlist 전체를 scan해 unlisted/stale file, raw image, report 내부 weight가 없는지 확인합니다.
 6. `scripts/promote_run.py --comparison-dir ...`/`scripts/promote_comparison.py`로 `weights/trained/`, `reports/`에 복사합니다.
 7. 비밀정보·절대 사용자 경로·대용량 파일을 재검사한 뒤 Git LFS로 push합니다.
+
+새 native run release는 schema 4 `weight_payload_contract`를 사용합니다. native checkpoint 외에는
+계약에 맞는 동일 stem ONNX/metadata pair만 한 단계 하위 bundle에 둘 수 있고, metadata가 native
+artifact·checkpoint·comparison·ONNX hash를 정확히 결합해야 합니다. 선언되지 않은 파일은 확장자가
+무엇이든 승격을 차단합니다. schema 3 공개본은 checkpoint 단독 inventory에 한해 읽기 호환됩니다.
 
 승격은 재귀 복사가 아니라 `formal_validation.json`에서 재계산한 allowlist만 사용합니다. 따라서 source에
 추가된 stale/raw/weight file이 있으면 승격 전에 중단합니다. 승격본은 로컬 project/user 경로와 raw

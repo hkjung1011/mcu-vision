@@ -779,8 +779,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         output_dir,
         confidence=operating_confidence,
         match_iou=float(args.match_iou),
+        evaluation_set=args.split,
     )
-    evaluated["evaluation_set"] = args.split
     evaluated["warning"] = _split_warning(args.split)
     final_metrics_path = output_dir / "final_metrics.json"
     write_json(final_metrics_path, evaluated)
@@ -878,6 +878,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "e2e_ms_p95": _percentile(e2e_ms, 95),
         },
         "metrics": evaluated["metrics"],
+        "threshold_selection": evaluated["threshold_selection"],
         "native_metric_equivalence": comparison,
         "native_reference_binding": native_reference_binding,
     }

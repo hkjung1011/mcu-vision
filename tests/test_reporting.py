@@ -323,6 +323,42 @@ def test_common_evaluator_handles_no_predictions(tmp_path: Path) -> None:
     assert (tmp_path / "report" / "confusion_normalized.png").exists()
 
 
+def test_common_evaluator_marks_test_thresholds_diagnostic_only(tmp_path: Path) -> None:
+    ground_truth = tmp_path / "test.json"
+    predictions = tmp_path / "predictions.json"
+    ground_truth.write_text(
+        json.dumps(
+            {
+                "info": {},
+                "licenses": [],
+                "images": [{"id": 1, "file_name": "one.jpg", "width": 32, "height": 32}],
+                "categories": [{"id": 1, "name": "chip", "supercategory": "component"}],
+                "annotations": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    predictions.write_text("[]", encoding="utf-8")
+    output = tmp_path / "test-report"
+
+    result = evaluate_predictions(
+        ground_truth,
+        predictions,
+        output,
+        evaluation_set="test",
+    )
+
+    assert result["threshold_selection"]["status"] == "NOT_FOR_THRESHOLD_SELECTION"
+    assert result["pseudo_label_calibration"]["status"] == "NOT_FOR_THRESHOLD_SELECTION"
+    assert all(
+        row["status"] == "NOT_FOR_THRESHOLD_SELECTION"
+        for row in result["pseudo_label_calibration_by_class"]
+    )
+    assert "best_f1_confidence" not in result["metrics"]
+    assert "pseudo_label_target_precision" not in result["protocol"]
+    assert not (output / "autolabel_thresholds.csv").exists()
+
+
 def test_actual_completed_single_run_comparison_is_diagnostic(tmp_path: Path) -> None:
     raw_run_dir = os.environ.get("MCU_COMPLETED_RUN_DIR")
     if not raw_run_dir:

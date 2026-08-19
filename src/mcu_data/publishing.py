@@ -147,6 +147,21 @@ WEIGHT_SUFFIXES = {
     ".pb",
     ".torchscript",
 }
+RUN_WEIGHT_EXTENSION_CONTRACT = {
+    "schema_version": 1,
+    "status": "PASS",
+    "extension_type": "formal_deployment_bundle_v1",
+    "layout": "<bundle>/<stem>.deployment.json + <bundle>/<stem>.onnx",
+    "bundle_directory_depth": 1,
+    "metadata_suffix": ".deployment.json",
+    "onnx_suffix": ".onnx",
+    "same_stem_required": True,
+    "exact_files_per_bundle": 2,
+    "native_artifact_binding_required": True,
+    "native_checkpoint_binding_required": True,
+    "comparison_binding_required": True,
+    "undeclared_files_forbidden": True,
+}
 IMAGE_SUFFIXES = {
     ".png",
     ".jpg",
@@ -1966,6 +1981,280 @@ def validate_published_comparison_release(release_dir: Path) -> dict[str, Any]:
     }
 
 
+def build_run_weight_payload_contract(
+    *,
+    checkpoint_relative: str,
+    checkpoint_bytes: int,
+    checkpoint_sha256: str,
+) -> dict[str, Any]:
+    """Declare the only post-promotion extension allowed in a trained-weight release."""
+
+    normalized = checkpoint_relative.replace("\\", "/")
+    if (
+        not normalized
+        or normalized.startswith("/")
+        or ":" in normalized
+        or len(Path(normalized).parts) != 1
+        or Path(normalized).name != normalized
+        or type(checkpoint_bytes) is not int
+        or checkpoint_bytes < 0
+        or not re.fullmatch(r"[0-9a-f]{64}", checkpoint_sha256.lower())
+    ):
+        raise ValueError("Invalid native checkpoint record for weight payload contract")
+    return {
+        "schema_version": 1,
+        "status": "PASS",
+        "native_checkpoint": {
+            "path": normalized,
+            "bytes": checkpoint_bytes,
+            "sha256": checkpoint_sha256.lower(),
+        },
+        "extension_contract": dict(RUN_WEIGHT_EXTENSION_CONTRACT),
+    }
+
+
+def _verify_project_file_record(
+    record: Any,
+    expected_path: Path,
+    *,
+    project_root: Path,
+    label: str,
+) -> None:
+    if not isinstance(record, dict):
+        raise ValueError(f"{label} record is missing")
+    raw_path = record.get("path")
+    if not isinstance(raw_path, str) or not raw_path:
+        raise ValueError(f"{label}.path is missing")
+    candidate = Path(raw_path)
+    if not candidate.is_absolute():
+        candidate = project_root / candidate
+    candidate = candidate.resolve()
+    try:
+        candidate.relative_to(project_root)
+    except ValueError as exc:
+        raise ValueError(f"{label}.path escapes the project") from exc
+    if candidate != expected_path.resolve():
+        raise ValueError(f"{label}.path differs from the required artifact")
+    expected_bytes = record.get("bytes")
+    if type(expected_bytes) is not int or expected_bytes != expected_path.stat().st_size:
+        raise ValueError(f"{label} byte-size mismatch")
+    expected_sha = str(record.get("sha256", "")).lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_sha) or expected_sha != sha256_file(
+        expected_path
+    ):
+        raise ValueError(f"{label} SHA-256 mismatch")
+
+
+def validate_run_weight_payload_contract(
+    document: dict[str, Any],
+    report_root: Path,
+    weight_root: Path,
+    *,
+    project_root: Path,
+) -> dict[str, Any]:
+    """Validate the exact native checkpoint plus any fully bound formal deployment bundles.
+
+    Schema-3 releases remain readable only while their weight directory contains the native
+    checkpoint alone. Schema-4 releases explicitly declare the immutable extension contract;
+    every added subdirectory must then be an exact ONNX/metadata pair that binds back to this
+    native manifest, checkpoint, and comparison evidence.
+    """
+
+    report_root = report_root.resolve()
+    weight_root = weight_root.resolve()
+    project_root = project_root.resolve()
+    manifest_path = report_root / "artifact_manifest.json"
+    checkpoint_record = document.get("checkpoint")
+    if not isinstance(checkpoint_record, dict):
+        raise ValueError("Published run checkpoint record is missing")
+    checkpoint_text = str(checkpoint_record.get("path") or "").replace("\\", "/")
+    checkpoint_path = (project_root / checkpoint_text).resolve()
+    try:
+        checkpoint_relative = checkpoint_path.relative_to(weight_root).as_posix()
+    except ValueError as exc:
+        raise ValueError("Published run checkpoint path escapes its weight release") from exc
+    _verify_project_file_record(
+        checkpoint_record,
+        checkpoint_path,
+        project_root=project_root,
+        label="published run checkpoint",
+    )
+    actual_files = {
+        path.relative_to(weight_root).as_posix()
+        for path in weight_root.rglob("*")
+        if path.is_file()
+    }
+    schema_version = document.get("schema_version")
+    if schema_version == 3:
+        if document.get("weight_payload_contract") is not None:
+            raise ValueError("Schema-3 run manifests cannot declare a schema-4 weight contract")
+        if actual_files != {checkpoint_relative}:
+            raise ValueError(
+                "Legacy schema-3 weight releases cannot contain deployment extensions: "
+                f"actual={sorted(actual_files)}"
+            )
+        return {
+            "status": "PASS",
+            "schema_version": 3,
+            "files": sorted(actual_files),
+            "native_checkpoint": checkpoint_relative,
+            "deployment_bundles": [],
+        }
+    if schema_version != 4:
+        raise ValueError(f"Unsupported published run manifest schema: {schema_version!r}")
+    expected_contract = build_run_weight_payload_contract(
+        checkpoint_relative=checkpoint_relative,
+        checkpoint_bytes=checkpoint_path.stat().st_size,
+        checkpoint_sha256=sha256_file(checkpoint_path),
+    )
+    if document.get("weight_payload_contract") != expected_contract:
+        raise ValueError("Published run weight_payload_contract differs from the native checkpoint")
+
+    extra_files = actual_files - {checkpoint_relative}
+    grouped: dict[str, set[str]] = {}
+    for relative in extra_files:
+        parts = Path(relative).parts
+        if len(parts) != 2:
+            raise ValueError(
+                "Formal deployment payload must use one exact bundle subdirectory: "
+                f"{relative}"
+            )
+        grouped.setdefault(parts[0], set()).add(parts[1])
+
+    deployment_bundles: list[dict[str, Any]] = []
+    expected_release_validation = {
+        "status": "PASS",
+        "formal_release": True,
+        **dict(document.get("validated_by_comparison") or {}),
+    }
+    for bundle_name, filenames in sorted(grouped.items()):
+        metadata_names = sorted(name for name in filenames if name.endswith(".deployment.json"))
+        onnx_names = sorted(name for name in filenames if name.endswith(".onnx"))
+        if len(filenames) != 2 or len(metadata_names) != 1 or len(onnx_names) != 1:
+            raise ValueError(
+                "Formal deployment bundle must contain exactly one metadata/ONNX pair: "
+                f"bundle={bundle_name}, files={sorted(filenames)}"
+            )
+        metadata_name = metadata_names[0]
+        stem = metadata_name[: -len(".deployment.json")]
+        if not stem or onnx_names[0] != f"{stem}.onnx":
+            raise ValueError(
+                "Formal deployment metadata and ONNX must share one exact stem: "
+                f"bundle={bundle_name}, files={sorted(filenames)}"
+            )
+        bundle_root = weight_root / bundle_name
+        metadata_path = bundle_root / metadata_name
+        onnx_path = bundle_root / onnx_names[0]
+        metadata = load_json_strict(metadata_path, label="formal deployment metadata")
+        if not isinstance(metadata, dict):
+            raise ValueError("Formal deployment metadata must be a JSON object")
+        if (
+            metadata.get("schema_version") != 1
+            or metadata.get("status") != "PASS"
+            or metadata.get("profile") != "fixed_batch1_fp32_onnx"
+        ):
+            raise ValueError("Formal deployment bundle metadata is not a schema-1 PASS")
+        if metadata.get("release_validation") != expected_release_validation:
+            raise ValueError(
+                "Formal deployment bundle comparison binding differs from the native release"
+            )
+        training_run = metadata.get("training_run")
+        if not isinstance(training_run, dict) or any(
+            str(training_run.get(key)) != str(expected)
+            for key, expected in {
+                "run_id": document.get("source_run_id"),
+                "model": document.get("model"),
+                "stage": document.get("stage"),
+                "status": "complete",
+            }.items()
+        ):
+            raise ValueError("Formal deployment bundle training run differs from native release")
+        verification = metadata.get("verification")
+        if (
+            not isinstance(verification, dict)
+            or verification.get("status") != "PASS"
+            or not isinstance(verification.get("numeric"), dict)
+            or verification["numeric"].get("status") != "PASS"
+        ):
+            raise ValueError("Formal deployment bundle numeric verification is not PASS")
+        artifacts = metadata.get("artifacts")
+        if not isinstance(artifacts, dict):
+            raise ValueError("Formal deployment bundle artifact records are missing")
+        _verify_project_file_record(
+            artifacts.get("checkpoint"),
+            checkpoint_path,
+            project_root=project_root,
+            label="formal deployment checkpoint",
+        )
+        _verify_project_file_record(
+            artifacts.get("native_artifact"),
+            manifest_path,
+            project_root=project_root,
+            label="formal deployment native artifact",
+        )
+        _verify_project_file_record(
+            artifacts.get("onnx"),
+            onnx_path,
+            project_root=project_root,
+            label="formal deployment ONNX",
+        )
+        if artifacts["onnx"].get("file_name") != onnx_path.name:
+            raise ValueError("Formal deployment ONNX file_name differs from its bound file")
+        publication = metadata.get("checkpoint_publication")
+        if not isinstance(publication, dict):
+            raise ValueError("Formal deployment checkpoint publication bridge is missing")
+        expected_publication = {
+            "source_original_sha256": checkpoint_record.get("source_original_sha256"),
+            "published_sha256": checkpoint_record.get("sha256"),
+        }
+        for key in (
+            "proof",
+            "metadata_sanitized",
+            "state_dict_bitwise_equal",
+            "forward_max_abs_difference",
+            "source_forward_captured_before_scrub",
+            "ultralytics_load",
+        ):
+            if key in checkpoint_record:
+                expected_publication[key] = checkpoint_record[key]
+        if any(publication.get(key) != value for key, value in expected_publication.items()):
+            raise ValueError(
+                "Formal deployment checkpoint publication bridge differs from native release"
+            )
+        metadata_scan = scan_public_file(
+            metadata_path,
+            relative_path=(Path(bundle_name) / metadata_name).as_posix(),
+        )
+        onnx_scan = scan_public_file(
+            onnx_path,
+            relative_path=(Path(bundle_name) / onnx_path.name).as_posix(),
+        )
+        deployment_bundles.append(
+            {
+                "bundle": bundle_name,
+                "metadata": {
+                    "path": (Path(bundle_name) / metadata_name).as_posix(),
+                    "bytes": metadata_path.stat().st_size,
+                    "sha256": sha256_file(metadata_path),
+                    "scan": metadata_scan,
+                },
+                "onnx": {
+                    "path": (Path(bundle_name) / onnx_path.name).as_posix(),
+                    "bytes": onnx_path.stat().st_size,
+                    "sha256": sha256_file(onnx_path),
+                    "scan": onnx_scan,
+                },
+            }
+        )
+    return {
+        "status": "PASS",
+        "schema_version": 4,
+        "files": sorted(actual_files),
+        "native_checkpoint": checkpoint_relative,
+        "deployment_bundles": deployment_bundles,
+    }
+
+
 def validate_published_run_release(
     report_root: Path,
     weight_root: Path,
@@ -1980,11 +2269,11 @@ def validate_published_run_release(
     document = load_json_strict(manifest_path)
     if (
         not isinstance(document, dict)
-        or document.get("schema_version") != 3
+        or document.get("schema_version") not in {3, 4}
         or document.get("status") != "PASS"
         or document.get("formal_release") is not True
     ):
-        raise ValueError("Published run manifest is not a schema-3 formal PASS")
+        raise ValueError("Published run manifest is not a supported formal PASS")
     raw_records = document.get("published_evidence")
     if not isinstance(raw_records, list) or not raw_records:
         raise ValueError("Published run evidence list is missing")
@@ -2050,16 +2339,12 @@ def validate_published_run_release(
         raise ValueError("Published run checkpoint hash/size mismatch") from exc
     if str(checkpoint_record.get("sha256", "")).lower() != sha256_file(checkpoint_path):
         raise ValueError("Published run checkpoint hash/size mismatch")
-    actual_weights = {
-        path.relative_to(weight_root).as_posix()
-        for path in weight_root.rglob("*")
-        if path.is_file()
-    }
-    if actual_weights != {checkpoint_relative}:
-        raise ValueError(
-            "Published weight file set must contain exactly the declared checkpoint: "
-            f"actual={sorted(actual_weights)}"
-        )
+    weight_payload = validate_run_weight_payload_contract(
+        document,
+        report_root,
+        weight_root,
+        project_root=project_root,
+    )
     weight_scan = scan_public_file(
         checkpoint_path,
         relative_path=(Path("weights") / checkpoint_relative).as_posix(),
@@ -2120,7 +2405,8 @@ def validate_published_run_release(
     return {
         "status": "PASS",
         "report_files": sorted(actual_reports),
-        "weight_files": sorted(actual_weights),
+        "weight_files": weight_payload["files"],
+        "deployment_bundles": weight_payload["deployment_bundles"],
         "report_scans": report_scans,
         "weight_scans": [weight_scan],
     }
