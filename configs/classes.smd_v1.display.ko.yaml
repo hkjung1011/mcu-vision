@@ -6,42 +6,31 @@ canonical_source: classes.smd_v1.yaml
 
 # 이 sidecar는 presentation layer만 정의합니다. Canonical ID, status, source alias는
 # classes.smd_v1.yaml을 따르며 이 파일로 추론·재정렬·덮어쓰기하지 않습니다.
+# Canonical 파일이 함께 존재하고 ontology_id 및 class key 순서가 일치하는지 확인한 뒤 사용합니다.
 classes:
   smd_capacitor:
     display_name: SMD 커패시터
-    source_labels:
-      dainius_smdcomponents_v2: Condensator
     description: >-
-      Dainius SMDComponents v2의 source label `Condensator`에 대응하는 시각적 객체 클래스입니다.
-      패키지와 영상에서 확인되는 단자를 하나의 bounding box로 다루며, 외형만으로 소자의 전기적
-      정체성이나 정격을 다시 검증하지 않습니다.
+      표면실장 커패시터 패키지의 시각적 객체 클래스입니다. 패키지와 영상에서 확인되는 단자를
+      하나의 bounding box로 다루며, 외형만으로 소자의 전기적 정체성이나 정격을 검증하지 않습니다.
 
   smd_resistor:
     display_name: SMD 저항기
-    source_labels:
-      dainius_smdcomponents_v2: Resistor
     description: >-
-      Dainius SMDComponents v2의 source label `Resistor`에 대응하는 시각적 객체 클래스입니다.
-      패키지와 영상에서 확인되는 단자를 하나의 bounding box로 다루며, 외형만으로 저항값이나
-      전기적 정체성을 다시 검증하지 않습니다.
+      표면실장 저항기 패키지의 시각적 객체 클래스입니다. 패키지와 영상에서 확인되는 단자를
+      하나의 bounding box로 다루며, 외형만으로 저항값이나 전기적 정체성을 검증하지 않습니다.
 
   smd_diode:
     display_name: SMD 다이오드
-    source_labels:
-      dainius_smdcomponents_v2: Diode
     description: >-
-      Dainius SMDComponents v2의 source label `Diode`에 대응하는 시각적 객체 클래스입니다.
-      패키지와 영상에서 확인되는 단자를 하나의 bounding box로 다루며, 외형만으로 극성·세부 형식
-      또는 전기적 정체성을 다시 검증하지 않습니다.
+      표면실장 다이오드 패키지의 시각적 객체 클래스입니다. 패키지와 영상에서 확인되는 단자를
+      하나의 bounding box로 다루며, 외형만으로 극성·세부 형식 또는 전기적 정체성을 검증하지 않습니다.
 
   smd_transistor:
     display_name: SMD 트랜지스터
-    source_labels:
-      dainius_smdcomponents_v2: Transistor
     description: >-
-      Dainius SMDComponents v2의 source label `Transistor`에 대응하는 시각적 객체 클래스입니다.
-      패키지와 영상에서 확인되는 단자를 하나의 bounding box로 다루며, 외형만으로 세부 소자 형식
-      또는 전기적 정체성을 다시 검증하지 않습니다.
+      표면실장 트랜지스터 패키지의 시각적 객체 클래스입니다. 패키지와 영상에서 확인되는 단자를
+      하나의 bounding box로 다루며, 외형만으로 세부 소자 형식 또는 전기적 정체성을 검증하지 않습니다.
 
   stm32_dev_board:
     display_name: STM32 개발 보드
