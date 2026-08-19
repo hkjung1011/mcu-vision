@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "status": "QUARANTINE_BLOCKED_PROVENANCE_AND_LEAKAGE",
+  "checked_at": "2026-08-19T17:23:28+09:00",
+  "source": {
+    "provider": "Mendeley Data",
+    "dataset": "IoTKITs",
+    "version": 1,
+    "doi": "10.17632/x5thzmkxhy.1",
+    "url": "https://data.mendeley.com/datasets/x5thzmkxhy/1",
+    "download_url": "https://data.mendeley.com/public-files/datasets/x5thzmkxhy/files/ac866bea-7c13-438d-898e-2eb4f1914a6d/file_downloaded",
+    "paper_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12149570/",
+    "license_display": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "archive_name": "32.v1i.coco.zip"
+  },
+  "archive": {
+    "downloaded_to_git_ignored_staging": true,
+    "tracked_in_git": false,
+    "bytes": 141166460,
+    "sha256": "5a22c88daafa8cc21b4fda46259cb9dbb13e2abff9ac6745b81d933c5d2b3bf5",
+    "zip_member_paths_sampled_safe": true,
+    "readme_exported_at": "2024-09-11T07:09:00Z",
+    "preprocessing": [
+      "Auto-orientation with EXIF orientation stripped",
+      "Resize to 640x640 using stretch"
+    ],
+    "augmentation_declared": false
+  },
+  "coco": {
+    "splits": {
+      "train": {
+        "images": 2488,
+        "annotations": 2615
+      },
+      "valid": {
+        "images": 620,
+        "annotations": 651
+      }
+    },
+    "test_split_present": false,
+    "categories": 33,
+    "malformed_zero_annotation_category_ids": [
+      0
+    ],
+    "stm32_category_id": 30,
+    "stm32": {
+      "train_images": 80,
+      "train_annotations": 81,
+      "valid_images": 20,
+      "valid_annotations": 20
+    }
+  },
+  "stm32_duplicate_audit": {
+    "images": 100,
+    "unique_exact_sha256": 92,
+    "exact_duplicate_groups": 8,
+    "images_in_exact_duplicate_groups": 16,
+    "cross_split_exact_duplicate_groups": 0,
+    "phash_algorithm": "ImageHash phash",
+    "phash_hash_size": 8,
+    "imagehash_version": "4.3.2",
+    "pillow_version": "12.3.0",
+    "phash_distance_threshold": 4,
+    "phash_pair_edges": 272,
+    "phash_connected_components": 32,
+    "largest_component_images": 19,
+    "cross_split_components": 4,
+    "cross_split_candidate_pairs": 81,
+    "interpretation": "Candidate near-duplicate evidence requiring human review; provider train/valid split is not approved for evaluation."
+  },
+  "rights": {
+    "status": "DATASET_LEVEL_CC_BY_WITH_FILE_LEVEL_PROVENANCE_GAP",
+    "note": "The dataset description mentions Google Image Search sources while the paper's ethics/provenance description is narrower. Dataset-level CC BY display does not resolve every source image's rights chain."
+  },
+  "training_use": {
+    "allowed": false,
+    "formal_evaluation_allowed": false,
+    "required_actions": [
+      "Obtain author clarification or file-level source and rights records",
+      "Remove exact duplicates and manually adjudicate near-duplicate components",
+      "Create physical-item or capture-session groups rather than reuse the provider split",
+      "Review every STM32 bbox and board identity before canonical mapping"
+    ]
+  }
+}

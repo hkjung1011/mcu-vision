@@ -19,8 +19,8 @@ third-party model·dataset에는 해당 원 라이선스가 함께 적용됩니�
 | RPi paired formal | YOLO11m·YOLOX-S × seed 42/43, 4개 run, 각 100 epochs | **PASS (descriptive-only)** |
 | RPi ONNX deployment gate | 두 모델 val/test 공통 평가, native↔ONNX numeric equivalence, artifact hash | **PASS** |
 | 독립성 | physical item·새 camera session 독립성 증빙 없음 | **NOT VERIFIED** |
-| MCU/SMD ontology | canonical 6-class ID 동결, 한국어는 presentation-only sidecar | **CONTRACT PASS / DATA PARTIAL** |
-| 소형칩 반입·CVAT·오토라벨 경로 | provenance·hash·specimen·round-trip·승격 gate 구현 | **CODE PASS / DATA BLOCKED** |
+| MCU/SMD ontology | canonical 6-class ID 동결, 한국어는 presentation-only sidecar | **CONTRACT PASS / DATA EMPTY** |
+| 소형칩 반입·CVAT·오토라벨 경로 | provenance·hash·specimen·round-trip·승격 gate 구현 | **CODE PASS / SOURCE BLOCKED** |
 | STM32/SMD 승인 실사 | trusted registry에 승인된 실제 학습 dataset 없음 | **NOT VERIFIED** |
 | Ubuntu 실제 카메라 시험 | ONNX artifact 준비, 현장 capture·latency·정확도 미측정 | **NOT VERIFIED** |
 
@@ -80,6 +80,8 @@ compute/time budget, leakage gate 및 사용자 승인 근거를 기록한 새 v
   [`baseline_v1.yaml`](configs/experiments/baseline_v1.yaml)
 - 기존 protocol을 바꾸지 않고 test sidecar만 결합하는 계약:
   [`rpi_test_evidence_supplement_v1.yaml`](configs/experiments/rpi_test_evidence_supplement_v1.yaml)
+- STM32/SMD 공개 원천의 채택·제외 근거:
+  [`smallchip_source_review.md`](docs/smallchip_source_review.md)
 
 한국어 sidecar는 presentation-only입니다. canonical ID, class 순서, source alias 또는 학습 label을
 재정의하지 않으며 integration test가 두 파일의 ontology ID와 exact key order를 검증합니다.
@@ -114,7 +116,7 @@ Windows 환경 재현은 [Windows 재현 절차](docs/reproducibility_windows.md
 |---|---|
 | 상태·잔여 위험 | [프로젝트 상태](docs/project_status.md) · [전체 로드맵](docs/roadmap.md) |
 | 수치·알고리즘 선정 근거 | [Parameter rationale](reports/methodology/parameter_rationale.md) · [실험 방법론](reports/methodology/experiment_methodology.md) |
-| 데이터·라벨·오토라벨 | [데이터 계획](docs/data_plan.md) · [라벨링 규정](docs/annotation_protocol.md) · [Small-chip ingest](docs/smallchip_ingest_p0.md) |
+| 데이터·라벨·오토라벨 | [데이터 계획](docs/data_plan.md) · [공개 원천 검토](docs/smallchip_source_review.md) · [라벨링 규정](docs/annotation_protocol.md) · [Small-chip ingest](docs/smallchip_ingest_p0.md) |
 | 비교·증빙·배포 | [증빙 정책](docs/evidence_and_results_policy.md) · [Reports](reports/README.md) · [Weights](weights/README.md) |
 | Ubuntu 현장 시험 | [Ubuntu 인계](docs/ubuntu_handoff.md) |
 

@@ -21,6 +21,7 @@ Raspberry Pi bootstrap은 추가 100-epoch 학습 없이, 이미 완료된 YOLO1
 | Independent test | physical item ID·새 camera session 독립성 미입증 | **NOT VERIFIED** |
 | Canonical multi-class | 6-class ID·alias 동결, 한국어 display sidecar exact binding | **CONTRACT PASS** |
 | Small-chip ingest | allowlist·rights/hash·specimen·ZIP resource·atomic output gate | **CODE PASS / DATA WAITING** |
+| Small-chip source review | Dainius auth gate, IoTKITs archive SHA·COCO·leakage audit, 대체 원천 검토 | **REVIEWED / SOURCE BLOCKED** |
 | CVAT·autolabel | exact image/teacher/calibration binding, reviewed-only promotion | **CODE PASS / DATA WAITING** |
 | STM32/SMD 실제 학습 data | trusted registry 승인 canonical dataset 0장 | **NOT VERIFIED** |
 | Ubuntu 실제 카메라 | ONNX artifact 검증 완료, 현장 E2E 측정 미실행 | **NOT VERIFIED** |

@@ -1,6 +1,6 @@
 schema_version: 1
 api_url: https://commons.wikimedia.org/w/api.php
-user_agent: mcu-vision-dataset/0.1 (personal research; contact to be added before large-scale collection)
+user_agent: mcu-vision-dataset/0.2 (+https://github.com/hkjung1011/mcu-vision/issues)
 allowed_license_prefixes:
   - CC0
   - CC BY
@@ -91,6 +91,14 @@ classes:
       - nucleo
       - discovery
       - development board
+      - maple
+      - evaluation board
+      - die photo
+      - die image
+      - microscopy
+      - micrograph
+      - sram
+      - sem-hd
       - logo
       - schematic
       - diagram

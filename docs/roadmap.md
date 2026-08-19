@@ -15,7 +15,7 @@ RPi bootstrap은 `paired_2seed_descriptive` formal 및 ONNX deployment 검증으
 | 3. RPi formal comparison | 2 models × seeds 42/43, `n=2`, `df=1` | **PASS (descriptive-only)** | 추가 학습 없음 |
 | 4. RPi ONNX | 두 모델 native↔ONNX val/test gate | **PASS** | Ubuntu runtime·camera 시험 |
 | 5. Class ontology | 6 canonical IDs와 presentation-only 한국어 sidecar | **CONTRACT PASS** | specimen 기반 포함/제외 승인 |
-| 6. Small-chip data | ingest·trust·hash·specimen gate 구현, 승인 data 0장 | **DATA WAITING** | 실제 archive 반입 감사 |
+| 6. Small-chip data | 공개 원천 검토와 ingest gate 구현, 승인 data 0장 | **AUTH/SOURCE BLOCKED** | Dainius v2 archive + IoTKITs rights decision |
 | 7. Gold/CVAT | exact image/class/reviewer gate 구현 | **CODE PASS** | 실제 200장과 CVAT round-trip |
 | 8. Autolabel | teacher/calibration/locked-split binding 구현 | **CODE PASS** | 실제 teacher proposal 전량 검수 |
 | 9. STM32/SMD staged training | versioned 1e/10e/50e contract | **PLANNED** | 단계별 promotion gate |

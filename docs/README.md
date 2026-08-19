@@ -21,6 +21,7 @@
 | [결과·증빙 정책](evidence_and_results_policy.md) | 로그 기반 판단, 비교 가능성 gate, 비생성형 그래프와 SHA-256 규칙 |
 | [라벨링 규정](annotation_protocol.md) | CVAT, pseudo-label, SAHI, 사람 검수와 gold set 보호 |
 | [STM32/SMD P0–P2 반입](smallchip_ingest_p0.md) | 고정 ontology, rights/hash ingest, trust registry, CVAT exact round-trip/승격 gate |
+| [Small-chip 공개 데이터 검토](smallchip_source_review.md) | 공식 출처별 license·수량·class mapping·채택/제외 판정 |
 | [Ubuntu 인계](ubuntu_handoff.md) | Git LFS clone, ONNX/TensorRT 원칙, 카메라 현장 시험 항목 |
 
 ## 단일 진실 공급원
