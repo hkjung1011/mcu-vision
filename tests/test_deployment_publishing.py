@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+import csv
+import importlib.util
 import json
+import statistics
+import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from mcu_data.common import sha256_file
-from mcu_data.publishing import create_formal_validation, validate_formal_comparison
+from mcu_data.publishing import (
+    create_formal_validation,
+    validate_formal_comparison,
+    validated_formal_publication_plan,
+)
 from mcu_data.deployment_publishing import (
     promote_deployment_release,
     validate_promoted_deployment_for_runtime,
@@ -26,6 +34,183 @@ def _record(path: Path, project: Path) -> dict[str, Any]:
         "bytes": path.stat().st_size,
         "sha256": sha256_file(path),
     }
+
+
+def _write_formal_user_artifacts(comparison: Path, rows: list[dict[str, Any]]) -> None:
+    with (comparison / "comparison.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    aggregate_metrics = (
+        "ap50_95", "ap50", "ap75", "ap_small", "ap_medium", "ap_large",
+        "ar100", "precision", "recall", "f1", "latency_p50_ms",
+        "latency_p95_ms", "fps", "peak_gpu_memory_mib", "train_elapsed_s",
+    )
+    aggregates = []
+    for model in ("yolo11m", "YOLOX-S"):
+        model_rows = [row for row in rows if row["model"] == model]
+        aggregate: dict[str, Any] = {"model": model, "runs": len(model_rows)}
+        for metric in aggregate_metrics:
+            samples = [float(row[metric]) for row in model_rows if row.get(metric) is not None]
+            aggregate[f"{metric}_mean"] = statistics.fmean(samples) if samples else None
+            aggregate[f"{metric}_std"] = (
+                statistics.stdev(samples) if len(samples) > 1 else None
+            )
+        aggregates.append(aggregate)
+    _write_json(comparison / "aggregate_comparison.json", aggregates)
+    with (comparison / "aggregate_comparison.csv").open(
+        "w", encoding="utf-8", newline=""
+    ) as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(aggregates[0]))
+        writer.writeheader()
+        writer.writerows(aggregates)
+
+    protocol_snapshot = comparison / "protocol_snapshot.yaml"
+    protocol_snapshot.write_text("protocol_id: fixture\n", encoding="utf-8")
+    execution = {
+        "schema_version": 1,
+        "status": "PASS",
+        "scope": "formal_2_model_x_3_seed_100_epoch_comparison",
+        "summary": "2 models × 3 seeds × 100 epochs",
+        "run_count": 6,
+        "models": ["yolo11m", "YOLOX-S"],
+        "seeds": [42, 43, 44],
+        "epochs_per_run": 100,
+        "runs": sorted(
+            [
+                {
+                    "model": row["model"],
+                    "seed": row["seed"],
+                    "run_id": row["run_id"],
+                    "status": "complete",
+                    "observed_epoch_rows": 100,
+                }
+                for row in rows
+            ],
+            key=lambda item: (
+                "".join(character for character in item["model"].lower() if character.isalnum()),
+                item["seed"],
+                item["run_id"],
+            ),
+        ),
+        "validation": {
+            "protocol_compatibility": "PASS",
+            "exact_model_seed_matrix": "PASS",
+            "complete_epoch_evidence": "PASS",
+            "formal_artifact_binding": "PASS",
+        },
+        "protocol_snapshot_sha256": sha256_file(protocol_snapshot),
+        "protocol_compatibility_sha256": sha256_file(
+            comparison / "protocol_compatibility.json"
+        ),
+        "precedence_note": "fixture",
+    }
+    _write_json(comparison / "formal_execution_status.json", execution)
+
+    phrase = "FORMAL EXECUTION STATUS: PASS — 2 models × 3 seeds × 100 epochs"
+    terminal = "\n".join(
+        f"{row['model']} seed={row['seed']} run_id={row['run_id']}" for row in rows
+    )
+    (comparison / "comparison_terminal.txt").write_text(terminal + "\n", encoding="utf-8")
+    report_rows = "\n".join(
+        f"| {row['model']} | {row['seed']} | {row['run_id']} |" for row in rows
+    )
+    linked_text = (
+        f"{phrase}\n[Ubuntu handoff](ubuntu_handoff.md)\n"
+        "[immutable protocol snapshot](protocol_snapshot.yaml)\n"
+    )
+    (comparison / "experiment_report.md").write_text(
+        linked_text + report_rows + "\n", encoding="utf-8"
+    )
+    for name in ("experiment_methodology.md", "parameter_rationale.md"):
+        (comparison / name).write_text(linked_text, encoding="utf-8")
+    (comparison / "ubuntu_handoff.md").write_text("# Ubuntu handoff\n", encoding="utf-8")
+    (comparison / "onnx_split_evaluation.md").write_text(
+        "# ONNX split evaluation\n",
+        encoding="utf-8",
+    )
+    (comparison / "protocol_rationale.csv").write_text("id,reason\nR1,fixture\n", encoding="utf-8")
+    _write_json(comparison / "protocol_references.json", [])
+    for name in (
+        "terminal_summary.png",
+        "comparison_dashboard.png",
+        "training_curves.png",
+        "aggregate_comparison.png",
+        "protocol_rationale.png",
+    ):
+        (comparison / name).write_bytes(b"fixture-derived-image")
+
+    protocol_names = (
+        "protocol_snapshot.yaml",
+        "protocol_rationale.csv",
+        "protocol_references.json",
+        "experiment_methodology.md",
+        "parameter_rationale.md",
+        "protocol_rationale.png",
+        "formal_execution_status.json",
+    )
+    _write_json(
+        comparison / "protocol_artifacts.json",
+        {
+            "schema_version": 2,
+            "generative_ai_used_for_images": False,
+            "execution_status": execution,
+            "artifacts": [
+                {
+                    "path": name,
+                    "bytes": (comparison / name).stat().st_size,
+                    "sha256": sha256_file(comparison / name),
+                }
+                for name in protocol_names
+            ],
+        },
+    )
+
+    excluded = {"local_source_bindings.json", "evidence_manifest.json", "formal_validation.json"}
+    files = [
+        path for path in comparison.rglob("*")
+        if path.is_file() and path.relative_to(comparison).as_posix() not in excluded
+    ]
+    image_names = {
+        "terminal_summary.png",
+        "comparison_dashboard.png",
+        "training_curves.png",
+        "aggregate_comparison.png",
+        "protocol_rationale.png",
+    }
+    records = [
+        {
+            "path": path.relative_to(comparison).as_posix(),
+            "bytes": path.stat().st_size,
+            "sha256": sha256_file(path),
+        }
+        for path in files
+    ]
+    _write_json(
+        comparison / "evidence_manifest.json",
+        {
+            "schema_version": 3,
+            "generative_ai_used_for_images": False,
+            "local_absolute_paths_included": False,
+            "sources": [record for record in records if record["path"] not in image_names],
+            "derived_images": [record for record in records if record["path"] in image_names],
+        },
+    )
+
+
+def _rehash_evidence_record(comparison: Path, relative: str) -> None:
+    manifest_path = comparison / "evidence_manifest.json"
+    document = json.loads(manifest_path.read_text(encoding="utf-8"))
+    record = next(
+        item
+        for group in ("sources", "derived_images")
+        for item in document[group]
+        if item["path"] == relative
+    )
+    target = comparison / relative
+    record["bytes"] = target.stat().st_size
+    record["sha256"] = sha256_file(target)
+    _write_json(manifest_path, document)
 
 
 def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
@@ -79,6 +264,10 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
             "canonical_train_records_sha256", "canonical_val_records_sha256",
         )},
     }
+    protocol_snapshot = comparison / "protocol_snapshot.yaml"
+    protocol_snapshot.write_text("protocol_id: fixture\n", encoding="utf-8")
+    protocol_snapshot_sha256 = sha256_file(protocol_snapshot)
+
     metrics_document = {"metrics": {
         "ap50_95": 0.5, "ap50": 0.7, "ap75": 0.4, "ar100": 0.6,
         "precision": 0.8, "recall": 0.7, "f1": 0.746, "tp": 70, "fp": 20, "fn": 30,
@@ -100,7 +289,8 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
                     "nms_iou": 0.65, "class_agnostic_nms": False,
                     "common_operating_confidence": 0.25, "common_match_iou": 0.5,
                 },
-                "dataset": dataset, "protocol_config": {"sha256": "6" * 64},
+                "dataset": dataset,
+                "protocol_config": {"sha256": protocol_snapshot_sha256},
             })
             final_metrics = _write_json(
                 (project / "runs" / candidate_id / "final_metrics.json") if candidate_id == run_id else source_dir / "final_metrics.json",
@@ -112,6 +302,10 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
             gpu = _write_json(source_dir / "gpu_summary.json", {"peak_memory_used_mib": 4000.0})
             rows.append({
                 "run_id": candidate_id, "model": model, "seed": seed, "status": "complete",
+                "latency_p50_ms": 10.0, "latency_p95_ms": 12.0, "fps": 90.0,
+                "system_peak_gpu_memory_mib": 4000.0,
+                "dataset_sha256": dataset["val_annotation_sha256"],
+                "protocol_sha256": protocol_snapshot_sha256,
                 **metrics_document["metrics"],
             })
             for source in (manifest, epoch_metrics, final_metrics, latency, gpu):
@@ -140,8 +334,14 @@ def _build_release_fixture(tmp_path: Path) -> dict[str, Path]:
     sources_path = _write_json(comparison / "sources_manifest.json", {"files": source_records})
     _write_json(
         comparison / "local_source_bindings.json",
-        {"schema_version": 1, "private_local_only": True, "files": local_bindings},
+        {
+            "schema_version": 2,
+            "private_local_only": True,
+            "publication_project_root": str(project.resolve()),
+            "files": local_bindings,
+        },
     )
+    _write_formal_user_artifacts(comparison, rows)
     formal_validation_path = comparison / "formal_validation.json"
     create_formal_validation(comparison)
     comparison_evidence = {
@@ -486,8 +686,50 @@ def test_promote_deployment_rejects_coherent_published_numeric_forgery(tmp_path:
     record["bytes"] = published_metrics.stat().st_size
     _write_json(sources_path, sources)
 
-    with pytest.raises(ValueError, match="numeric evidence differs from local original"):
+    with pytest.raises(
+        ValueError,
+        match=(
+            "comparison.csv must exactly mirror|evidence_manifest.*mismatch|"
+            "numeric evidence differs from local original"
+        ),
+    ):
         _promote(paths)
+
+
+def test_promote_comparison_copies_only_verified_allowlist(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = _build_release_fixture(tmp_path)
+    script = Path(__file__).resolve().parents[1] / "scripts" / "promote_comparison.py"
+    spec = importlib.util.spec_from_file_location("promote_comparison_fixture", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "PROJECT_ROOT", paths["project"])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(script),
+            "--comparison-dir",
+            str(paths["comparison"]),
+            "--release-name",
+            "verified-comparison",
+        ],
+    )
+
+    assert module.main() == 0
+    destination = paths["project"] / "reports" / "comparisons" / "verified-comparison"
+    artifact = json.loads(
+        (destination / "artifact_manifest.json").read_text(encoding="utf-8")
+    )
+    assert artifact["status"] == "PASS"
+    assert artifact["formal_release"] is True
+    assert artifact["raw_images_included"] is False
+    assert artifact["weights_included"] is False
+    assert artifact["source_scan"]["unlisted_files"] == []
+    assert not (destination / "local_source_bindings.json").exists()
 
 
 def test_promoted_comparison_chain_verifies_without_private_local_bindings(tmp_path: Path) -> None:
@@ -506,6 +748,92 @@ def test_promoted_comparison_chain_rejects_formal_record_tamper(tmp_path: Path) 
     _write_json(formal, document)
     with pytest.raises(ValueError, match="digest chain differs"):
         validate_formal_comparison(paths["comparison"])
+
+
+def test_formal_validation_rejects_missing_user_facing_artifact(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    (paths["comparison"] / "experiment_report.md").unlink()
+
+    with pytest.raises(FileNotFoundError, match="artifact.*missing|is missing"):
+        validate_formal_comparison(paths["comparison"])
+
+
+def test_formal_validation_rejects_tampered_user_facing_artifact(tmp_path: Path) -> None:
+    paths = _build_release_fixture(tmp_path)
+    report = paths["comparison"] / "experiment_report.md"
+    report.write_text(report.read_text(encoding="utf-8") + "tampered\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="evidence_manifest.*SHA-256 mismatch"):
+        validate_formal_comparison(paths["comparison"])
+
+
+@pytest.mark.parametrize("value", [True, 0, "false", None])
+def test_formal_validation_requires_exact_false_in_evidence_manifest(
+    tmp_path: Path,
+    value: object,
+) -> None:
+    paths = _build_release_fixture(tmp_path)
+    manifest = paths["comparison"] / "evidence_manifest.json"
+    document = json.loads(manifest.read_text(encoding="utf-8"))
+    if value is None:
+        document.pop("generative_ai_used_for_images")
+    else:
+        document["generative_ai_used_for_images"] = value
+    _write_json(manifest, document)
+
+    with pytest.raises(ValueError, match="exact generative_ai_used_for_images=false"):
+        validate_formal_comparison(paths["comparison"])
+
+
+@pytest.mark.parametrize("value", [True, 0, "false", None])
+def test_formal_validation_requires_exact_false_in_protocol_artifacts(
+    tmp_path: Path,
+    value: object,
+) -> None:
+    paths = _build_release_fixture(tmp_path)
+    protocol = paths["comparison"] / "protocol_artifacts.json"
+    document = json.loads(protocol.read_text(encoding="utf-8"))
+    if value is None:
+        document.pop("generative_ai_used_for_images")
+    else:
+        document["generative_ai_used_for_images"] = value
+    _write_json(protocol, document)
+    _rehash_evidence_record(paths["comparison"], "protocol_artifacts.json")
+
+    with pytest.raises(ValueError, match="exact generative_ai_used_for_images=false"):
+        validate_formal_comparison(paths["comparison"])
+
+
+def test_formal_validation_rejects_duplicate_terminal_labels_after_rehash(
+    tmp_path: Path,
+) -> None:
+    paths = _build_release_fixture(tmp_path)
+    comparison = paths["comparison"]
+    terminal = comparison / "comparison_terminal.txt"
+    lines = terminal.read_text(encoding="utf-8").splitlines()
+    lines[1] = lines[0]
+    terminal.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    _rehash_evidence_record(comparison, "comparison_terminal.txt")
+
+    with pytest.raises(ValueError, match="terminal labels"):
+        validate_formal_comparison(comparison)
+
+
+@pytest.mark.parametrize(
+    "relative",
+    ("stale.txt", "raw/camera.jpg", "weights/rogue.pt"),
+)
+def test_formal_promotion_rejects_unlisted_stale_raw_and_weight_files(
+    tmp_path: Path,
+    relative: str,
+) -> None:
+    paths = _build_release_fixture(tmp_path)
+    extra = paths["comparison"] / relative
+    extra.parent.mkdir(parents=True, exist_ok=True)
+    extra.write_bytes(b"unlisted")
+
+    with pytest.raises(ValueError, match="unlisted files"):
+        validated_formal_publication_plan(paths["comparison"])
 
 
 def test_promote_deployment_rejects_missing_provenance_file(tmp_path: Path) -> None:

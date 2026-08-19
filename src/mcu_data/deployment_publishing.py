@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from .common import portable_path, sha256_file, write_json
+from .common import portable_path, safe_stem, sha256_file, write_json
 from .checkpoint_publishing import assert_binary_has_no_local_paths
 from .publishing import publish_evidence_file, validate_formal_comparison
 
@@ -194,9 +194,8 @@ def _verify_comparison(
         for row in sources.get("files", [])
         if isinstance(row, dict)
         and str(row.get("run_id")) == run_id
-        and str(row.get("path", "")).replace("\\", "/").endswith(
-            f"sources/{run_id}/run_manifest.json"
-        )
+        and str(row.get("path", "")).replace("\\", "/")
+        == f"sources/{safe_stem(run_id)}/run_manifest.json"
     ]
     if len(source_rows) != 1:
         raise ValueError(f"Comparison sources do not contain the exact run manifest: {run_id}")
@@ -210,9 +209,8 @@ def _verify_comparison(
         for row in sources.get("files", [])
         if isinstance(row, dict)
         and str(row.get("run_id")) == run_id
-        and str(row.get("path", "")).replace("\\", "/").endswith(
-            f"sources/{run_id}/final_metrics.json"
-        )
+        and str(row.get("path", "")).replace("\\", "/")
+        == f"sources/{safe_stem(run_id)}/final_metrics.json"
     ]
     if len(metric_rows) != 1:
         raise ValueError(f"Comparison sources do not contain the run's final metrics: {run_id}")

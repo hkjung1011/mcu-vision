@@ -168,11 +168,16 @@ Wrapper는 comparator 종료 코드가 0이어도 `release_ready=false`, blocker
 하나라도 있으면 `BLOCKED` 오류와 nonzero exit code를 반환합니다.
 
 Comparison 생성 폴더의 `local_source_bindings.json`은 promotion 시 원본 run artifact를 다시
-SHA-256하고 published JSON/CSV의 canonical numeric digest가 원본과 같은지 확인하기 위한
+SHA-256하고 승인된 path/process redaction을 원본 전체 content에 다시 적용한 결과가 published
+JSON/CSV/text와 정확히 같은지 확인하기 위한
 로컬 전용 파일입니다. 절대경로가 포함되므로 Git/publication에는 복사하지 않습니다. 검증 뒤 생성되는
-`formal_validation.json`에는 원본/published SHA와 numeric digest의 immutable source chain만 기록하며,
-공개 clone의 후속 deployment validator는 이 chain을 현재 bundle에서 재계산합니다. 로컬 원본이나
-binding이 없는 comparison은 최초 formal promotion에 사용할 수 없습니다.
+`formal_validation.json`에는 원본/published SHA와 full-content 검증 및 numeric digest뿐 아니라 comparison/aggregate 표,
+terminal 원문·PNG, dashboard/training/mean±SD 그래프, report/methodology/parameter rationale,
+protocol snapshot·rationale·references·artifact manifest, execution-status overlay, Ubuntu handoff와
+`evidence_manifest.json`의 SHA-256 allowlist를 함께 기록합니다. 두 image manifest의
+`generative_ai_used_for_images`는 JSON boolean `false`와 exact-match해야 합니다. 공개 clone의 후속
+validator는 이 chain을 현재 bundle에서 재계산합니다. 로컬 원본이나 binding이 없는 comparison은 최초
+formal promotion에 사용할 수 없고, formal output 경로는 실행 전에 비어 있어야 합니다.
 
 ## 7. Git 승격 전 확인
 

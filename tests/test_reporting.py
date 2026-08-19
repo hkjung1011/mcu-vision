@@ -8,12 +8,47 @@ from pathlib import Path
 
 import pytest
 
+import mcu_data.reporting as reporting_module
+from mcu_data.common import sha256_file
+from mcu_data.methodology import load_protocol
 from mcu_data.reporting import (
+    _comparison_terminal_text,
+    _per_run_label,
+    _plot_aggregate_comparison,
     _protocol_compatibility,
+    _write_comparison_markdown,
     compare_runs,
     evaluate_predictions,
     normalize_yolo11_results,
 )
+
+
+def _display_row(seed: int, run_id: str) -> dict[str, object]:
+    return {
+        "run_id": run_id,
+        "model": "yolo11m",
+        "seed": seed,
+        "status": "complete",
+        "ap50_95": 0.5,
+        "ap50": 0.7,
+        "ap75": 0.4,
+        "ap_small": 0.2,
+        "ar100": 0.6,
+        "precision": 0.8,
+        "recall": 0.7,
+        "f1": 0.746,
+        "tp": 70,
+        "fp": 20,
+        "fn": 30,
+        "best_f1_confidence": 0.25,
+        "params": 1_000_000,
+        "checkpoint_mib": 10.0,
+        "latency_p50_ms": 10.0,
+        "latency_p95_ms": 12.0,
+        "fps": 90.0,
+        "peak_gpu_memory_mib": 4000.0,
+        "train_elapsed_s": 600.0,
+    }
 
 
 def test_normalize_yolo11_results(tmp_path: Path) -> None:
@@ -34,6 +69,216 @@ def test_normalize_yolo11_results(tmp_path: Path) -> None:
     with destination.open("r", encoding="utf-8", newline="") as handle:
         persisted = list(csv.DictReader(handle))
     assert persisted[0]["train_dfl_loss"] == "3.0"
+
+
+def test_all_per_run_text_labels_include_model_seed_and_run_id(tmp_path: Path) -> None:
+    rows = [_display_row(42, "yolo11_seed42"), _display_row(43, "yolo11_seed43")]
+    labels = [
+        _per_run_label(row["model"], row["seed"], row["run_id"]) for row in rows
+    ]
+    assert len(set(labels)) == 2
+    terminal = _comparison_terminal_text(
+        rows,
+        {"comparable": True, "release_ready": False, "release_blockers": []},
+        [],
+    )
+    assert all(label in terminal for label in labels)
+
+    report = tmp_path / "experiment_report.md"
+    _write_comparison_markdown(
+        report,
+        rows,
+        {"comparable": True, "release_ready": False, "release_blockers": []},
+        [],
+    )
+    text = report.read_text(encoding="utf-8")
+    assert "| yolo11m | 42 | yolo11_seed42 |" in text
+    assert "| yolo11m | 43 | yolo11_seed43 |" in text
+
+
+def test_aggregate_plot_has_explicit_sample_sd_error_bars(tmp_path: Path) -> None:
+    output = tmp_path / "aggregate_comparison.png"
+    _plot_aggregate_comparison(
+        [
+            {
+                "model": "yolo11m",
+                "runs": 3,
+                "ap50_95_mean": 0.5,
+                "ap50_95_std": 0.02,
+                "latency_p50_ms_mean": 10.0,
+                "latency_p50_ms_std": 0.5,
+            },
+            {
+                "model": "YOLOX-S",
+                "runs": 3,
+                "ap50_95_mean": 0.45,
+                "ap50_95_std": 0.03,
+                "latency_p50_ms_mean": 12.0,
+                "latency_p50_ms_std": 0.7,
+            },
+        ],
+        output,
+        "SOURCE: fixture",
+    )
+    assert output.is_file() and output.stat().st_size > 0
+
+
+def test_formal_comparison_refuses_nonempty_output_before_any_write(tmp_path: Path) -> None:
+    output = tmp_path / "formal"
+    output.mkdir()
+    sentinel = output / "stale.txt"
+    sentinel.write_text("do-not-touch", encoding="utf-8")
+    before = {path.name: path.read_bytes() for path in output.iterdir()}
+
+    with pytest.raises(ValueError, match="must be empty before writing"):
+        compare_runs([], output, formal=True)
+
+    after = {path.name: path.read_bytes() for path in output.iterdir()}
+    assert after == before
+
+
+def test_formal_comparison_generates_hash_bound_execution_overlay(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = Path(__file__).resolve().parents[1]
+    protocol_source = repository / "configs" / "experiments" / "baseline_v1.yaml"
+    protocol = load_protocol(protocol_source)
+    evidence = protocol["dataset"]["evidence"]
+    runs = []
+    for model in ("yolo11m", "YOLOX-S"):
+        for seed in (42, 43, 44):
+            run_id = ("yolo11" if model == "yolo11m" else "yolox") + f"_seed{seed}"
+            run = tmp_path / "runs" / run_id
+            run.mkdir(parents=True)
+            snapshot = run / "protocol_snapshot.yaml"
+            snapshot.write_bytes(protocol_source.read_bytes())
+            checkpoint = run / "best.pt"
+            checkpoint.write_bytes(f"checkpoint-{run_id}".encode())
+            manifest = {
+                "run_id": run_id,
+                "model": model,
+                "status": "complete",
+                "stage": "fine_tune_candidate",
+                "best_checkpoint": {
+                    "path": "best.pt",
+                    "sha256": sha256_file(checkpoint),
+                    "mib": checkpoint.stat().st_size / (1024**2),
+                },
+                "protocol_config": {
+                    "path": str(snapshot),
+                    "sha256": sha256_file(snapshot),
+                },
+                "dataset": {
+                    "train_annotation_sha256": protocol["dataset"]["coco_annotation_sha256"]["train"],
+                    "val_annotation_sha256": protocol["dataset"]["coco_annotation_sha256"]["val"],
+                    **evidence,
+                },
+                "protocol": {
+                    "seed": seed,
+                    "epochs": 100,
+                    "batch": 8,
+                    "imgsz": 640,
+                    "workers": 0,
+                    "amp": True,
+                    "fraction": 1.0,
+                    "multiscale_range": 0,
+                    "prediction_floor": 0.001,
+                    "nms_iou": 0.65,
+                    "class_agnostic_nms": False,
+                    "common_operating_confidence": 0.25,
+                    "common_match_iou": 0.5,
+                },
+                "model_details": {"parameters": 1_000_000},
+            }
+            (run / "run_manifest.json").write_text(
+                json.dumps(manifest), encoding="utf-8"
+            )
+            with (run / "epoch_metrics.csv").open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(
+                    handle,
+                    fieldnames=[
+                        "epoch",
+                        "elapsed_s",
+                        "map50_95",
+                        "map50",
+                        "train_total_loss",
+                        "train_box_loss",
+                        "train_peak_allocated_mib",
+                    ],
+                )
+                writer.writeheader()
+                for epoch in range(1, 101):
+                    writer.writerow(
+                        {
+                            "epoch": epoch,
+                            "elapsed_s": epoch * 10,
+                            "map50_95": 0.4 + seed / 1000,
+                            "map50": 0.7,
+                            "train_total_loss": 1.0 / epoch,
+                            "train_box_loss": 0.5 / epoch,
+                            "train_peak_allocated_mib": 4000,
+                        }
+                    )
+            metrics = {
+                "ap50_95": 0.4 + seed / 1000,
+                "ap50": 0.7,
+                "ap75": 0.4,
+                "ap_small": 0.2,
+                "ap_medium": 0.5,
+                "ap_large": 0.6,
+                "ar100": 0.6,
+                "precision": 0.8,
+                "recall": 0.7,
+                "f1": 0.746,
+                "tp": 70,
+                "fp": 20,
+                "fn": 30,
+                "best_f1": 0.75,
+                "best_f1_confidence": 0.25,
+            }
+            (run / "final_metrics.json").write_text(
+                json.dumps({"metrics": metrics}), encoding="utf-8"
+            )
+            (run / "latency.json").write_text(
+                json.dumps(
+                    {"e2e_p50_ms": 10.0, "e2e_p95_ms": 12.0, "sustained_fps": 90.0}
+                ),
+                encoding="utf-8",
+            )
+            (run / "gpu_summary.json").write_text(
+                json.dumps({"peak_memory_used_mib": 4000.0}), encoding="utf-8"
+            )
+            (run / "terminal.log").write_text(f"{run_id}\n", encoding="utf-8")
+            runs.append(run)
+
+    monkeypatch.setattr(
+        reporting_module,
+        "verify_run_provenance",
+        lambda *args, **kwargs: {
+            "schema_version": 2,
+            "status": "PASS",
+            "mixed_commits": False,
+            "blockers": [],
+        },
+    )
+    output = tmp_path / "formal-comparison"
+    compare_runs(runs, output, formal=True)
+
+    validation = json.loads((output / "formal_validation.json").read_text(encoding="utf-8"))
+    execution = json.loads(
+        (output / "formal_execution_status.json").read_text(encoding="utf-8")
+    )
+    assert validation["status"] == "PASS"
+    assert validation["formal_release"] is True
+    assert validation["evidence_manifest_sha256"] == sha256_file(
+        output / "evidence_manifest.json"
+    )
+    assert execution["summary"] == "2 models × 3 seeds × 100 epochs"
+    assert len(execution["runs"]) == 6
+    assert (output / "aggregate_comparison.png").is_file()
+    assert (output / "ubuntu_handoff.md").is_file()
+    assert (output / "protocol_snapshot.yaml").read_bytes() == protocol_source.read_bytes()
 
 
 def test_common_evaluator_handles_no_predictions(tmp_path: Path) -> None:

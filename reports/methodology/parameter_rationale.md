@@ -29,4 +29,4 @@
 - `PAPER_*`/`UPSTREAM_*`은 출처가 있다는 뜻이지 현재 MCU/SMD에서 최적이라는 뜻이 아닙니다.
 - `HARDWARE_DERIVED`는 현재 RTX 5060 Laptop 8 GB에서 실행 가능한 값입니다.
 - `ENGINEERING_BASELINE`/`TO_TUNE`은 gold validation과 실제 카메라 조건으로 다시 정해야 합니다.
-- 상세 알고리즘·참고문헌은 [전체 방법론](experiment_methodology.md), 실제 값은 [`configs/experiments/baseline_v1.yaml`](../../configs/experiments/baseline_v1.yaml)을 봅니다.
+- 상세 알고리즘·참고문헌은 [전체 방법론](experiment_methodology.md), 이 결과에 실제로 사용한 고정 값은 [immutable protocol snapshot](protocol_snapshot.yaml)을 봅니다.

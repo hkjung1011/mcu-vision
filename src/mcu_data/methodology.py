@@ -101,28 +101,49 @@ def _write_methodology_markdown(
     document: dict[str, Any],
     rows: list[dict[str, str]],
     source_path: Path,
+    execution_status: dict[str, Any] | None = None,
 ) -> None:
     lines = [
         "# 실험 방법 및 수치 선정 근거",
         "",
-        f"- protocol: `{document.get('protocol_id', '-')}`",
-        f"- 상태: `{document.get('status', '-')}`",
-        f"- 비교 유형: `{document.get('experiment_type', '-')}`",
-        f"- 현재 task: `{document.get('task', '-')}`",
-        f"- 원본 config SHA256: `{sha256_file(source_path)}`",
-        "",
-        "> 현재 protocol은 Raspberry Pi SBC 1-class bootstrap 전용입니다. Provisional MCU/SMD "
-        "multi-class 학습 protocol이 아닙니다.",
-        "> 이 문서는 설정 파일에서 자동 생성되었습니다. Validation 결과는 독립적인 실제 컨베이어 "
-        "test 결과가 아니며, 이 benchmark는 순수 architecture ablation이 아닙니다.",
-        "> 판단 근거는 YAML/CSV/JSON의 수치이며, PNG는 matplotlib로 렌더링한 비생성형 파생물입니다. "
-        "ImageGen 등 생성형 AI는 사용하지 않습니다.",
-        "",
-        "## 고정 protocol",
-        "",
-        "| 구역 | 항목 | 값 |",
-        "|---|---|---|",
     ]
+    if execution_status is not None:
+        lines.extend(
+            [
+                "## 현재 formal 실행 검증 상태 (protocol snapshot보다 우선)",
+                "",
+                "- **FORMAL EXECUTION STATUS: PASS — 2 models × 3 seeds × 100 epochs**",
+                f"- 검증 run: `{', '.join(str(item['run_id']) for item in execution_status['runs'])}`",
+                "- 근거: [formal execution status](formal_execution_status.json) · "
+                "[protocol compatibility](protocol_compatibility.json) · "
+                "[Ubuntu handoff](ubuntu_handoff.md)",
+                "- 아래 `상태`와 표의 `snapshot 작성시 검증 상태`는 protocol 작성 시점의 기록입니다. "
+                "완료된 matrix의 현재 상태는 위 execution overlay가 우선합니다.",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            f"- protocol: `{document.get('protocol_id', '-')}`",
+            f"- protocol snapshot 작성시 상태: `{document.get('status', '-')}`",
+            f"- 비교 유형: `{document.get('experiment_type', '-')}`",
+            f"- 현재 task: `{document.get('task', '-')}`",
+            f"- 원본 config SHA256: `{sha256_file(source_path)}`",
+            "- 고정 입력: [immutable protocol snapshot](protocol_snapshot.yaml)",
+            "",
+            "> 현재 protocol은 Raspberry Pi SBC 1-class bootstrap 전용입니다. Provisional MCU/SMD "
+            "multi-class 학습 protocol이 아닙니다.",
+            "> 이 문서는 설정 파일에서 자동 생성되었습니다. Validation 결과는 독립적인 실제 컨베이어 "
+            "test 결과가 아니며, 이 benchmark는 순수 architecture ablation이 아닙니다.",
+            "> 판단 근거는 YAML/CSV/JSON의 수치이며, PNG는 matplotlib로 렌더링한 비생성형 파생물입니다. "
+            "ImageGen 등 생성형 AI는 사용하지 않습니다.",
+            "",
+            "## 고정 protocol",
+            "",
+            "| 구역 | 항목 | 값 |",
+            "|---|---|---|",
+        ]
+    )
     for section, key, value in _protocol_table(document):
         lines.append(f"| {section} | {key} | `{value.replace('|', '/ ')}` |")
     lines.extend(
@@ -130,7 +151,7 @@ def _write_methodology_markdown(
             "",
             "## 선정 근거와 조정 조건",
             "",
-            "| ID | 항목 | 선택값 | 근거 상태 | 선정 이유 | 최적값 여부 | 재조정 조건 | 현재 검증 상태 | 근거 ID |",
+            "| ID | 항목 | 선택값 | 근거 상태 | 선정 이유 | 최적값 여부 | 재조정 조건 | snapshot 작성시 검증 상태 | 근거 ID |",
             "|---|---|---|---|---|---|---|---|---|",
         ]
     )
@@ -180,21 +201,38 @@ def _write_parameter_summary_markdown(
     document: dict[str, Any],
     rows: list[dict[str, str]],
     source_path: Path,
+    execution_status: dict[str, Any] | None = None,
 ) -> None:
     lines = [
         "# 핵심 수치 선정 이유와 검증 상태",
         "",
-        f"- protocol: `{document.get('protocol_id', '-')}`",
-        f"- 현재 task: `{document.get('task', '-')}`",
-        f"- config SHA256: `{sha256_file(source_path)}`",
-        "",
-        "> 현재 protocol은 Raspberry Pi SBC 1-class bootstrap 전용이며 MCU/SMD multi-class 결과가 아닙니다.",
-        "> 아래 값은 재현 가능한 1차 baseline이며 최적값이 아닙니다. 현재 결과는 validation 범위이고, "
-        "독립적인 실제 카메라 test는 아직 없습니다.",
-        "",
-        "| ID·항목 | 값 | 왜 선택했는가 | 근거 유형 | 최적값 여부 | 다음 조정 조건 | 현재 검증 상태 |",
-        "|---|---|---|---|---|---|---|",
     ]
+    if execution_status is not None:
+        lines.extend(
+            [
+                "- **FORMAL EXECUTION STATUS: PASS — 2 models × 3 seeds × 100 epochs**",
+                "- 현재 실행 근거는 [formal execution status](formal_execution_status.json), "
+                "원격 장치 후속 절차는 [Ubuntu handoff](ubuntu_handoff.md)를 봅니다.",
+                "- 아래 검증 상태는 immutable protocol snapshot 작성 시점의 기록이며, "
+                "완료된 matrix 상태에는 위 execution overlay가 우선합니다.",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            f"- protocol: `{document.get('protocol_id', '-')}`",
+            f"- 현재 task: `{document.get('task', '-')}`",
+            f"- config SHA256: `{sha256_file(source_path)}`",
+            "- 고정 입력: [immutable protocol snapshot](protocol_snapshot.yaml)",
+            "",
+            "> 현재 protocol은 Raspberry Pi SBC 1-class bootstrap 전용이며 MCU/SMD multi-class 결과가 아닙니다.",
+            "> 아래 값은 재현 가능한 1차 baseline이며 최적값이 아닙니다. 현재 결과는 validation 범위이고, "
+            "독립적인 실제 카메라 test는 아직 없습니다.",
+            "",
+            "| ID·항목 | 값 | 왜 선택했는가 | 근거 유형 | 최적값 여부 | 다음 조정 조건 | snapshot 작성시 검증 상태 |",
+            "|---|---|---|---|---|---|---|",
+        ]
+    )
     for row in rows:
         values = [
             f"{row['id']} {row['label']}",
@@ -215,8 +253,8 @@ def _write_parameter_summary_markdown(
             "- `PAPER_*`/`UPSTREAM_*`은 출처가 있다는 뜻이지 현재 MCU/SMD에서 최적이라는 뜻이 아닙니다.",
             "- `HARDWARE_DERIVED`는 현재 RTX 5060 Laptop 8 GB에서 실행 가능한 값입니다.",
             "- `ENGINEERING_BASELINE`/`TO_TUNE`은 gold validation과 실제 카메라 조건으로 다시 정해야 합니다.",
-            "- 상세 알고리즘·참고문헌은 [전체 방법론](experiment_methodology.md), 실제 값은 "
-            "[`configs/experiments/baseline_v1.yaml`](../../configs/experiments/baseline_v1.yaml)을 봅니다.",
+            "- 상세 알고리즘·참고문헌은 [전체 방법론](experiment_methodology.md), 이 결과에 실제로 "
+            "사용한 고정 config는 [immutable protocol snapshot](protocol_snapshot.yaml)을 봅니다.",
         ]
     )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -301,9 +339,11 @@ def write_protocol_artifacts(
     output_dir: Path,
     *,
     print_terminal: bool = True,
+    execution_status: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_path = source_path.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = output_dir.resolve()
     document = load_protocol(source_path)
     rows = _rationale_rows(document)
     source_sha256 = sha256_file(source_path)
@@ -314,10 +354,18 @@ def write_protocol_artifacts(
     _write_csv(output_dir / "protocol_rationale.csv", rows)
     write_json(output_dir / "protocol_references.json", document.get("references", []))
     _write_methodology_markdown(
-        output_dir / "experiment_methodology.md", document, rows, source_path
+        output_dir / "experiment_methodology.md",
+        document,
+        rows,
+        source_path,
+        execution_status,
     )
     _write_parameter_summary_markdown(
-        output_dir / "parameter_rationale.md", document, rows, source_path
+        output_dir / "parameter_rationale.md",
+        document,
+        rows,
+        source_path,
+        execution_status,
     )
     _plot_rationale(
         rows,
@@ -334,20 +382,23 @@ def write_protocol_artifacts(
         output_dir / "parameter_rationale.md",
         output_dir / "protocol_rationale.png",
     ]
+    if execution_status is not None:
+        artifact_paths.append(output_dir / "formal_execution_status.json")
     result = {
-        "schema_version": 1,
+        "schema_version": 2,
         "protocol_id": document.get("protocol_id"),
         "source": source_label,
         "source_sha256": source_sha256,
         "rationale_items": len(rows),
         "references": len(document.get("references", [])),
-        "output_dir": _repository_path(output_dir),
+        "output_dir": ".",
         "policy": "Judgments use YAML/CSV/JSON numeric evidence; PNG files are visualization derivatives.",
         "generative_ai_used_for_images": False,
         "renderer": f"matplotlib {matplotlib.__version__}",
+        "execution_status": execution_status,
         "artifacts": [
             {
-                "path": _repository_path(path),
+                "path": path.relative_to(output_dir).as_posix(),
                 "bytes": path.stat().st_size,
                 "sha256": sha256_file(path),
                 "kind": "derived_visual" if path.suffix.lower() == ".png" else "evidence",

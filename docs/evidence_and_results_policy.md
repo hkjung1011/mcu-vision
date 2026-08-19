@@ -24,7 +24,9 @@ OCR로 다시 읽어 판단하지 않습니다.
   렌더링한 이미지입니다.
 - 실제 화면 screenshot이 필요하면 별도 증빙으로 추가할 수 있지만, 수치 판정에는 사용하지 않습니다.
 - 생성된 PNG에는 source 파일, source SHA-256, renderer와 `GENERATIVE_AI=false`를 표시합니다.
-- `evidence_manifest.json` 또는 `protocol_artifacts.json`에 원본과 파생물의 SHA-256을 기록합니다.
+- `evidence_manifest.json`과 `protocol_artifacts.json` 모두에
+  `generative_ai_used_for_images=false`를 JSON boolean으로 기록하고, formal validator가 exact-match와
+  각 artifact의 byte size/SHA-256을 확인합니다.
 
 ## 비교 가능성 gate
 
@@ -38,8 +40,8 @@ OCR로 다시 읽어 판단하지 않습니다.
 - prediction floor, NMS IoU, operating confidence, match IoU
 - common evaluator와 target GPU
 
-FAIL 결과는 로깅·디버깅에는 보존하지만 모델 우열 표에는 포함하지 않습니다. `--allow-not-comparable`은
-명시적 감사 목적 외에는 사용하지 않습니다.
+FAIL 결과는 로깅·디버깅에는 보존하지만 모델 우열 표나 formal promotion에는 포함하지 않습니다.
+Formal promotion에는 비교 가능성/release-ready gate 우회 옵션이 없습니다.
 
 `comparable=true`는 **입력된 run끼리 조건이 같다**는 뜻일 뿐 정식 release 완료를 뜻하지 않습니다.
 `release_ready=true`는 추가로 YOLO11m·YOLOX-S 각각 seed 42/43/44의 6개 complete non-smoke run,
@@ -73,11 +75,13 @@ bin별 recall 또는 AP를 함께 보고합니다.
 2. smoke run이 아닌지 확인합니다.
 3. comparison protocol gate가 PASS이고 해당 run의 동일 manifest가 비교 source bundle에 있는지 확인합니다.
 4. checkpoint SHA-256이 manifest와 같은지 확인합니다.
-5. raw image와 prediction 전체가 포함되지 않았는지 확인합니다.
+5. 검증된 formal allowlist 전체를 scan해 unlisted/stale file, raw image, report 내부 weight가 없는지 확인합니다.
 6. `scripts/promote_run.py --comparison-dir ...`/`scripts/promote_comparison.py`로 `weights/trained/`, `reports/`에 복사합니다.
 7. 비밀정보·절대 사용자 경로·대용량 파일을 재검사한 뒤 Git LFS로 push합니다.
 
-승격본은 로컬 project/user 경로와 raw `nvidia-smi` process 목록을 제거합니다. `artifact_manifest.json`과
+승격은 재귀 복사가 아니라 `formal_validation.json`에서 재계산한 allowlist만 사용합니다. 따라서 source에
+추가된 stale/raw/weight file이 있으면 승격 전에 중단합니다. 승격본은 로컬 project/user 경로와 raw
+`nvidia-smi` process 목록을 제거합니다. `artifact_manifest.json`과
 `sources_manifest.json`에는 로컬 원본 SHA-256과 공개용 사본 SHA-256을 모두 남기며 수치 값은 바꾸지
 않습니다. 비교 보고서는 `sources/<run-id>/`에 필요한 log/CSV/JSON을 함께 묶어 다른 clone에서도
 절대경로 없이 감사할 수 있게 합니다.

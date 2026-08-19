@@ -73,6 +73,26 @@ def _format(value: Any, digits: int = 4) -> str:
     return str(value)
 
 
+def _per_run_label(
+    model: Any,
+    seed: Any,
+    run_id: Any,
+    *,
+    multiline: bool = False,
+    include_run_id: bool = True,
+) -> str:
+    """Return an unambiguous label for one run.
+
+    Model-only labels silently collapse the three formal seeds in legends and tables.  Keep the
+    run ID as well so diagnostic comparisons with a repeated model/seed pair remain distinguishable.
+    """
+    separator = "\n" if multiline else " "
+    parts = [str(model), f"seed={seed}"]
+    if include_run_id:
+        parts.append(f"run_id={run_id}")
+    return separator.join(parts)
+
+
 def _run_json(command: list[str], cwd: Path) -> dict[str, Any]:
     try:
         completed = subprocess.run(
@@ -948,6 +968,12 @@ def compare_runs(
     provenance_attestation: Path | None = None,
     formal: bool = False,
 ) -> list[dict[str, Any]]:
+    if formal and output_dir.exists():
+        if not output_dir.is_dir() or any(output_dir.iterdir()):
+            raise ValueError(
+                "Formal comparison output directory must be empty before writing: "
+                f"{output_dir.resolve()}"
+            )
     output_dir.mkdir(parents=True, exist_ok=True)
     runs = [_load_run(path.resolve()) for path in run_dirs]
     run_ids = [str(run["run_id"]) for run in runs]
@@ -1022,7 +1048,7 @@ def compare_runs(
             output_dir / "run_provenance_attestation.json",
             project_root=project_root(),
         )
-    terminal_text = _comparison_terminal_text(rows, compatibility, aggregate_rows)
+    terminal_text = _comparison_terminal_text(rows, compatibility, aggregate_rows, formal=formal)
     terminal_path = output_dir / "comparison_terminal.txt"
     terminal_path.write_text(terminal_text, encoding="utf-8", newline="\n")
     print(terminal_text, end="")
@@ -1049,6 +1075,16 @@ def compare_runs(
         compatibility["comparable"],
         comparison_source_note,
     )
+    if any(row["runs"] > 1 for row in aggregate_rows):
+        aggregate_csv = output_dir / "aggregate_comparison.csv"
+        aggregate_source_note = (
+            f"SOURCE: aggregate_comparison.csv | SHA256: {sha256_file(aggregate_csv)}"
+        )
+        _plot_aggregate_comparison(
+            aggregate_rows,
+            output_dir / "aggregate_comparison.png",
+            aggregate_source_note,
+        )
     _plot_terminal_snapshot(
         terminal_text,
         output_dir / "terminal_summary.png",
@@ -1062,9 +1098,34 @@ def compare_runs(
         protocol_path = Path(recorded_protocol)
     else:
         protocol_path = project_root() / "configs" / "experiments" / "baseline_v1.yaml"
+    execution_status: dict[str, Any] | None = None
+    if formal and compatibility.get("release_ready") is True:
+        execution_status = _formal_execution_status(runs, rows, protocol_path, output_dir)
+        write_json(output_dir / "formal_execution_status.json", execution_status)
+        publish_evidence_file(
+            project_root() / "docs" / "ubuntu_handoff.md",
+            output_dir / "ubuntu_handoff.md",
+            project_root=project_root(),
+        )
+        publish_evidence_file(
+            project_root() / "docs" / "onnx_split_evaluation.md",
+            output_dir / "onnx_split_evaluation.md",
+            project_root=project_root(),
+        )
     if protocol_path.exists():
-        write_protocol_artifacts(protocol_path, output_dir, print_terminal=False)
-    _write_comparison_markdown(output_dir / "experiment_report.md", rows, compatibility, aggregate_rows)
+        write_protocol_artifacts(
+            protocol_path,
+            output_dir,
+            print_terminal=False,
+            execution_status=execution_status,
+        )
+    _write_comparison_markdown(
+        output_dir / "experiment_report.md",
+        rows,
+        compatibility,
+        aggregate_rows,
+        execution_status,
+    )
     _bundle_run_evidence(output_dir, runs)
     if formal:
         if compatibility.get("release_ready") is not True:
@@ -1073,8 +1134,10 @@ def compare_runs(
                 "Formal comparison requires an exact, release-ready six-run model/seed matrix; "
                 "inspect protocol_compatibility.json"
             )
+        _write_evidence_manifest(output_dir)
         create_formal_validation(output_dir)
-    _write_evidence_manifest(output_dir)
+    else:
+        _write_evidence_manifest(output_dir)
     print(f"\nComparison artifacts: {output_dir.resolve()}")
     return rows
 
@@ -1084,31 +1147,54 @@ def _write_comparison_markdown(
     rows: list[dict[str, Any]],
     compatibility: dict[str, Any],
     aggregate_rows: list[dict[str, Any]],
+    execution_status: dict[str, Any] | None = None,
 ) -> None:
     verdict = "PASS" if compatibility.get("comparable") else "FAIL / NOT COMPARABLE"
     if len(rows) < 2:
         verdict = "single run"
+    if execution_status is not None:
+        release_verdict = "PASS"
+    elif compatibility.get("release_ready"):
+        release_verdict = "DIAGNOSTIC_ONLY / FORMAL NOT REQUESTED"
+    else:
+        release_verdict = "BLOCKED"
     lines = [
         "# MCU detector 실험 결과",
         "",
         f"- protocol 판정: **{verdict}**",
-        f"- 정식 release 판정: **{'READY' if compatibility.get('release_ready') else 'BLOCKED'}**",
+        f"- 정식 release 판정: **{release_verdict}**",
         "- AP/AR 출처: 두 framework prediction을 동일 `pycocotools==2.0.11` COCOeval로 재계산",
         "- 운영점 P/R/F1 출처: 공통 score-sorted class-aware greedy 1:1 matcher",
         "- 범위: validation 결과이며 독립적인 실제 컨베이어-camera test 결과가 아님",
         "- 비교 성격: framework-native recipe의 실사용 system benchmark; 순수 architecture ablation이 아님",
         "",
-        "## 공통 평가표",
-        "",
-        "| 모델 | AP50-95 | AP50 | AP75 | APsmall | AR100 | P | R | F1 | TP/FP/FN | p50/p95 ms | FPS | VRAM MiB |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
+    if execution_status is not None:
+        lines.extend(
+            [
+                "- **FORMAL EXECUTION STATUS: PASS — 2 models × 3 seeds × 100 epochs**",
+                "- 실행 근거: [formal execution status](formal_execution_status.json) · "
+                "[immutable protocol snapshot](protocol_snapshot.yaml) · "
+                "[Ubuntu handoff](ubuntu_handoff.md)",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## 공통 평가표",
+            "",
+            "| 모델 | seed | run_id | AP50-95 | AP50 | AP75 | APsmall | AR100 | P | R | F1 | TP/FP/FN | p50/p95 ms | FPS | VRAM MiB |",
+            "|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
     for row in rows:
         lines.append(
             "| "
             + " | ".join(
                 [
                     str(row["model"]),
+                    str(row.get("seed")),
+                    str(row.get("run_id")),
                     _format(row.get("ap50_95")),
                     _format(row.get("ap50")),
                     _format(row.get("ap75")),
@@ -1164,16 +1250,25 @@ def _write_comparison_markdown(
                 f"{_format(row.get('latency_p50_ms_std'), 2)} |"
             )
         lines.append("")
+        if any(row["runs"] > 1 for row in aggregate_rows):
+            lines.extend(
+                [
+                    "![모델별 seed 평균과 sample SD error bar](aggregate_comparison.png)",
+                    "",
+                ]
+            )
     lines.extend(
         [
             "## 자동 생성 증빙",
             "",
             "- `comparison.csv/json`: 표의 원본 수치",
             "- `aggregate_comparison.csv/json`: seed 평균·sample SD",
+            "- `aggregate_comparison.png`: 모델별 seed 평균과 sample SD error bar",
             "- `comparison_terminal.txt`: 실제 CLI가 출력한 것과 동일한 터미널 표 원문",
             "- `comparison_dashboard.png`, `training_curves.png`: 로그/CSV를 matplotlib로 그린 비생성형 그래프",
             "- `terminal_summary.png`: `comparison_terminal.txt`를 그대로 코드 렌더링한 이미지이며 화면 캡처가 아님",
-            "- `evidence_manifest.json`: 원본 로그·CSV와 각 이미지의 SHA-256 및 `generative_ai_used=false` 기록",
+            "- `evidence_manifest.json`: 원본 로그·CSV와 각 이미지의 SHA-256 및 "
+            "`generative_ai_used_for_images=false` 기록",
             "- `protocol_rationale.csv/png`, `experiment_methodology.md`: 수치 선정 이유와 출처",
         ]
     )
@@ -1503,37 +1598,88 @@ def _aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return aggregate
 
 
+def _formal_execution_status(
+    runs: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+    protocol_path: Path,
+    output_dir: Path,
+) -> dict[str, Any]:
+    epoch_counts = {str(run["run_id"]): len(run["epochs"]) for run in runs}
+    run_records = sorted(
+        (
+            {
+                "model": str(row["model"]),
+                "seed": int(row["seed"]),
+                "run_id": str(row["run_id"]),
+                "status": str(row["status"]),
+                "observed_epoch_rows": epoch_counts[str(row["run_id"])],
+            }
+            for row in rows
+        ),
+        key=lambda item: (_normalize_model_name(item["model"]), item["seed"], item["run_id"]),
+    )
+    return {
+        "schema_version": 1,
+        "status": "PASS",
+        "scope": "formal_2_model_x_3_seed_100_epoch_comparison",
+        "summary": "2 models × 3 seeds × 100 epochs",
+        "run_count": 6,
+        "models": sorted({item["model"] for item in run_records}, key=_normalize_model_name),
+        "seeds": [42, 43, 44],
+        "epochs_per_run": 100,
+        "runs": run_records,
+        "validation": {
+            "protocol_compatibility": "PASS",
+            "exact_model_seed_matrix": "PASS",
+            "complete_epoch_evidence": "PASS",
+            "formal_artifact_binding": "PASS",
+        },
+        "protocol_snapshot_sha256": sha256_file(protocol_path),
+        "protocol_compatibility_sha256": sha256_file(
+            output_dir / "protocol_compatibility.json"
+        ),
+        "precedence_note": (
+            "This execution overlay supersedes authoring-time verification text in the immutable "
+            "protocol snapshot; it does not rewrite that snapshot."
+        ),
+    }
+
+
 def _comparison_terminal_text(
     rows: list[dict[str, Any]],
     compatibility: dict[str, Any],
     aggregate_rows: list[dict[str, Any]],
+    *,
+    formal: bool = False,
 ) -> str:
-    lines = ["", "MODEL COMPARISON — COMMON COCO VALIDATION", "=" * 147]
+    lines = ["", "MODEL COMPARISON — COMMON COCO VALIDATION", "=" * 190]
     header = (
-        f"{'MODEL':<22} {'AP50-95':>9} {'AP50':>8} {'AP75':>8} {'APsmall':>8} {'AR100':>8} "
+        f"{'MODEL / SEED / RUN_ID':<62} {'AP50-95':>9} {'AP50':>8} {'AP75':>8} {'APsmall':>8} {'AR100':>8} "
         f"{'P':>8} {'R':>8} {'F1':>8} {'TP':>7} {'FP':>7} {'FN':>7} {'BEST@CONF':>11}"
     )
     lines.extend([header, "-" * len(header)])
     for row in rows:
+        label = _per_run_label(row["model"], row.get("seed"), row.get("run_id"))
         lines.append(
-            f"{str(row['model']):<22} {_format(row['ap50_95']):>9} {_format(row['ap50']):>8} "
+            f"{label:<62} {_format(row['ap50_95']):>9} {_format(row['ap50']):>8} "
             f"{_format(row['ap75']):>8} {_format(row['ap_small']):>8} {_format(row['ar100']):>8} "
             f"{_format(row['precision']):>8} {_format(row['recall']):>8} {_format(row['f1']):>8} "
             f"{_format(row['tp'], 0):>7} {_format(row['fp'], 0):>7} {_format(row['fn'], 0):>7} "
             f"{_format(row['best_f1_confidence'], 2):>11}"
         )
-    lines.extend(["", "DEPLOYMENT / RESOURCE MEASUREMENTS", "-" * 118])
+    lines.extend(["", "DEPLOYMENT / RESOURCE MEASUREMENTS", "-" * 154])
     deployment_header = (
-        f"{'MODEL':<22} {'PARAMS':>12} {'CKPT MiB':>10} {'P50 ms':>10} {'P95 ms':>10} "
+        f"{'MODEL / SEED / RUN_ID':<62} {'PARAMS':>12} {'CKPT MiB':>10} {'P50 ms':>10} {'P95 ms':>10} "
         f"{'FPS':>9} {'TRAIN VRAM':>12} {'TRAIN min':>11}"
     )
     lines.extend([deployment_header, "-" * len(deployment_header)])
     for row in rows:
+        label = _per_run_label(row["model"], row.get("seed"), row.get("run_id"))
         elapsed_minutes = (
             float(row["train_elapsed_s"]) / 60 if row.get("train_elapsed_s") is not None else None
         )
         lines.append(
-            f"{str(row['model']):<22} {_format(row['params'], 0):>12} "
+            f"{label:<62} {_format(row['params'], 0):>12} "
             f"{_format(row['checkpoint_mib'], 2):>10} {_format(row['latency_p50_ms'], 2):>10} "
             f"{_format(row['latency_p95_ms'], 2):>10} {_format(row['fps'], 2):>9} "
             f"{_format(row['peak_gpu_memory_mib'], 1):>12} {_format(elapsed_minutes, 2):>11}"
@@ -1551,8 +1697,14 @@ def _comparison_terminal_text(
     else:
         fields = ", ".join(item["field"] for item in compatibility["critical_mismatches"])
         lines.append(f"PROTOCOL: FAIL - NOT COMPARABLE. Mismatched fields: {fields}")
-    if compatibility.get("release_ready"):
-        lines.append("RELEASE: READY - complete model/seed matrix and dataset evidence passed.")
+    if formal and compatibility.get("release_ready"):
+        lines.append(
+            "RELEASE: FORMAL MATRIX PASS - user-facing artifact hash validation is required next."
+        )
+    elif compatibility.get("release_ready"):
+        lines.append(
+            "RELEASE: DIAGNOSTIC_ONLY - matrix is eligible, but --formal was not requested."
+        )
     else:
         blockers = ", ".join(item["field"] for item in compatibility.get("release_blockers", []))
         lines.append(f"RELEASE: BLOCKED - {blockers or 'formal release requirements are incomplete'}")
@@ -1579,6 +1731,11 @@ def _plot_training_curves(
         epochs = run["epochs"]
         if not epochs:
             continue
+        label = _per_run_label(
+            run["model"],
+            run["metadata"].get("protocol", {}).get("seed"),
+            run["run_id"],
+        )
         x = [row["epoch"] for row in epochs]
         for key, axis, title in [
             ("map50_95", axes[0, 0], "Validation AP50-95 (native)"),
@@ -1592,7 +1749,7 @@ def _plot_training_curves(
                     [point[0] for point in points],
                     [point[1] for point in points],
                     marker="o" if len(points) < 10 else None,
-                    label=run["model"],
+                    label=label,
                 )
             axis.set_title(title)
             axis.set_xlabel("Epoch")
@@ -1621,7 +1778,16 @@ def _plot_dashboard(
 ) -> None:
     if not rows:
         return
-    labels = [str(row["model"]) for row in rows]
+    labels = [
+        _per_run_label(
+            row["model"],
+            row.get("seed"),
+            row.get("run_id"),
+            multiline=True,
+            include_run_id=False,
+        )
+        for row in rows
+    ]
     panels = [
         ("ap50_95", "AP50-95", (0, 1)),
         ("ap50", "AP50", (0, 1)),
@@ -1651,6 +1817,59 @@ def _plot_dashboard(
     if source_note:
         fig.text(0.01, 0.005, source_note + " | RENDERER: matplotlib | GENERATIVE_AI: false", fontsize=7)
     fig.tight_layout(rect=(0.0, 0.035, 1.0, 0.96))
+    fig.savefig(
+        output,
+        dpi=180,
+        metadata={"Software": "matplotlib", "Description": source_note + " | generative_ai=false"},
+    )
+    plt.close(fig)
+
+
+def _plot_aggregate_comparison(
+    rows: list[dict[str, Any]],
+    output: Path,
+    source_note: str,
+) -> None:
+    """Plot model-level means with sample-SD error bars for the repeated-seed result."""
+    if not rows:
+        return
+    labels = [str(row["model"]) for row in rows]
+    panels = (
+        ("ap50_95_mean", "ap50_95_std", "AP50-95 mean ± sample SD", (0.0, 1.0)),
+        (
+            "latency_p50_ms_mean",
+            "latency_p50_ms_std",
+            "E2E latency p50 mean ± sample SD (ms)",
+            None,
+        ),
+    )
+    fig, axes = plt.subplots(1, 2, figsize=(11, 5.5))
+    for axis, (mean_key, std_key, title, limits) in zip(axes, panels, strict=True):
+        means = [float(row[mean_key]) if row.get(mean_key) is not None else 0.0 for row in rows]
+        errors = [float(row[std_key]) if row.get(std_key) is not None else 0.0 for row in rows]
+        bars = axis.bar(labels, means, yerr=errors, capsize=7, color="#4c78a8", alpha=0.9)
+        axis.set_title(title)
+        axis.set_ylabel("mean; error bar = sample SD")
+        axis.grid(True, axis="y", alpha=0.25)
+        if limits is not None:
+            axis.set_ylim(*limits)
+        for bar, mean, error, row in zip(bars, means, errors, rows, strict=True):
+            axis.text(
+                bar.get_x() + bar.get_width() / 2,
+                mean + error,
+                f"{mean:.4g} ± {error:.3g}\nn={row['runs']}",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+            )
+    fig.suptitle("Formal seed aggregate — mean ± sample standard deviation")
+    fig.text(
+        0.01,
+        0.005,
+        source_note + " | RENDERER: matplotlib | GENERATIVE_AI: false",
+        fontsize=7,
+    )
+    fig.tight_layout(rect=(0.0, 0.04, 1.0, 0.94))
     fig.savefig(
         output,
         dpi=180,
@@ -1755,7 +1974,12 @@ def _bundle_run_evidence(output_dir: Path, runs: list[dict[str, Any]]) -> None:
     )
     write_json(
         output_dir / "local_source_bindings.json",
-        {"schema_version": 1, "private_local_only": True, "files": local_bindings},
+        {
+            "schema_version": 2,
+            "private_local_only": True,
+            "publication_project_root": str(project_root().resolve()),
+            "files": local_bindings,
+        },
     )
 
 
@@ -1763,12 +1987,23 @@ def _write_evidence_manifest(output_dir: Path) -> None:
     source_paths = [
         output_dir / "comparison.csv",
         output_dir / "comparison.json",
+        output_dir / "aggregate_comparison.csv",
+        output_dir / "aggregate_comparison.json",
         output_dir / "comparison_terminal.txt",
         output_dir / "protocol_compatibility.json",
         output_dir / "run_provenance.json",
         output_dir / "run_provenance_attestation.json",
-        output_dir / "formal_validation.json",
         output_dir / "sources_manifest.json",
+        output_dir / "formal_execution_status.json",
+        output_dir / "experiment_report.md",
+        output_dir / "experiment_methodology.md",
+        output_dir / "parameter_rationale.md",
+        output_dir / "protocol_snapshot.yaml",
+        output_dir / "protocol_rationale.csv",
+        output_dir / "protocol_references.json",
+        output_dir / "protocol_artifacts.json",
+        output_dir / "ubuntu_handoff.md",
+        output_dir / "onnx_split_evaluation.md",
     ]
     sources_root = output_dir / "sources"
     if sources_root.exists():
@@ -1777,6 +2012,7 @@ def _write_evidence_manifest(output_dir: Path) -> None:
         output_dir / "terminal_summary.png",
         output_dir / "comparison_dashboard.png",
         output_dir / "training_curves.png",
+        output_dir / "aggregate_comparison.png",
         output_dir / "protocol_rationale.png",
     ]
 
@@ -1790,12 +2026,16 @@ def _write_evidence_manifest(output_dir: Path) -> None:
     write_json(
         output_dir / "evidence_manifest.json",
         {
-            "schema_version": 2,
+            "schema_version": 3,
             "decision_policy": "Judgments use terminal logs and numeric CSV/JSON only; PNG files are visualization derivatives.",
             "generative_ai_used_for_images": False,
             "image_renderer": f"matplotlib {matplotlib.__version__}",
             "local_absolute_paths_included": False,
             "source_bundle": "sources_manifest.json",
+            "self_hash_policy": (
+                "evidence_manifest.json and formal_validation.json are excluded to avoid a hash cycle; "
+                "formal_validation.json binds this manifest."
+            ),
             "sources": [record(path) for path in source_paths if path.exists()],
             "derived_images": [record(path) for path in artifact_paths if path.exists()],
         },

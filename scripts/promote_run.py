@@ -13,54 +13,14 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mcu_data.common import sha256_file, write_json
 from mcu_data.checkpoint_publishing import sanitize_yolo11_checkpoint
-from mcu_data.publishing import publish_evidence_file, validate_comparison_for_run
-
-
-REPORT_FILES = [
-    "run_manifest.json",
-    "terminal.log",
-    "pip-freeze.txt",
-    "epoch_metrics.csv",
-    "epoch_metrics.jsonl",
-    "epoch_metrics_extra.jsonl",
-    "final_metrics.json",
-    "per_class_metrics.csv",
-    "confidence_curve.csv",
-    "autolabel_thresholds.csv",
-    "confusion_counts.csv",
-    "confusion_normalized.csv",
-    "latency.json",
-    "latency_samples.csv",
-    "gpu_summary.json",
-    "pretrained_weights_summary.csv",
-    "best_weights_summary.csv",
-    "protocol_snapshot.yaml",
-    "protocol_rationale.csv",
-    "protocol_references.json",
-    "protocol_artifacts.json",
-    "experiment_methodology.md",
-    "parameter_rationale.md",
-]
-
-SUMMARY_FILES = [
-    "aggregate_comparison.csv",
-    "aggregate_comparison.json",
-    "comparison.csv",
-    "comparison.json",
-    "comparison_terminal.txt",
-    "evidence_manifest.json",
-    "experiment_methodology.md",
-    "parameter_rationale.md",
-    "experiment_report.md",
-    "protocol_artifacts.json",
-    "protocol_compatibility.json",
-    "run_provenance.json",
-    "run_provenance_attestation.json",
-    "formal_validation.json",
-    "protocol_rationale.csv",
-    "protocol_references.json",
-    "protocol_snapshot.yaml",
-]
+from mcu_data.publishing import (
+    IMAGE_SUFFIXES,
+    WEIGHT_SUFFIXES,
+    publish_evidence_file,
+    validate_comparison_for_run,
+    validate_formal_comparison,
+    validated_formal_publication_plan,
+)
 
 
 def main() -> int:
@@ -81,9 +41,14 @@ def main() -> int:
         parser.error(f"Only complete runs can be promoted: status={manifest.get('status')}")
     if manifest.get("stage") == "smoke_not_comparable":
         parser.error("Smoke runs cannot be promoted to weights/trained.")
+    comparison_root = args.comparison_dir.resolve()
     try:
+        comparison_publication = validated_formal_publication_plan(
+            comparison_root,
+            require_local_originals=True,
+        )
         comparison_evidence = validate_comparison_for_run(
-            args.comparison_dir,
+            comparison_root,
             run_id=str(manifest["run_id"]),
             run_manifest_path=manifest_path,
         )
@@ -104,7 +69,16 @@ def main() -> int:
     if not checkpoint_text:
         parser.error("run_manifest.json does not contain best_checkpoint.path")
     checkpoint = Path(checkpoint_text)
-    if not checkpoint.exists():
+    if not checkpoint.is_absolute():
+        checkpoint = run_dir / checkpoint
+    checkpoint = checkpoint.resolve()
+    try:
+        checkpoint.relative_to(run_dir)
+    except ValueError as exc:
+        raise ValueError("Best checkpoint must be contained in --run-dir") from exc
+    if checkpoint.suffix.lower() not in WEIGHT_SUFFIXES:
+        raise ValueError(f"Best checkpoint has an unsupported weight suffix: {checkpoint.suffix}")
+    if not checkpoint.is_file():
         raise FileNotFoundError(f"Best checkpoint not found: {checkpoint}")
     expected_sha256 = checkpoint_value.get("sha256")
     actual_sha256 = sha256_file(checkpoint)
@@ -133,43 +107,79 @@ def main() -> int:
             "forward_max_abs_difference": 0.0,
             "ultralytics_load": "NOT_APPLICABLE",
         }
+    promoted_weight_files = sorted(
+        path.relative_to(weight_root).as_posix()
+        for path in weight_root.rglob("*")
+        if path.is_file() and path.suffix.lower() in WEIGHT_SUFFIXES
+    )
+    all_weight_payload_files = sorted(
+        path.relative_to(weight_root).as_posix()
+        for path in weight_root.rglob("*")
+        if path.is_file()
+    )
+    if (
+        promoted_weight_files != [promoted_checkpoint.name]
+        or all_weight_payload_files != promoted_weight_files
+    ):
+        raise ValueError(
+            "Promoted weight payload must contain exactly the declared checkpoint: "
+            f"files={all_weight_payload_files}, weights={promoted_weight_files}"
+        )
     copied_reports = []
     publication_records = []
-    for relative in REPORT_FILES:
-        source = run_dir / relative
-        if source.exists():
-            destination = report_root / source.name
-            record = publish_evidence_file(source, destination, project_root=PROJECT_ROOT)
-            publication_records.append({"path": source.name, **record})
-            copied_reports.append(source.name)
-    native_args = run_dir / "native" / "args.yaml"
-    if native_args.exists():
-        destination = report_root / "native_args.yaml"
-        record = publish_evidence_file(native_args, destination, project_root=PROJECT_ROOT)
-        publication_records.append({"path": "native_args.yaml", **record})
-        copied_reports.append("native_args.yaml")
-    for relative in SUMMARY_FILES:
-        source = run_dir / "plots" / "summary" / relative
-        if source.exists():
-            destination = report_root / "summary" / source.name
-            relative_path = f"summary/{source.name}"
-            record = publish_evidence_file(source, destination, project_root=PROJECT_ROOT)
-            publication_records.append({"path": relative_path, **record})
-            copied_reports.append(relative_path)
-    visual_groups = (
-        ("*.png", Path("plots")),
-        ("plots/latest_overview.png", Path("plots")),
-        ("plots/epochs/*.png", Path("plots/epochs")),
-        ("plots/summary/*.png", Path("summary")),
+    for source_record in comparison_evidence["verified_source_files"]:
+        source = comparison_root / str(source_record["path"])
+        relative_path = (Path("run_evidence") / str(source_record["filename"])).as_posix()
+        destination = report_root / relative_path
+        record = publish_evidence_file(source, destination, project_root=PROJECT_ROOT)
+        publication_records.append(
+            {
+                "path": relative_path,
+                "comparison_bundle_path": source_record["path"],
+                "comparison_bundle_sha256": source_record["published_sha256"],
+                **record,
+            }
+        )
+        copied_reports.append(relative_path)
+
+    for relative_text in comparison_publication["relative_paths"]:
+        source = comparison_root / relative_text
+        relative_path = (Path("formal_comparison") / relative_text).as_posix()
+        destination = report_root / relative_path
+        record = publish_evidence_file(source, destination, project_root=PROJECT_ROOT)
+        publication_records.append({"path": relative_path, **record})
+        copied_reports.append(relative_path)
+
+    validate_formal_comparison(report_root / "formal_comparison")
+
+    report_files = {
+        path.relative_to(report_root).as_posix()
+        for path in report_root.rglob("*")
+        if path.is_file()
+    }
+    report_weight_files = sorted(
+        path for path in report_files if Path(path).suffix.lower() in WEIGHT_SUFFIXES
     )
-    for pattern, destination_dir in visual_groups:
-        for source in run_dir.glob(pattern):
-            destination = report_root / destination_dir / source.name
-            relative_path = (destination_dir / source.name).as_posix()
-            record = publish_evidence_file(source, destination, project_root=PROJECT_ROOT)
-            publication_records.append({"path": relative_path, **record})
-            copied_reports.append(relative_path)
+    formal_derived_images = {
+        (Path("formal_comparison") / path).as_posix()
+        for path in comparison_publication["scan"]["derived_image_files"]
+        if "/" not in path
+    }
+    report_image_files = {
+        path for path in report_files if Path(path).suffix.lower() in IMAGE_SUFFIXES
+    }
+    raw_image_files = sorted(report_image_files - formal_derived_images)
+    prediction_files = sorted(
+        path for path in report_files if "prediction" in Path(path).name.lower()
+    )
+    if report_weight_files:
+        raise ValueError(f"Run report payload unexpectedly contains weights: {report_weight_files}")
+    if raw_image_files:
+        raise ValueError(f"Run report payload contains undeclared raw images: {raw_image_files}")
     artifact = {
+        "schema_version": 2,
+        "status": "PASS",
+        "formal_release": True,
         "release_name": release_name,
         "source_run_id": manifest.get("run_id"),
         "source_run_manifest_sha256": sha256_file(manifest_path),
@@ -192,14 +202,27 @@ def main() -> int:
         },
         "reports": sorted(set(copied_reports)),
         "published_evidence": sorted(publication_records, key=lambda item: str(item["path"])),
+        "source_scan": {
+            "comparison": comparison_publication["scan"],
+            "published_report_files_scanned": len(report_files),
+            "raw_image_files": raw_image_files,
+            "report_weight_files": report_weight_files,
+            "prediction_files": prediction_files,
+            "promoted_checkpoint_files": [
+                promoted_checkpoint.relative_to(PROJECT_ROOT).as_posix()
+            ],
+            "weight_payload_files_scanned": all_weight_payload_files,
+        },
         "publication_note": (
             "Repository copies redact local user/project paths and raw nvidia-smi process listings. "
             "Original and published SHA-256 values are recorded per file; numeric metrics are unchanged. "
             "YOLO11 checkpoints additionally require bitwise-equal tensors, zero forward difference, "
             "and a successful Ultralytics reload after metadata sanitization."
         ),
-        "raw_images_included": False,
-        "predictions_included": False,
+        "raw_images_included": bool(raw_image_files),
+        "predictions_included": bool(prediction_files),
+        "weights_in_reports": bool(report_weight_files),
+        "promoted_checkpoint_count": len(promoted_weight_files),
     }
     write_json(report_root / "artifact_manifest.json", artifact)
     print(json.dumps(artifact, indent=2, ensure_ascii=False))
