@@ -18,6 +18,9 @@ Formal PASS는 `paired_2seed_descriptive` tier의 artifact 승격 요건을 통�
 seed 두 쌍(`n=2`, `df=1`)이며 test도 locked internal pHash split입니다. 독립 촬영 성능, 통계적
 유의성, 모집단 우월성 또는 production readiness를 의미하지 않습니다.
 
+모델별 사용 범위와 입력 계약은 [YOLO11m 모델 카드](../docs/model_cards/rpi_phash_v2_paired2_yolo11m.ko.md)와
+[YOLOX-S 모델 카드](../docs/model_cards/rpi_phash_v2_paired2_yolox_s.ko.md)를 참조하십시오.
+
 ## Formal artifact 식별자
 
 | 모델 | 선택 run | Native SHA-256 | ONNX SHA-256 | ONNX val/test AP50-95 |

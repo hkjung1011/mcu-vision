@@ -45,6 +45,10 @@ Raspberry Pi 보드 검출 bootstrap이며 STM32/SMD 성능을 나타내지 않�
 
 ONNX 공통 평가도 두 모델 모두 PASS했습니다.
 
+정식 공개본의 입력·출력 계약, 사용 범위와 잔여 위험은
+[YOLO11m 모델 카드](docs/model_cards/rpi_phash_v2_paired2_yolo11m.ko.md)와
+[YOLOX-S 모델 카드](docs/model_cards/rpi_phash_v2_paired2_yolox_s.ko.md)에 분리해 기록했습니다.
+
 | 모델 | 선택 run | ONNX val AP50-95 | ONNX internal test AP50-95 | CPU p50 val/test |
 |---|---|---:|---:|---:|
 | YOLO11m | seed 43 | `1.0000000000` | `1.0000000000` | `215.698 / 221.226 ms` |

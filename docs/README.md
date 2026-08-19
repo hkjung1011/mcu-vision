@@ -9,6 +9,8 @@
 |---|---|
 | [현재 상태](project_status.md) | 완료된 항목, 아직 검증되지 않은 항목, 다음 실행 순서 |
 | [Paired two-seed formal release](paired_2seed_formal_release.md) | 완료 seed 42/43의 descriptive-only 검증 절차와 주장 한계 |
+| [YOLO11m 정식 모델 카드](model_cards/rpi_phash_v2_paired2_yolo11m.ko.md) | 공개 checkpoint·ONNX 계약, 평가 수치와 사용 금지 범위 |
+| [YOLOX-S 정식 모델 카드](model_cards/rpi_phash_v2_paired2_yolox_s.ko.md) | 공개 checkpoint·ONNX 계약, 평가 수치와 사용 금지 범위 |
 | [2026-08-18 학습 진행본](../reports/progress/rpi_bootstrap_2026-08-18/README.md) | 6-run 계획 당시의 역사적 진행 snapshot |
 | [전체 로드맵](roadmap.md) | 단계별 Gate, 병행 Track, 구현 backlog와 정식 완료 정의 |
 | [Windows 재현 절차](reproducibility_windows.md) | 환경·dataset 재현과 역사적 3-seed 절차의 보존 범위 |

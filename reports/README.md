@@ -15,6 +15,10 @@ CSV, terminal log, resolved config와 artifact SHA-256을 기준으로 하며 PN
 | `deployments/rpi_phash_v2_paired2_yolox_s/` | **PASS** | native→ONNX val/test 및 artifact publication gate |
 | `progress/rpi_bootstrap_2026-08-18/` | HISTORICAL | 6-run 계획 당시의 중간 snapshot; 정식 paired 결과와 구분 |
 
+정식 공개 모델의 intended use, 입력·출력, 수치와 한계는
+[YOLO11m 모델 카드](../docs/model_cards/rpi_phash_v2_paired2_yolo11m.ko.md) 및
+[YOLOX-S 모델 카드](../docs/model_cards/rpi_phash_v2_paired2_yolox_s.ko.md)에 기록합니다.
+
 Formal policy ID는 `rpi_bootstrap_paired_2seed_release_v1`, policy SHA-256은
 `1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27`, base protocol canonical
 SHA-256은 `02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5`입니다.
