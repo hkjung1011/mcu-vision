@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "required_scope_version": "formal-training-provenance-v2",
+  "scope": "micropcb_rpi_phash_v2 paired seed42/43 descriptive four-run comparison",
+  "formal_release_policy": {
+    "policy_id": "rpi_bootstrap_paired_2seed_release_v1",
+    "policy_sha256": "1865539e9b3569dd4942d9d17495a3644e059df70259b555bd7985e7bdf76f27",
+    "base_protocol_id": "micropcb_rpi_phash_component_bootstrap_v2",
+    "base_protocol_sha256": "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5",
+    "evidence_tier": "paired_2seed_descriptive",
+    "models": ["yolo11m", "YOLOX-S"],
+    "seeds": [42, 43],
+    "expected_runs": 4
+  },
+  "allowed_commits": [
+    "63bc679d88d56907433b6586e2a7efacb46a25d6",
+    "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6"
+  ],
+  "implementation_paths": [
+    "scripts/run_compare_seeds.ps1",
+    "scripts/train_yolo11_logged.py",
+    "scripts/train_yolox_logged.py",
+    "configs/yolox_s_micropcb.py",
+    "src/mcu_data/common.py",
+    "src/mcu_data/dataset_evidence.py",
+    "src/mcu_data/methodology.py",
+    "src/mcu_data/publishing.py",
+    "src/mcu_data/reporting.py",
+    "src/mcu_data/runlog.py",
+    "src/mcu_data/yolox_metrics.py"
+  ],
+  "allowed_changes": {
+    "src/mcu_data/publishing.py": {
+      "blobs_by_commit": {
+        "63bc679d88d56907433b6586e2a7efacb46a25d6": "349b1f3fe34a4ce28d02d8dba2749ce4197e4946",
+        "b3e41768cd418a5ccd8f30bfa0569d332fb9c8f6": "7016d8bc1bfe9f54ba02ae6c021e85893e02f449"
+      },
+      "training_semantics_unchanged": true,
+      "rationale": "Publication-only redaction and UTF-8 BOM input handling; no training, evaluation, optimizer, augmentation, or model computation changed."
+    }
+  },
+  "equal_manifest_fields_by_model": {
+    "yolo11m": [
+      "framework_version",
+      "pretrained_checkpoint.sha256",
+      "protocol_config.sha256",
+      "environment.torch",
+      "environment.torch_cuda_runtime",
+      "environment.cudnn"
+    ],
+    "YOLOX-S": [
+      "framework_version",
+      "framework_commit",
+      "pretrained_checkpoint.sha256",
+      "protocol_config.sha256",
+      "experiment_config.sha256",
+      "environment.torch",
+      "environment.torch_cuda_runtime",
+      "environment.cudnn"
+    ]
+  },
+  "rationale": "The release policy selects only complete matched seed42/43 pairs and prohibits inferential or production-readiness claims. The only changed frozen training-era implementation input remains publishing.py and the exact blob pair is publication-only."
+}

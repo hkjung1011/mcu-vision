@@ -48,6 +48,11 @@ Formal promotion에는 비교 가능성/release-ready gate 우회 옵션이 없�
 100 epoch row, baseline 기대값, canonical dataset/YOLO↔COCO 동등성 hash, final metric·latency·GPU log,
 checkpoint 존재와 SHA-256 일치까지 통과해야 합니다.
 
+완료된 matched seed 42/43만 사용하는 별도 `paired_2seed_descriptive` tier는 기존 6-run gate를
+대체하거나 완화하지 않습니다. 독립된 policy/attestation으로 exact 4-run matrix와 post-hoc 범위
+축소를 명시하며, 결과는 기술통계로만 해석합니다. 실행법과 금지 주장은
+[paired 2-seed formal release policy](paired_2seed_formal_release.md)를 따릅니다.
+
 ## 공통 평가 수치
 
 | 수치 | 용도 | 선정 이유 |

@@ -141,6 +141,7 @@ def test_publication_serialization_is_deterministic_not_parse_only(tmp_path: Pat
         ("report.txt", b"nul\x00text", "binary/NUL"),
         ("report.txt", b"private=/opt/build/secret/file", "absolute local path"),
         ("report.txt", b"private=/secret.txt", "absolute local path"),
+        ("report.txt", b"private=/a", "absolute local path"),
         ("report.txt", b"private=D:\\build\\secret.txt", "absolute local path"),
         ("checkpoint.pth", b"not-a-torch-file", "unknown signature"),
     ],
@@ -164,6 +165,37 @@ def test_public_file_scan_accepts_matching_png_and_torch_magic(tmp_path: Path) -
     checkpoint.write_bytes(b"PK\x03\x04fixture")
     assert scan_public_file(image, relative_path="image.png")["detected_magic"] == "png"
     assert scan_public_file(checkpoint, relative_path="weights/best.pth")["detected_magic"] == "zip"
+
+
+def test_public_text_scan_accepts_slash_compounds_and_plus_minus_notation(
+    tmp_path: Path,
+) -> None:
+    report = tmp_path / "report.txt"
+    report.write_text(
+        (
+            "설정/source 일치, 평가 경로/maxDets 확인, mean +/- sample SD, "
+            "reports/deployments/<RELEASE>/deployment_release_manifest.json, "
+            "./source, ../data/file\n"
+        ),
+        encoding="utf-8",
+    )
+    assert scan_public_file(report, relative_path="report.txt")["privacy"] == "PASS"
+
+
+def test_publication_scrubs_remaining_generic_absolute_paths(tmp_path: Path) -> None:
+    source = tmp_path / "runner.log"
+    source.write_text(
+        "windows=C:\\actions-runner\\_work\\project\\source.cpp:80 linux=/opt/build/source.py\n",
+        encoding="utf-8",
+    )
+    destination = tmp_path / "public" / "runner.log"
+    record = publish_evidence_file(source, destination, project_root=tmp_path)
+    published = destination.read_text(encoding="utf-8")
+    assert record["sanitized_for_repository"] is True
+    assert published.count("<ABSOLUTE_PATH>") == 2
+    assert "actions-runner" not in published
+    assert "/opt/build" not in published
+    assert scan_public_file(destination, relative_path="runner.log")["privacy"] == "PASS"
 
 
 @pytest.mark.parametrize(
@@ -207,6 +239,30 @@ def test_public_png_scan_rejects_path_in_text_metadata(
     )
     with pytest.raises(ValueError, match="absolute local path"):
         scan_public_file(image, relative_path="metadata.png")
+
+
+def test_public_png_text_scan_uses_unicode_boundaries_and_rejects_short_path(
+    tmp_path: Path,
+) -> None:
+    safe = tmp_path / "safe-unicode.png"
+    safe.write_bytes(
+        PNG_MAGIC
+        + _png_chunk(
+            b"iTXt",
+            b"Comment\x00\x00\x00\x00\x00" + "설정/source".encode("utf-8"),
+        )
+        + _png_chunk(b"IEND", b"")
+    )
+    assert scan_public_file(safe, relative_path=safe.name)["privacy"] == "PASS"
+
+    unsafe = tmp_path / "unsafe-short-path.png"
+    unsafe.write_bytes(
+        PNG_MAGIC
+        + _png_chunk(b"iTXt", b"Comment\x00\x00\x00\x00\x00/a")
+        + _png_chunk(b"IEND", b"")
+    )
+    with pytest.raises(ValueError, match="absolute local path"):
+        scan_public_file(unsafe, relative_path=unsafe.name)
 
 
 def _protobuf_varint(value: int) -> bytes:

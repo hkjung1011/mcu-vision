@@ -15,6 +15,11 @@ from typing import Any
 import yaml
 
 from .common import safe_stem, sha256_file, write_json
+from .release_policy import (
+    compute_paired_seed_deltas,
+    load_formal_release_policy,
+    public_policy_binding,
+)
 
 
 TEXT_SUFFIXES = {".csv", ".log", ".md", ".txt", ".yaml", ".yml"}
@@ -128,6 +133,7 @@ AGGREGATE_METRICS = (
     "train_elapsed_s",
 )
 FORMAL_PRIVATE_FILES = {"local_source_bindings.json"}
+FORMAL_RELEASE_POLICY_ARTIFACT = "formal_release_policy.yaml"
 WEIGHT_SUFFIXES = {
     ".pt",
     ".pth",
@@ -164,7 +170,7 @@ GENERIC_WINDOWS_ABSOLUTE_TEXT = re.compile(
     r"\\\\[^\\/\s]+[\\/][^\s`\"'<>|]+)"
 )
 GENERIC_POSIX_ABSOLUTE_TEXT = re.compile(
-    r"(?m)(?<![A-Za-z0-9:/])/(?![/\s])[A-Za-z0-9._~+@=-]+"
+    r"(?m)(?<![\w:/+.>\-])/(?![/\s])[A-Za-z0-9._~+@=-]+"
     r"(?:/[A-Za-z0-9._~+@=-]+)*"
 )
 GENERIC_WINDOWS_ABSOLUTE_BYTES = re.compile(
@@ -685,11 +691,11 @@ def scan_public_file(path: Path, *, relative_path: str) -> dict[str, Any]:
     else:
         if magic == "png":
             metadata = _png_text_metadata(content, label=normalized)
-            assert_public_binary_privacy(
-                metadata,
-                label=normalized,
-                minimum_text_run=CHECKPOINT_BINARY_TEXT_RUN,
-            )
+            try:
+                metadata_text = metadata.decode("utf-8")
+            except UnicodeDecodeError:
+                metadata_text = metadata.decode("latin-1")
+            assert_public_text_privacy([metadata_text], label=normalized)
         elif suffix == ".onnx":
             assert_public_onnx_privacy(content, label=normalized)
         else:
@@ -742,6 +748,13 @@ def _scrub_text(value: str, replacements: list[tuple[str, str]]) -> tuple[str, b
     changed = changed or bool(process_table_count)
     value, generic_user_count = WINDOWS_USER_HOME.subn("<USER_HOME>", value)
     changed = changed or bool(generic_user_count)
+    value, generic_windows_count = GENERIC_WINDOWS_ABSOLUTE_TEXT.subn(
+        "<ABSOLUTE_PATH>", value
+    )
+    value, generic_posix_count = GENERIC_POSIX_ABSOLUTE_TEXT.subn(
+        "<ABSOLUTE_PATH>", value
+    )
+    changed = changed or bool(generic_windows_count or generic_posix_count)
     return value, changed
 
 
@@ -971,6 +984,8 @@ def _validate_file_record(
 def _validate_formal_artifact_inventory(
     comparison_dir: Path,
     source_bundle_paths: set[str],
+    *,
+    include_release_policy: bool = False,
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     evidence_path = comparison_dir / "evidence_manifest.json"
     evidence = load_json_strict(evidence_path)
@@ -1011,6 +1026,8 @@ def _validate_formal_artifact_inventory(
     ) | source_bundle_paths
     if (comparison_dir / "run_provenance_attestation.json").is_file():
         expected_sources.add("run_provenance_attestation.json")
+    if include_release_policy:
+        expected_sources.add(FORMAL_RELEASE_POLICY_ARTIFACT)
     expected_images = set(FORMAL_DERIVED_IMAGE_ARTIFACTS)
     if paths_by_group["sources"] != expected_sources:
         missing = sorted(expected_sources - paths_by_group["sources"])
@@ -1070,26 +1087,88 @@ def _validate_protocol_artifacts(
     return document
 
 
+def _formal_release_contract(
+    comparison_dir: Path,
+    compatibility: dict[str, Any],
+) -> dict[str, Any]:
+    policy_path = comparison_dir / FORMAL_RELEASE_POLICY_ARTIFACT
+    recorded_binding = compatibility.get("formal_release_policy")
+    if recorded_binding is None:
+        if policy_path.exists():
+            raise ValueError("Unbound formal_release_policy.yaml is not allowed")
+        return {
+            "policy": None,
+            "models": sorted(FORMAL_MODELS),
+            "seeds": sorted(FORMAL_SEEDS),
+            "epochs_per_run": FORMAL_COMMON["epochs"],
+            "expected_runs": 6,
+            "scope": "formal_2_model_x_3_seed_100_epoch_comparison",
+            "summary": "2 models × 3 seeds × 100 epochs",
+        }
+    if not policy_path.is_file():
+        raise FileNotFoundError("Bound formal release policy artifact is missing")
+    policy = load_formal_release_policy(
+        policy_path,
+        base_protocol_path=comparison_dir / "protocol_snapshot.yaml",
+    )
+    if recorded_binding != public_policy_binding(policy):
+        raise ValueError("Formal release policy binding differs from policy artifact")
+    return {
+        "policy": policy,
+        "models": list(policy["normalized_models"]),
+        "seeds": list(policy["seeds"]),
+        "epochs_per_run": int(policy["epochs_per_run"]),
+        "expected_runs": int(policy["expected_runs"]),
+        "scope": "formal_paired_2_model_x_2_seed_100_epoch_descriptive_comparison",
+        "summary": "2 models × 2 paired seeds × 100 epochs — descriptive-only",
+    }
+
+
+def _validate_policy_attestation_binding(
+    attestation: dict[str, Any],
+    policy: dict[str, Any],
+) -> None:
+    expected = {
+        "policy_id": policy["policy_id"],
+        "policy_sha256": policy["policy_sha256"],
+        "base_protocol_id": policy["base_protocol_id"],
+        "base_protocol_sha256": policy["base_protocol_sha256"],
+        "evidence_tier": policy["evidence_tier"],
+        "models": policy["models"],
+        "seeds": policy["seeds"],
+        "expected_runs": policy["expected_runs"],
+    }
+    if attestation.get("formal_release_policy") != expected:
+        raise ValueError("Formal provenance attestation policy binding mismatch")
+
+
 def validate_formal_comparison(
     comparison_dir: Path,
     *,
     require_local_originals: bool = False,
     _allow_missing_formal_record: bool = False,
 ) -> dict[str, Any]:
-    """Independently rebuild the formal six-run gate from the published source bundle."""
+    """Independently rebuild the legacy or policy-selected formal release gate."""
     comparison_dir = comparison_dir.resolve()
     compatibility_path = comparison_dir / "protocol_compatibility.json"
     comparison_path = comparison_dir / "comparison.json"
     sources_path = comparison_dir / "sources_manifest.json"
     compatibility = load_json_strict(compatibility_path)
+    contract = _formal_release_contract(comparison_dir, compatibility)
+    release_policy = contract["policy"]
+    expected_run_count = contract["expected_runs"]
+    run_count_value = compatibility.get("run_count")
     if not (
         compatibility.get("release_ready") is True
         and compatibility.get("comparable") is True
         and compatibility.get("critical_mismatches") == []
         and compatibility.get("release_blockers") == []
-        and int(compatibility.get("run_count", -1)) == 6
+        and type(run_count_value) is int
+        and run_count_value == expected_run_count
     ):
-        raise ValueError("Formal comparison compatibility claims are not an unblocked six-run PASS")
+        raise ValueError(
+            "Formal comparison compatibility claims are not an unblocked exact-matrix PASS"
+        )
     provenance_path = comparison_dir / "run_provenance.json"
     provenance = load_json_strict(provenance_path)
     if provenance.get("status") != "PASS" or compatibility.get("run_provenance") != provenance:
@@ -1105,23 +1184,52 @@ def validate_formal_comparison(
             provenance["attestation"].get("allowed_commits", [])
         ):
             raise ValueError("Formal provenance attestation commit set differs from provenance")
+        if release_policy is not None:
+            _validate_policy_attestation_binding(attestation, release_policy)
+            if provenance.get("formal_release_policy") != attestation.get(
+                "formal_release_policy"
+            ):
+                raise ValueError("Formal run provenance policy binding differs from attestation")
+    elif release_policy is not None:
+        if not attestation_path.is_file():
+            raise FileNotFoundError("Policy-selected formal release requires its attestation")
+        attestation = load_json_strict(attestation_path)
+        _validate_policy_attestation_binding(attestation, release_policy)
+        if provenance.get("formal_release_policy") != attestation.get(
+            "formal_release_policy"
+        ):
+            raise ValueError("Formal run provenance policy binding differs from attestation")
     expectations = compatibility.get("release_expectations", {})
     expected_seed_values = expectations.get("seeds", [])
     if (
-        {_normalized_model(value) for value in expectations.get("models", [])} != FORMAL_MODELS
+        {_normalized_model(value) for value in expectations.get("models", [])}
+        != set(contract["models"])
         or not isinstance(expected_seed_values, list)
         or any(type(value) is not int for value in expected_seed_values)
-        or set(expected_seed_values) != FORMAL_SEEDS
-        or int(expectations.get("runs", -1)) != 6
+        or expected_seed_values != contract["seeds"]
+        or type(expectations.get("runs")) is not int
+        or expectations.get("runs") != expected_run_count
     ):
         raise ValueError("Formal comparison release expectations are not the exact model/seed matrix")
+    if release_policy is not None and any(
+        expectations.get(key) != value
+        for key, value in {
+            "evidence_tier": release_policy["evidence_tier"],
+            "policy_id": release_policy["policy_id"],
+            "policy_sha256": release_policy["policy_sha256"],
+            "base_protocol_sha256": release_policy["base_protocol_sha256"],
+        }.items()
+    ):
+        raise ValueError("Formal comparison release expectations do not bind the release policy")
 
     comparison_rows = load_json_strict(comparison_path)
-    if not isinstance(comparison_rows, list) or len(comparison_rows) != 6:
-        raise ValueError("Formal comparison.json must contain exactly six rows")
+    if not isinstance(comparison_rows, list) or len(comparison_rows) != expected_run_count:
+        if release_policy is None:
+            raise ValueError("Formal comparison.json must contain exactly six rows")
+        raise ValueError("Formal comparison.json must contain exactly four policy-selected rows")
     row_ids = [str(row.get("run_id") or "") for row in comparison_rows if isinstance(row, dict)]
-    if len(row_ids) != 6 or len(set(row_ids)) != 6:
-        raise ValueError("Formal comparison run_id values must be six unique identifiers")
+    if len(row_ids) != expected_run_count or len(set(row_ids)) != expected_run_count:
+        raise ValueError("Formal comparison run_id values must be exact unique identifiers")
 
     sources = load_json_strict(sources_path)
     records = sources.get("files", []) if isinstance(sources, dict) else []
@@ -1192,7 +1300,9 @@ def validate_formal_comparison(
             )
         seed = seed_value
         actual_pairs.add((model, seed))
-        for field, expected in FORMAL_COMMON.items():
+        formal_common = dict(FORMAL_COMMON)
+        formal_common["epochs"] = contract["epochs_per_run"]
+        for field, expected in formal_common.items():
             defaults = {"fraction": 1.0, "multiscale_range": 0}
             actual = protocol.get(field, defaults.get(field))
             if actual != expected:
@@ -1213,15 +1323,18 @@ def validate_formal_comparison(
             "r", encoding="utf-8-sig", newline=""
         ) as handle:
             epochs = list(csv.DictReader(handle))
-        if len(epochs) != 100:
-            raise ValueError(f"Formal epoch evidence must contain 100 rows: {run_id}")
+        if len(epochs) != contract["epochs_per_run"]:
+            raise ValueError(
+                f"Formal epoch evidence must contain {contract['epochs_per_run']} rows: {run_id}"
+            )
         try:
             epoch_numbers = [int(row.get("epoch", "")) for row in epochs]
         except (TypeError, ValueError) as exc:
             raise ValueError(f"Formal epoch evidence has invalid epoch numbers: {run_id}") from exc
-        if epoch_numbers != list(range(1, 101)):
+        if epoch_numbers != list(range(1, contract["epochs_per_run"] + 1)):
             raise ValueError(
-                f"Formal epoch evidence must be the ordered, unique 1..100 sequence: {run_id}"
+                "Formal epoch evidence must be the ordered, unique 1.."
+                f"{contract['epochs_per_run']} sequence: {run_id}"
             )
         epochs_by_run[run_id] = epochs
         final = load_json_strict(by_run_file[(run_id, "final_metrics.json")][1])
@@ -1240,8 +1353,10 @@ def validate_formal_comparison(
         gpu_by_run[run_id] = gpu
         manifests[run_id] = manifest
 
-    expected_pairs = {(model, seed) for model in FORMAL_MODELS for seed in FORMAL_SEEDS}
-    if actual_pairs != expected_pairs:
+    expected_pairs = {
+        (model, seed) for model in contract["models"] for seed in contract["seeds"]
+    }
+    if actual_pairs != expected_pairs or len(comparison_rows) != len(expected_pairs):
         raise ValueError("Formal source manifests do not form the exact model/seed matrix")
     mismatched = [field for field, values in critical_values.items() if len(values) != 1]
     if mismatched:
@@ -1347,7 +1462,7 @@ def validate_formal_comparison(
             )
         expected_aggregate_rows.append(aggregate)
     if aggregate_rows != expected_aggregate_rows:
-        raise ValueError("Formal aggregate_comparison.json differs from the six comparison rows")
+        raise ValueError("Formal aggregate_comparison.json differs from the comparison rows")
     aggregate_csv_path = comparison_dir / "aggregate_comparison.csv"
     with aggregate_csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
         aggregate_csv_rows = list(csv.DictReader(handle))
@@ -1387,7 +1502,7 @@ def validate_formal_comparison(
                 "seed": row["seed"],
                 "run_id": str(row["run_id"]),
                 "status": "complete",
-                "observed_epoch_rows": 100,
+                "observed_epoch_rows": contract["epochs_per_run"],
             }
             for row in comparison_rows
         ),
@@ -1395,15 +1510,15 @@ def validate_formal_comparison(
     )
     required_execution_values = {
         "status": "PASS",
-        "scope": "formal_2_model_x_3_seed_100_epoch_comparison",
-        "summary": "2 models × 3 seeds × 100 epochs",
-        "run_count": 6,
-        "seeds": [42, 43, 44],
-        "epochs_per_run": 100,
+        "scope": contract["scope"],
+        "summary": contract["summary"],
+        "run_count": expected_run_count,
+        "seeds": contract["seeds"],
+        "epochs_per_run": contract["epochs_per_run"],
         "runs": expected_execution_runs,
     }
     if any(execution_status.get(key) != value for key, value in required_execution_values.items()):
-        raise ValueError("Formal execution-status overlay differs from the verified six-run evidence")
+        raise ValueError("Formal execution-status overlay differs from the verified matrix evidence")
     expected_models = sorted(
         {str(row["model"]) for row in comparison_rows}, key=_normalized_model
     )
@@ -1422,9 +1537,33 @@ def validate_formal_comparison(
     if execution_status.get("protocol_compatibility_sha256") != sha256_file(compatibility_path):
         raise ValueError("Formal execution-status compatibility SHA-256 mismatch")
 
+    paired_seed_deltas: dict[str, Any] | None = None
+    if release_policy is not None:
+        paired_seed_deltas = compute_paired_seed_deltas(comparison_rows, release_policy)
+        required_policy_execution = {
+            "formal_release_policy": public_policy_binding(release_policy),
+            "policy_id": release_policy["policy_id"],
+            "policy_sha256": release_policy["policy_sha256"],
+            "base_protocol_id": release_policy["base_protocol_id"],
+            "base_protocol_sha256": release_policy["base_protocol_sha256"],
+            "evidence_tier": release_policy["evidence_tier"],
+            "exact_pairs": release_policy["exact_pairs"],
+            "n_per_model": release_policy["n_per_model"],
+            "paired_n": release_policy["paired_n"],
+            "degrees_of_freedom": release_policy["degrees_of_freedom"],
+            "interpretation": "descriptive_only",
+            "paired_seed_deltas": paired_seed_deltas,
+        }
+        if any(
+            execution_status.get(key) != value
+            for key, value in required_policy_execution.items()
+        ):
+            raise ValueError("Formal execution-status release policy evidence differs")
+
     evidence_manifest, artifact_inventory = _validate_formal_artifact_inventory(
         comparison_dir,
         set(record_paths),
+        include_release_policy=release_policy is not None,
     )
     protocol_artifacts = _validate_protocol_artifacts(comparison_dir, execution_status)
     terminal_text = (comparison_dir / "comparison_terminal.txt").read_text(encoding="utf-8-sig")
@@ -1432,20 +1571,28 @@ def validate_formal_comparison(
     run_labels = [
         f"{row['model']} seed={row['seed']} run_id={row['run_id']}" for row in comparison_rows
     ]
-    if len(set(run_labels)) != 6 or any(label not in terminal_text for label in run_labels):
+    if len(set(run_labels)) != expected_run_count or any(
+        label not in terminal_text for label in run_labels
+    ):
         raise ValueError("Formal terminal labels must uniquely include model, seed, and run_id")
     if any(
         f"| {row['model']} | {row['seed']} | {row['run_id']} |" not in report_text
         for row in comparison_rows
     ):
         raise ValueError("Formal Markdown rows must include model, seed, and run_id")
-    formal_phrase = "FORMAL EXECUTION STATUS: PASS — 2 models × 3 seeds × 100 epochs"
+    formal_phrase = f"FORMAL EXECUTION STATUS: PASS — {contract['summary']}"
     for filename in ("experiment_report.md", "experiment_methodology.md", "parameter_rationale.md"):
         text = (comparison_dir / filename).read_text(encoding="utf-8-sig")
         if formal_phrase not in text:
             raise ValueError(f"Formal status overlay is missing from {filename}")
         if "(ubuntu_handoff.md)" not in text or "(protocol_snapshot.yaml)" not in text:
             raise ValueError(f"Formal protocol/Ubuntu handoff links are missing from {filename}")
+        if release_policy is not None and (
+            release_policy["policy_id"] not in text
+            or release_policy["policy_sha256"] not in text
+            or "(formal_release_policy.yaml)" not in text
+        ):
+            raise ValueError(f"Formal release policy overlay is missing from {filename}")
 
     source_records_for_chain = [
         (run_id, filename, *by_run_file[(run_id, filename)])
@@ -1533,11 +1680,14 @@ def validate_formal_comparison(
     publication_allowlist = sorted(
         {item["path"] for item in artifact_chain} | {"formal_validation.json"}
     )
+    required_user_artifacts = list(REQUIRED_FORMAL_USER_ARTIFACTS)
+    if release_policy is not None:
+        required_user_artifacts.append(FORMAL_RELEASE_POLICY_ARTIFACT)
     formal_record = {
         "schema_version": 2,
         "status": "PASS",
         "formal_release": True,
-        "run_count": 6,
+        "run_count": expected_run_count,
         "model_seed_pairs": [list(pair) for pair in sorted(actual_pairs)],
         "protocol_compatibility_sha256": sha256_file(compatibility_path),
         "comparison_sha256": sha256_file(comparison_path),
@@ -1554,7 +1704,7 @@ def validate_formal_comparison(
         "source_chain": source_chain,
         "artifact_chain_sha256": hashlib.sha256(artifact_payload.encode("utf-8")).hexdigest(),
         "artifact_chain": artifact_chain,
-        "required_user_artifacts": list(REQUIRED_FORMAL_USER_ARTIFACTS),
+        "required_user_artifacts": required_user_artifacts,
         "publication_allowlist": publication_allowlist,
         "image_provenance": {
             "evidence_manifest_generative_ai_used_for_images": evidence_manifest.get(
@@ -1565,6 +1715,27 @@ def validate_formal_comparison(
             ),
         },
     }
+    if release_policy is not None:
+        formal_record.update(
+            {
+                "formal_release_policy": public_policy_binding(release_policy),
+                "policy_id": release_policy["policy_id"],
+                "policy_sha256": release_policy["policy_sha256"],
+                "formal_release_policy_sha256": sha256_file(
+                    comparison_dir / FORMAL_RELEASE_POLICY_ARTIFACT
+                ),
+                "base_protocol_id": release_policy["base_protocol_id"],
+                "base_protocol_sha256": release_policy["base_protocol_sha256"],
+                "evidence_tier": release_policy["evidence_tier"],
+                "exact_pairs": release_policy["exact_pairs"],
+                "n_per_model": release_policy["n_per_model"],
+                "paired_n": release_policy["paired_n"],
+                "degrees_of_freedom": release_policy["degrees_of_freedom"],
+                "interpretation": "descriptive_only",
+                "paired_seed_deltas": paired_seed_deltas,
+                "claim_boundary": release_policy["claims"],
+            }
+        )
     formal_path = comparison_dir / "formal_validation.json"
     if formal_path.is_file():
         recorded = load_json_strict(formal_path)
@@ -1762,7 +1933,26 @@ def validate_published_comparison_release(release_dir: Path) -> dict[str, Any]:
         raise ValueError(
             f"Published comparison raw/weight scan failed: raw={raw_images}, weights={weight_files}"
         )
-    validate_formal_comparison(release_dir)
+    formal = validate_formal_comparison(release_dir)
+    if formal.get("policy_id") is not None:
+        expected_policy = {
+            key: formal[key]
+            for key in (
+                "policy_id",
+                "policy_sha256",
+                "base_protocol_id",
+                "base_protocol_sha256",
+                "evidence_tier",
+                "exact_pairs",
+                "paired_n",
+                "degrees_of_freedom",
+                "interpretation",
+            )
+        }
+        if document.get("formal_release_policy") != expected_policy:
+            raise ValueError("Published comparison manifest release policy differs")
+    elif document.get("formal_release_policy") is not None:
+        raise ValueError("Legacy published comparison must not claim a release policy")
     return {
         "status": "PASS",
         "files": sorted(actual),
@@ -1947,7 +2137,7 @@ def validate_comparison_for_run(
     for path in (compatibility_path, comparison_path, sources_manifest_path, provenance_path):
         if not path.exists():
             raise FileNotFoundError(f"Comparison evidence is missing: {path}")
-    validate_formal_comparison(comparison_dir, require_local_originals=True)
+    formal_record = validate_formal_comparison(comparison_dir, require_local_originals=True)
 
     compatibility = load_json_strict(compatibility_path)
     if not compatibility.get("release_ready", False):
@@ -2018,7 +2208,7 @@ def validate_comparison_for_run(
             }
         )
 
-    return {
+    result = {
         "comparison_id": comparison_dir.name,
         "protocol_compatibility_sha256": sha256_file(compatibility_path),
         "comparison_sha256": sha256_file(comparison_path),
@@ -2033,3 +2223,17 @@ def validate_comparison_for_run(
         "run_id": run_id,
         "verified_source_files": sorted(run_source_records, key=lambda item: item["path"]),
     }
+    if formal_record.get("policy_id") is not None:
+        result.update(
+            {
+                "policy_id": formal_record["policy_id"],
+                "policy_sha256": formal_record["policy_sha256"],
+                "base_protocol_id": formal_record["base_protocol_id"],
+                "base_protocol_sha256": formal_record["base_protocol_sha256"],
+                "evidence_tier": formal_record["evidence_tier"],
+                "formal_release_policy_sha256": formal_record[
+                    "formal_release_policy_sha256"
+                ],
+            }
+        )
+    return result

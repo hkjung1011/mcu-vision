@@ -20,6 +20,7 @@ from .publishing import (
     scan_public_file,
     validate_formal_comparison,
 )
+from .release_policy import load_formal_release_policy, public_policy_binding
 
 
 EVALUATION_REPORT_FILES = (
@@ -44,6 +45,8 @@ COMPARISON_REPORT_FILES = (
     "formal_validation.json",
     "comparison.json",
     "sources_manifest.json",
+    "formal_release_policy.yaml",
+    "protocol_snapshot.yaml",
 )
 REQUIRED_RELEASE_GATES = {
     "native_release",
@@ -169,7 +172,7 @@ def _verify_comparison(
     expected: Mapping[str, Any],
 ) -> dict[str, Any]:
     comparison_dir = comparison_dir.resolve()
-    validate_formal_comparison(comparison_dir)
+    formal_record = validate_formal_comparison(comparison_dir)
     compatibility_path = comparison_dir / "protocol_compatibility.json"
     comparison_path = comparison_dir / "comparison.json"
     sources_path = comparison_dir / "sources_manifest.json"
@@ -242,6 +245,19 @@ def _verify_comparison(
         "native_final_metrics_sha256": native_final_metrics_sha256,
         "run_id": run_id,
     }
+    if formal_record.get("policy_id") is not None:
+        actual.update(
+            {
+                "policy_id": formal_record["policy_id"],
+                "policy_sha256": formal_record["policy_sha256"],
+                "base_protocol_id": formal_record["base_protocol_id"],
+                "base_protocol_sha256": formal_record["base_protocol_sha256"],
+                "evidence_tier": formal_record["evidence_tier"],
+                "formal_release_policy_sha256": formal_record[
+                    "formal_release_policy_sha256"
+                ],
+            }
+        )
     for key, value in actual.items():
         if str(expected.get(key, "")) != str(value):
             raise ValueError(
@@ -556,6 +572,36 @@ def validate_promoted_deployment_for_runtime(
             f"missing={missing_gates}, failing={failing_gates}"
         )
 
+    release_dir = release_manifest_path.parent
+    comparison_summary = _mapping(
+        manifest.get("comparison"), "deployment comparison summary"
+    )
+    if comparison_summary.get("policy_id") is not None:
+        if gates.get("formal_release_policy_binding") != "PASS":
+            raise ValueError("Deployment formal release policy binding gate is missing")
+        comparison_dir = release_dir / "comparison"
+        policy_path = comparison_dir / "formal_release_policy.yaml"
+        protocol_path = comparison_dir / "protocol_snapshot.yaml"
+        formal_path = comparison_dir / "formal_validation.json"
+        policy = load_formal_release_policy(
+            policy_path,
+            base_protocol_path=protocol_path,
+        )
+        formal = _read_object(formal_path, "deployment formal comparison validation")
+        required_policy_values = {
+            "policy_id": policy["policy_id"],
+            "policy_sha256": policy["policy_sha256"],
+            "base_protocol_id": policy["base_protocol_id"],
+            "base_protocol_sha256": policy["base_protocol_sha256"],
+            "evidence_tier": policy["evidence_tier"],
+            "formal_release_policy_sha256": sha256_file(policy_path),
+        }
+        if formal.get("formal_release_policy") != public_policy_binding(policy) or any(
+            formal.get(key) != value or comparison_summary.get(key) != value
+            for key, value in required_policy_values.items()
+        ):
+            raise ValueError("Deployment formal release policy evidence differs")
+
     metadata_record = _mapping(
         manifest.get("deployment_metadata"), "deployment release metadata record"
     )
@@ -593,7 +639,6 @@ def validate_promoted_deployment_for_runtime(
         "promoted native checkpoint",
     )
 
-    release_dir = release_manifest_path.parent
     published_rows = manifest.get("published_files")
     if not isinstance(published_rows, list):
         raise ValueError("Deployment release manifest is missing published_files")
@@ -889,7 +934,7 @@ def promote_deployment_release(
     assert_binary_has_no_local_paths(onnx_path, project_root)
     metadata_sha = sha256_file(deployment_metadata_path)
 
-    for key in (
+    comparison_binding_keys = [
         "comparison_id",
         "protocol_compatibility_sha256",
         "comparison_sha256",
@@ -900,7 +945,19 @@ def promote_deployment_release(
         "run_manifest_sha256",
         "native_final_metrics_sha256",
         "run_id",
-    ):
+    ]
+    if comparison.get("policy_id") is not None:
+        comparison_binding_keys.extend(
+            [
+                "policy_id",
+                "policy_sha256",
+                "base_protocol_id",
+                "base_protocol_sha256",
+                "evidence_tier",
+                "formal_release_policy_sha256",
+            ]
+        )
+    for key in comparison_binding_keys:
         if str(release_validation.get(key, "")) != str(comparison.get(key, "")):
             raise ValueError(f"Deployment release_validation differs from original comparison: {key}")
 
@@ -989,7 +1046,10 @@ def promote_deployment_release(
                 )
         for name in COMPARISON_REPORT_FILES:
             source = comparison_dir / name
-            if name == "run_provenance_attestation.json" and not source.is_file():
+            if name in {
+                "run_provenance_attestation.json",
+                "formal_release_policy.yaml",
+            } and not source.is_file():
                 continue
             relative = f"comparison/{name}"
             published.append(
@@ -1035,7 +1095,7 @@ def promote_deployment_release(
             "source_run_id": run_id,
             "model": native.get("model"),
             "protocol_id": val["protocol_id"],
-            "gates": {
+        "gates": {
                 "native_release": "PASS",
                 "deployment_release_validation": "PASS",
                 "native_onnx_numeric_equivalence": "PASS",
@@ -1047,8 +1107,13 @@ def promote_deployment_release(
                 "split_binding": "PASS",
                 "artifact_hashes_and_sizes": "PASS",
                 "publication_path_privacy": "PASS",
-                "git_lfs_rules": "PASS",
-            },
+            "git_lfs_rules": "PASS",
+        }
+        | (
+            {"formal_release_policy_binding": "PASS"}
+            if comparison.get("policy_id") is not None
+            else {}
+        ),
             "native_checkpoint": checkpoint,
             "onnx": onnx,
             "deployment_metadata": {

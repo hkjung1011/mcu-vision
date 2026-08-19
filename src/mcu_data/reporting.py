@@ -19,7 +19,13 @@ import numpy as np
 
 from .common import portable_path, safe_stem, sha256_file, write_json
 from .methodology import canonical_text_sha256, load_protocol, write_protocol_artifacts
-from .publishing import create_formal_validation, publish_evidence_file
+from .publishing import create_formal_validation, load_json_strict, publish_evidence_file
+from .release_policy import (
+    compute_paired_seed_deltas,
+    load_formal_release_policy,
+    public_policy_binding,
+    write_policy_snapshot,
+)
 from .run_provenance import verify_run_provenance
 from .runlog import (
     checkpoint_file_record,
@@ -83,7 +89,7 @@ def _per_run_label(
 ) -> str:
     """Return an unambiguous label for one run.
 
-    Model-only labels silently collapse the three formal seeds in legends and tables.  Keep the
+    Model-only labels silently collapse repeated formal seeds in legends and tables. Keep the
     run ID as well so diagnostic comparisons with a repeated model/seed pair remain distinguishable.
     """
     separator = "\n" if multiline else " "
@@ -961,32 +967,82 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _verify_policy_attestation(
+    attestation_path: Path | None,
+    policy: dict[str, Any],
+) -> dict[str, Any]:
+    if attestation_path is None:
+        raise ValueError("A policy-bound provenance attestation is required for formal release")
+    document = load_json_strict(attestation_path, label="formal provenance attestation")
+    if not isinstance(document, dict):
+        raise ValueError("Formal provenance attestation must be a JSON object")
+    binding = document.get("formal_release_policy")
+    if not isinstance(binding, dict):
+        raise ValueError("Provenance attestation is missing formal_release_policy binding")
+    expected = {
+        "policy_id": policy["policy_id"],
+        "policy_sha256": policy["policy_sha256"],
+        "base_protocol_id": policy["base_protocol_id"],
+        "base_protocol_sha256": policy["base_protocol_sha256"],
+        "evidence_tier": policy["evidence_tier"],
+        "models": policy["models"],
+        "seeds": policy["seeds"],
+        "expected_runs": policy["expected_runs"],
+    }
+    if binding != expected:
+        raise ValueError("Provenance attestation formal release policy binding mismatch")
+    return expected
+
+
 def compare_runs(
     run_dirs: list[Path],
     output_dir: Path,
     *,
     provenance_attestation: Path | None = None,
+    formal_release_policy: Path | None = None,
     formal: bool = False,
 ) -> list[dict[str, Any]]:
+    if formal_release_policy is not None and not formal:
+        raise ValueError("--formal-release-policy is valid only together with --formal")
     if formal and output_dir.exists():
         if not output_dir.is_dir() or any(output_dir.iterdir()):
             raise ValueError(
                 "Formal comparison output directory must be empty before writing: "
                 f"{output_dir.resolve()}"
             )
-    output_dir.mkdir(parents=True, exist_ok=True)
     runs = [_load_run(path.resolve()) for path in run_dirs]
     run_ids = [str(run["run_id"]) for run in runs]
     if len(set(run_ids)) != len(run_ids):
         raise ValueError("Duplicate run_id values are not allowed in a comparison")
     expected_protocol = _comparison_protocol_document(runs)
-    compatibility = _protocol_compatibility(runs, expected_protocol)
+    protocol_source_text = expected_protocol.get("_loaded_source_path")
+    protocol_source = Path(protocol_source_text) if protocol_source_text else (
+        project_root() / "configs" / "experiments" / "baseline_v1.yaml"
+    )
+    release_policy = (
+        load_formal_release_policy(
+            formal_release_policy.resolve(),
+            base_protocol_path=protocol_source,
+        )
+        if formal_release_policy is not None
+        else None
+    )
+    attested_policy = (
+        _verify_policy_attestation(provenance_attestation, release_policy)
+        if release_policy is not None
+        else None
+    )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    compatibility = _protocol_compatibility(runs, expected_protocol, release_policy)
     provenance = verify_run_provenance(
         runs,
         repository=project_root(),
         attestation_path=provenance_attestation.resolve() if provenance_attestation else None,
     )
     compatibility["run_provenance"] = provenance
+    if release_policy is not None:
+        provenance["formal_release_policy"] = attested_policy
+        compatibility["run_provenance"] = provenance
     if provenance["status"] != "PASS":
         compatibility["release_ready"] = False
         compatibility["release_blockers"].append(
@@ -1032,6 +1088,11 @@ def compare_runs(
             }
         )
     aggregate_rows = _aggregate_rows(rows)
+    paired_seed_deltas = (
+        compute_paired_seed_deltas(rows, release_policy)
+        if release_policy is not None and compatibility.get("release_ready") is True
+        else None
+    )
     fieldnames = list(rows[0]) if rows else []
     comparison_csv = output_dir / "comparison.csv"
     if fieldnames:
@@ -1048,7 +1109,21 @@ def compare_runs(
             output_dir / "run_provenance_attestation.json",
             project_root=project_root(),
         )
-    terminal_text = _comparison_terminal_text(rows, compatibility, aggregate_rows, formal=formal)
+    if release_policy is not None and formal_release_policy is not None:
+        written_policy_sha = write_policy_snapshot(
+            formal_release_policy.resolve(),
+            output_dir / "formal_release_policy.yaml",
+        )
+        if written_policy_sha != release_policy["policy_sha256"]:
+            raise ValueError("Published formal release policy SHA-256 mismatch")
+    terminal_text = _comparison_terminal_text(
+        rows,
+        compatibility,
+        aggregate_rows,
+        formal=formal,
+        release_policy=release_policy,
+        paired_seed_deltas=paired_seed_deltas,
+    )
     terminal_path = output_dir / "comparison_terminal.txt"
     terminal_path.write_text(terminal_text, encoding="utf-8", newline="\n")
     print(terminal_text, end="")
@@ -1068,12 +1143,14 @@ def compare_runs(
         output_dir / "training_curves.png",
         compatibility["comparable"],
         epoch_source_note,
+        release_policy,
     )
     _plot_dashboard(
         rows,
         output_dir / "comparison_dashboard.png",
         compatibility["comparable"],
         comparison_source_note,
+        release_policy,
     )
     if any(row["runs"] > 1 for row in aggregate_rows):
         aggregate_csv = output_dir / "aggregate_comparison.csv"
@@ -1084,11 +1161,14 @@ def compare_runs(
             aggregate_rows,
             output_dir / "aggregate_comparison.png",
             aggregate_source_note,
+            release_policy,
+            paired_seed_deltas,
         )
     _plot_terminal_snapshot(
         terminal_text,
         output_dir / "terminal_summary.png",
         f"SOURCE: comparison_terminal.txt | SHA256: {sha256_file(terminal_path)}",
+        release_policy,
     )
     snapshot_protocol = runs[0]["run_dir"] / "protocol_snapshot.yaml" if runs else None
     recorded_protocol = runs[0]["metadata"].get("protocol_config", {}).get("path") if runs else None
@@ -1100,7 +1180,14 @@ def compare_runs(
         protocol_path = project_root() / "configs" / "experiments" / "baseline_v1.yaml"
     execution_status: dict[str, Any] | None = None
     if formal and compatibility.get("release_ready") is True:
-        execution_status = _formal_execution_status(runs, rows, protocol_path, output_dir)
+        execution_status = _formal_execution_status(
+            runs,
+            rows,
+            protocol_path,
+            output_dir,
+            release_policy,
+            paired_seed_deltas,
+        )
         write_json(output_dir / "formal_execution_status.json", execution_status)
         publish_evidence_file(
             project_root() / "docs" / "ubuntu_handoff.md",
@@ -1125,13 +1212,15 @@ def compare_runs(
         compatibility,
         aggregate_rows,
         execution_status,
+        release_policy,
+        paired_seed_deltas,
     )
     _bundle_run_evidence(output_dir, runs)
     if formal:
         if compatibility.get("release_ready") is not True:
             _write_evidence_manifest(output_dir)
             raise ValueError(
-                "Formal comparison requires an exact, release-ready six-run model/seed matrix; "
+                "Formal comparison requires the exact release-policy model/seed matrix; "
                 "inspect protocol_compatibility.json"
             )
         _write_evidence_manifest(output_dir)
@@ -1148,6 +1237,8 @@ def _write_comparison_markdown(
     compatibility: dict[str, Any],
     aggregate_rows: list[dict[str, Any]],
     execution_status: dict[str, Any] | None = None,
+    release_policy: dict[str, Any] | None = None,
+    paired_seed_deltas: dict[str, Any] | None = None,
 ) -> None:
     verdict = "PASS" if compatibility.get("comparable") else "FAIL / NOT COMPARABLE"
     if len(rows) < 2:
@@ -1170,12 +1261,34 @@ def _write_comparison_markdown(
         "",
     ]
     if execution_status is not None:
+        summary = str(execution_status["summary"])
         lines.extend(
             [
-                "- **FORMAL EXECUTION STATUS: PASS — 2 models × 3 seeds × 100 epochs**",
+                f"- **FORMAL EXECUTION STATUS: PASS — {summary}**",
                 "- 실행 근거: [formal execution status](formal_execution_status.json) · "
                 "[immutable protocol snapshot](protocol_snapshot.yaml) · "
                 "[Ubuntu handoff](ubuntu_handoff.md)",
+                "",
+            ]
+        )
+    if release_policy is not None:
+        lines.extend(
+            [
+                "## Formal release policy",
+                "",
+                f"- policy ID: `{release_policy['policy_id']}`",
+                f"- policy SHA-256: `{release_policy['policy_sha256']}`",
+                f"- base protocol: `{release_policy['base_protocol_id']}` / "
+                f"`{release_policy['base_protocol_sha256']}`",
+                f"- evidence tier: `{release_policy['evidence_tier']}`",
+                f"- exact matrix: `{release_policy['exact_pairs']}`",
+                f"- statistics: `n={release_policy['paired_n']}`, "
+                f"`df={release_policy['degrees_of_freedom']}`, `descriptive-only`",
+                "- 이 2-seed 범위는 학습 시작 후 계산 비용을 고려해 결정되었습니다. seed44는 "
+                "완료 여부와 관계없이 두 모델 모두에서 일괄 제외합니다.",
+                "- 허용: per-run 수치, mean, sample SD, paired seed delta. 금지: 통계적 "
+                "유의성, 모집단 우월성, production-ready, independent-test 주장.",
+                "- 동결 정책: [formal release policy](formal_release_policy.yaml)",
                 "",
             ]
         )
@@ -1220,7 +1333,7 @@ def _write_comparison_markdown(
             "- confidence=0.25의 P/R/F1은 고정 보고점이지 최종 배포 threshold가 아닙니다.",
             "- YOLO11 `box/cls/dfl`과 YOLOX `iou/conf/cls/l1` loss는 정의가 달라 절대값을 직접 비교하지 않습니다.",
             "- YOLO11의 gradient accumulation과 YOLOX의 batch별 optimizer step이 달라 optimizer dynamics는 동일하지 않습니다.",
-            "- 모델 차이가 seed 표준편차와 비슷하면 n=3으로 우열을 확정하지 않고 반복 수를 늘립니다.",
+            "- 모델 차이가 seed 표준편차와 비슷하면 현재 반복 수로 우열을 확정하지 않고 반복 수를 늘립니다.",
             "",
         ]
     )
@@ -1257,6 +1370,34 @@ def _write_comparison_markdown(
                     "",
                 ]
             )
+    if paired_seed_deltas is not None:
+        primary = paired_seed_deltas["by_metric"]["ap50_95"]
+        lines.extend(
+            [
+                "## Paired seed delta (descriptive-only)",
+                "",
+                f"방향: `{paired_seed_deltas['model_a']} - {paired_seed_deltas['model_b']}`; "
+                f"n={paired_seed_deltas['paired_n']}, df={paired_seed_deltas['degrees_of_freedom']}",
+                "",
+                "| seed | model A AP50-95 | model B AP50-95 | paired delta |",
+                "|---:|---:|---:|---:|",
+            ]
+        )
+        for item in primary["pairs"]:
+            lines.append(
+                f"| {item['seed']} | {_format(item['model_a_value'])} | "
+                f"{_format(item['model_b_value'])} | "
+                f"{_format(item['delta_model_a_minus_model_b'])} |"
+            )
+        lines.extend(
+            [
+                "",
+                f"mean paired delta = `{_format(primary['mean_delta'])}`, sample SD = "
+                f"`{_format(primary['sample_sd_delta'])}`. 이 값은 기술통계이며 유의성 검정이나 "
+                "모집단 우월성의 근거가 아닙니다.",
+                "",
+            ]
+        )
     lines.extend(
         [
             "## 자동 생성 증빙",
@@ -1299,6 +1440,7 @@ def _normalize_model_name(value: Any) -> str:
 def _protocol_compatibility(
     runs: list[dict[str, Any]],
     expected_protocol: dict[str, Any] | None = None,
+    release_policy: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     expected_protocol = expected_protocol or {}
     common = expected_protocol.get("common", {})
@@ -1356,8 +1498,16 @@ def _protocol_compatibility(
     seed_sets = {model: sorted(seeds, key=str) for model, seeds in seeds_by_model.items()}
     if len({json.dumps(seeds, sort_keys=True) for seeds in seed_sets.values()}) > 1:
         mismatches.append({"field": "seed_set", "values": seed_sets})
-    expected_models = [str(item) for item in rules.get("required_models", [])]
-    expected_seeds = list(common.get("seeds", []))
+    expected_models = (
+        list(release_policy["models"])
+        if release_policy is not None
+        else [str(item) for item in rules.get("required_models", [])]
+    )
+    expected_seeds = (
+        list(release_policy["seeds"])
+        if release_policy is not None
+        else list(common.get("seeds", []))
+    )
     release_blockers: list[dict[str, Any]] = []
     invalid_expected_seed_types = [
         {"value": repr(seed), "type": type(seed).__name__}
@@ -1455,7 +1605,11 @@ def _protocol_compatibility(
             {"field": "complete_non_smoke_runs", "actual": sorted(incomplete)}
         )
     expected_values = {
-        "epochs": common.get("epochs"),
+        "epochs": (
+            release_policy["epochs_per_run"]
+            if release_policy is not None
+            else common.get("epochs")
+        ),
         "batch": common.get("batch_size"),
         "imgsz": common.get("image_size"),
         "workers": common.get("workers"),
@@ -1502,7 +1656,11 @@ def _protocol_compatibility(
                     "actual": wrong,
                 }
             )
-    expected_epoch_count = common.get("epochs")
+    expected_epoch_count = (
+        release_policy["epochs_per_run"]
+        if release_policy is not None
+        else common.get("epochs")
+    )
     wrong_epoch_counts = {
         run["run_id"]: len(run.get("epochs", []))
         for run in runs
@@ -1577,7 +1735,7 @@ def _protocol_compatibility(
         release_blockers.append(
             {"field": "gpu_metric:peak_memory_used_mib", "invalid_runs": sorted(invalid_gpu)}
         )
-    return {
+    result = {
         "comparable": len(runs) >= 2 and not mismatches,
         "release_ready": len(runs) >= 2 and not mismatches and not release_blockers,
         "run_count": len(runs),
@@ -1598,6 +1756,15 @@ def _protocol_compatibility(
             "framework-specific; final accuracy must come from common COCO evaluation."
         ),
     }
+    if release_policy is not None:
+        result["formal_release_policy"] = public_policy_binding(release_policy)
+        result["release_expectations"]["evidence_tier"] = release_policy["evidence_tier"]
+        result["release_expectations"]["policy_id"] = release_policy["policy_id"]
+        result["release_expectations"]["policy_sha256"] = release_policy["policy_sha256"]
+        result["release_expectations"]["base_protocol_sha256"] = release_policy[
+            "base_protocol_sha256"
+        ]
+    return result
 
 
 def _aggregate_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1637,6 +1804,8 @@ def _formal_execution_status(
     rows: list[dict[str, Any]],
     protocol_path: Path,
     output_dir: Path,
+    release_policy: dict[str, Any] | None = None,
+    paired_seed_deltas: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     epoch_counts = {str(run["run_id"]): len(run["epochs"]) for run in runs}
     run_records = sorted(
@@ -1652,15 +1821,27 @@ def _formal_execution_status(
         ),
         key=lambda item: (_normalize_model_name(item["model"]), item["seed"], item["run_id"]),
     )
-    return {
+    if release_policy is None:
+        scope = "formal_2_model_x_3_seed_100_epoch_comparison"
+        summary = "2 models × 3 seeds × 100 epochs"
+        seeds = [42, 43, 44]
+        epochs_per_run = 100
+        expected_run_count = 6
+    else:
+        scope = "formal_paired_2_model_x_2_seed_100_epoch_descriptive_comparison"
+        summary = "2 models × 2 paired seeds × 100 epochs — descriptive-only"
+        seeds = list(release_policy["seeds"])
+        epochs_per_run = int(release_policy["epochs_per_run"])
+        expected_run_count = int(release_policy["expected_runs"])
+    result = {
         "schema_version": 1,
         "status": "PASS",
-        "scope": "formal_2_model_x_3_seed_100_epoch_comparison",
-        "summary": "2 models × 3 seeds × 100 epochs",
-        "run_count": 6,
+        "scope": scope,
+        "summary": summary,
+        "run_count": expected_run_count,
         "models": sorted({item["model"] for item in run_records}, key=_normalize_model_name),
-        "seeds": [42, 43, 44],
-        "epochs_per_run": 100,
+        "seeds": seeds,
+        "epochs_per_run": epochs_per_run,
         "runs": run_records,
         "validation": {
             "protocol_compatibility": "PASS",
@@ -1677,6 +1858,26 @@ def _formal_execution_status(
             "protocol snapshot; it does not rewrite that snapshot."
         ),
     }
+    if release_policy is not None:
+        if paired_seed_deltas is None:
+            raise ValueError("Paired formal execution requires paired_seed_deltas")
+        result.update(
+            {
+                "formal_release_policy": public_policy_binding(release_policy),
+                "policy_id": release_policy["policy_id"],
+                "policy_sha256": release_policy["policy_sha256"],
+                "base_protocol_id": release_policy["base_protocol_id"],
+                "base_protocol_sha256": release_policy["base_protocol_sha256"],
+                "evidence_tier": release_policy["evidence_tier"],
+                "exact_pairs": release_policy["exact_pairs"],
+                "n_per_model": release_policy["n_per_model"],
+                "paired_n": release_policy["paired_n"],
+                "degrees_of_freedom": release_policy["degrees_of_freedom"],
+                "interpretation": "descriptive_only",
+                "paired_seed_deltas": paired_seed_deltas,
+            }
+        )
+    return result
 
 
 def _comparison_terminal_text(
@@ -1685,6 +1886,8 @@ def _comparison_terminal_text(
     aggregate_rows: list[dict[str, Any]],
     *,
     formal: bool = False,
+    release_policy: dict[str, Any] | None = None,
+    paired_seed_deltas: dict[str, Any] | None = None,
 ) -> str:
     lines = ["", "MODEL COMPARISON — COMMON COCO VALIDATION", "=" * 190]
     header = (
@@ -1742,16 +1945,65 @@ def _comparison_terminal_text(
     else:
         blockers = ", ".join(item["field"] for item in compatibility.get("release_blockers", []))
         lines.append(f"RELEASE: BLOCKED - {blockers or 'formal release requirements are incomplete'}")
+    if release_policy is not None:
+        lines.extend(
+            [
+                "RELEASE POLICY: "
+                f"{release_policy['policy_id']} | SHA256={release_policy['policy_sha256']}",
+                "BASE PROTOCOL: "
+                f"{release_policy['base_protocol_id']} | "
+                f"SHA256={release_policy['base_protocol_sha256']}",
+                "EVIDENCE TIER: paired_2seed_descriptive | n=2 per model | paired n=2 | "
+                "df=1 | DESCRIPTIVE-ONLY",
+                "CLAIM LIMIT: no significance, population superiority, production-ready, or "
+                "independent-test claim.",
+            ]
+        )
     if any(row["runs"] > 1 for row in aggregate_rows):
-        lines.extend(["", "SEED AGGREGATE (mean +/- sample standard deviation)", "-" * 76])
+        lines.extend(["", "SEED AGGREGATE (mean ± sample standard deviation)", "-" * 76])
         for row in aggregate_rows:
             lines.append(
                 f"{row['model']:<24} n={row['runs']:<3} "
-                f"AP50-95={_format(row['ap50_95_mean'])} +/- {_format(row['ap50_95_std'])} "
-                f"P50ms={_format(row['latency_p50_ms_mean'], 2)} +/- "
+                f"AP50-95={_format(row['ap50_95_mean'])} ± {_format(row['ap50_95_std'])} "
+                f"P50ms={_format(row['latency_p50_ms_mean'], 2)} ± "
                 f"{_format(row['latency_p50_ms_std'], 2)}"
             )
+    if paired_seed_deltas is not None:
+        primary = paired_seed_deltas["by_metric"]["ap50_95"]
+        lines.extend(
+            [
+                "",
+                "PAIRED AP50-95 DELTAS "
+                f"({paired_seed_deltas['model_a']} - {paired_seed_deltas['model_b']}; "
+                "descriptive-only)",
+                "-" * 100,
+            ]
+        )
+        for item in primary["pairs"]:
+            lines.append(
+                f"seed={item['seed']}: {_format(item['delta_model_a_minus_model_b'])} "
+                f"(A={_format(item['model_a_value'])}, B={_format(item['model_b_value'])})"
+            )
+        lines.append(
+            f"mean delta={_format(primary['mean_delta'])}; "
+            f"sample SD={_format(primary['sample_sd_delta'])}; n=2; df=1"
+        )
     return "\n".join(lines) + "\n"
+
+
+def _release_chart_note(release_policy: dict[str, Any] | None) -> str:
+    if release_policy is None:
+        return ""
+    pairs = ",".join(
+        f"{model}@{seed}" for model, seed in release_policy["exact_pairs"]
+    )
+    return (
+        f"POLICY: {release_policy['policy_id']} | POLICY_SHA256: "
+        f"{release_policy['policy_sha256']} | BASE_SHA256: "
+        f"{release_policy['base_protocol_sha256']} | TIER: "
+        f"{release_policy['evidence_tier']} | PAIRS: {pairs} | n=2 | df=1 | "
+        "DESCRIPTIVE_ONLY"
+    )
 
 
 def _plot_training_curves(
@@ -1759,6 +2011,7 @@ def _plot_training_curves(
     output: Path,
     comparable: bool = True,
     source_note: str = "",
+    release_policy: dict[str, Any] | None = None,
 ) -> None:
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     for run in runs:
@@ -1792,14 +2045,17 @@ def _plot_training_curves(
         if axis.lines:
             axis.legend()
     prefix = "" if comparable or len(runs) < 2 else "NOT COMPARABLE — "
-    fig.suptitle(prefix + "Training curves — native losses are framework-specific")
-    if source_note:
-        fig.text(0.01, 0.005, source_note + " | RENDERER: matplotlib | GENERATIVE_AI: false", fontsize=7)
+    context = _release_chart_note(release_policy)
+    title_suffix = "\npaired 2-seed descriptive tier (n=2, df=1)" if release_policy else ""
+    fig.suptitle(prefix + "Training curves — native losses are framework-specific" + title_suffix)
+    footer = " | ".join(value for value in (source_note, context) if value)
+    if footer:
+        fig.text(0.01, 0.005, footer + " | RENDERER: matplotlib | GENERATIVE_AI: false", fontsize=7)
     fig.tight_layout(rect=(0.0, 0.035, 1.0, 0.95))
     fig.savefig(
         output,
         dpi=180,
-        metadata={"Software": "matplotlib", "Description": source_note + " | generative_ai=false"},
+        metadata={"Software": "matplotlib", "Description": footer + " | generative_ai=false"},
     )
     plt.close(fig)
 
@@ -1809,6 +2065,7 @@ def _plot_dashboard(
     output: Path,
     comparable: bool = True,
     source_note: str = "",
+    release_policy: dict[str, Any] | None = None,
 ) -> None:
     if not rows:
         return
@@ -1847,14 +2104,17 @@ def _plot_dashboard(
             label = f"{value:.3g}" if raw_value is not None else "N/A"
             axis.text(index, value, label, ha="center", va="bottom", fontsize=8)
     prefix = "" if comparable or len(rows) < 2 else "NOT COMPARABLE — "
-    fig.suptitle(prefix + "MCU detector common-evaluation dashboard")
-    if source_note:
-        fig.text(0.01, 0.005, source_note + " | RENDERER: matplotlib | GENERATIVE_AI: false", fontsize=7)
+    context = _release_chart_note(release_policy)
+    title_suffix = "\npaired 2-seed descriptive tier (n=2, df=1)" if release_policy else ""
+    fig.suptitle(prefix + "MCU detector common-evaluation dashboard" + title_suffix)
+    footer = " | ".join(value for value in (source_note, context) if value)
+    if footer:
+        fig.text(0.01, 0.005, footer + " | RENDERER: matplotlib | GENERATIVE_AI: false", fontsize=7)
     fig.tight_layout(rect=(0.0, 0.035, 1.0, 0.96))
     fig.savefig(
         output,
         dpi=180,
-        metadata={"Software": "matplotlib", "Description": source_note + " | generative_ai=false"},
+        metadata={"Software": "matplotlib", "Description": footer + " | generative_ai=false"},
     )
     plt.close(fig)
 
@@ -1863,6 +2123,8 @@ def _plot_aggregate_comparison(
     rows: list[dict[str, Any]],
     output: Path,
     source_note: str,
+    release_policy: dict[str, Any] | None = None,
+    paired_seed_deltas: dict[str, Any] | None = None,
 ) -> None:
     """Plot model-level means with sample-SD error bars for the repeated-seed result."""
     if not rows:
@@ -1877,8 +2139,9 @@ def _plot_aggregate_comparison(
             None,
         ),
     )
-    fig, axes = plt.subplots(1, 2, figsize=(11, 5.5))
-    for axis, (mean_key, std_key, title, limits) in zip(axes, panels, strict=True):
+    panel_count = 3 if paired_seed_deltas is not None else 2
+    fig, axes = plt.subplots(1, panel_count, figsize=(15 if panel_count == 3 else 11, 5.5))
+    for axis, (mean_key, std_key, title, limits) in zip(axes[:2], panels, strict=True):
         means = [float(row[mean_key]) if row.get(mean_key) is not None else 0.0 for row in rows]
         errors = [float(row[std_key]) if row.get(std_key) is not None else 0.0 for row in rows]
         bars = axis.bar(labels, means, yerr=errors, capsize=7, color="#4c78a8", alpha=0.9)
@@ -1896,18 +2159,52 @@ def _plot_aggregate_comparison(
                 va="bottom",
                 fontsize=9,
             )
-    fig.suptitle("Formal seed aggregate — mean ± sample standard deviation")
+    if paired_seed_deltas is not None:
+        primary = paired_seed_deltas["by_metric"]["ap50_95"]
+        delta_axis = axes[2]
+        delta_labels = [f"seed {item['seed']}" for item in primary["pairs"]]
+        delta_values = [item["delta_model_a_minus_model_b"] for item in primary["pairs"]]
+        bars = delta_axis.bar(delta_labels, delta_values, color="#f58518", alpha=0.9)
+        delta_axis.axhline(0.0, color="black", linewidth=0.8)
+        delta_axis.set_title(
+            f"Paired AP50-95 delta\n{paired_seed_deltas['model_a']} - "
+            f"{paired_seed_deltas['model_b']}"
+        )
+        delta_axis.set_ylabel("paired delta; descriptive-only")
+        delta_axis.grid(True, axis="y", alpha=0.25)
+        for bar, value in zip(bars, delta_values, strict=True):
+            delta_axis.text(
+                bar.get_x() + bar.get_width() / 2,
+                value,
+                f"{value:.4g}",
+                ha="center",
+                va="bottom" if value >= 0 else "top",
+                fontsize=9,
+            )
+        delta_axis.text(
+            0.5,
+            0.02,
+            f"mean={primary['mean_delta']:.4g}; SD={primary['sample_sd_delta']:.3g}; n=2; df=1",
+            transform=delta_axis.transAxes,
+            ha="center",
+            fontsize=8,
+        )
+    title_suffix = " — paired descriptive-only (n=2, df=1)" if release_policy else ""
+    fig.suptitle("Formal seed aggregate — mean ± sample standard deviation" + title_suffix)
+    footer = " | ".join(
+        value for value in (source_note, _release_chart_note(release_policy)) if value
+    )
     fig.text(
         0.01,
         0.005,
-        source_note + " | RENDERER: matplotlib | GENERATIVE_AI: false",
+        footer + " | RENDERER: matplotlib | GENERATIVE_AI: false",
         fontsize=7,
     )
     fig.tight_layout(rect=(0.0, 0.04, 1.0, 0.94))
     fig.savefig(
         output,
         dpi=180,
-        metadata={"Software": "matplotlib", "Description": source_note + " | generative_ai=false"},
+        metadata={"Software": "matplotlib", "Description": footer + " | generative_ai=false"},
     )
     plt.close(fig)
 
@@ -1916,6 +2213,7 @@ def _plot_terminal_snapshot(
     terminal_text: str,
     output: Path,
     source_note: str,
+    release_policy: dict[str, Any] | None = None,
 ) -> None:
     lines = terminal_text.rstrip().splitlines()
     fig = plt.figure(figsize=(17, max(3.5, len(lines) * 0.32)), facecolor="#111318")
@@ -1931,7 +2229,10 @@ def _plot_terminal_snapshot(
     fig.text(
         0.025,
         0.02,
-        source_note + " | RENDERER: matplotlib (non-generative) | GENERATIVE_AI: false",
+        " | ".join(
+            value for value in (source_note, _release_chart_note(release_policy)) if value
+        )
+        + " | RENDERER: matplotlib (non-generative) | GENERATIVE_AI: false",
         family="monospace",
         fontsize=7,
         color="#8b949e",
@@ -1943,7 +2244,13 @@ def _plot_terminal_snapshot(
         dpi=180,
         facecolor=fig.get_facecolor(),
         bbox_inches="tight",
-        metadata={"Software": "matplotlib", "Description": source_note + " | generative_ai=false"},
+        metadata={
+            "Software": "matplotlib",
+            "Description": " | ".join(
+                value for value in (source_note, _release_chart_note(release_policy)) if value
+            )
+            + " | generative_ai=false",
+        },
     )
     plt.close(fig)
 
@@ -2027,6 +2334,7 @@ def _write_evidence_manifest(output_dir: Path) -> None:
         output_dir / "protocol_compatibility.json",
         output_dir / "run_provenance.json",
         output_dir / "run_provenance_attestation.json",
+        output_dir / "formal_release_policy.yaml",
         output_dir / "sources_manifest.json",
         output_dir / "formal_execution_status.json",
         output_dir / "experiment_report.md",
@@ -2090,8 +2398,16 @@ def compare_main(argv: list[str] | None = None) -> None:
         "--formal",
         action="store_true",
         help=(
-            "Create formal_validation.json only after the exact six-run release gate passes. "
+            "Create formal_validation.json only after the exact configured release gate passes. "
             "Omit for single-run, smoke, incomplete, and other diagnostic comparisons."
+        ),
+    )
+    parser.add_argument(
+        "--formal-release-policy",
+        type=Path,
+        help=(
+            "Optional frozen release-matrix policy. It changes only release eligibility and claim "
+            "scope; every run remains bound to its immutable base training protocol."
         ),
     )
     args = parser.parse_args(argv)
@@ -2099,6 +2415,7 @@ def compare_main(argv: list[str] | None = None) -> None:
         args.runs,
         args.output_dir.resolve(),
         provenance_attestation=args.provenance_attestation,
+        formal_release_policy=args.formal_release_policy,
         formal=args.formal,
     )
 

@@ -123,11 +123,12 @@ def _write_methodology_markdown(
         "",
     ]
     if execution_status is not None:
+        summary = str(execution_status.get("summary", "verified formal comparison"))
         lines.extend(
             [
                 "## 현재 formal 실행 검증 상태 (protocol snapshot보다 우선)",
                 "",
-                "- **FORMAL EXECUTION STATUS: PASS — 2 models × 3 seeds × 100 epochs**",
+                f"- **FORMAL EXECUTION STATUS: PASS — {summary}**",
                 f"- 검증 run: `{', '.join(str(item['run_id']) for item in execution_status['runs'])}`",
                 "- 근거: [formal execution status](formal_execution_status.json) · "
                 "[protocol compatibility](protocol_compatibility.json) · "
@@ -137,6 +138,19 @@ def _write_methodology_markdown(
                 "",
             ]
         )
+        if execution_status.get("formal_release_policy") is not None:
+            lines.extend(
+                [
+                    f"- release policy: `{execution_status['policy_id']}` / "
+                    f"`{execution_status['policy_sha256']}` / "
+                    f"tier `{execution_status['evidence_tier']}`",
+                    f"- 통계 범위: n={execution_status['paired_n']}, "
+                    f"df={execution_status['degrees_of_freedom']}, descriptive-only; "
+                    "유의성·모집단 우월성·production-ready·independent-test 주장은 금지합니다.",
+                    "- 정책 원문: [formal release policy](formal_release_policy.yaml)",
+                    "",
+                ]
+            )
     lines.extend(
         [
             f"- protocol: `{document.get('protocol_id', '-')}`",
@@ -223,9 +237,10 @@ def _write_parameter_summary_markdown(
         "",
     ]
     if execution_status is not None:
+        summary = str(execution_status.get("summary", "verified formal comparison"))
         lines.extend(
             [
-                "- **FORMAL EXECUTION STATUS: PASS — 2 models × 3 seeds × 100 epochs**",
+                f"- **FORMAL EXECUTION STATUS: PASS — {summary}**",
                 "- 현재 실행 근거는 [formal execution status](formal_execution_status.json), "
                 "원격 장치 후속 절차는 [Ubuntu handoff](ubuntu_handoff.md)를 봅니다.",
                 "- 아래 검증 상태는 immutable protocol snapshot 작성 시점의 기록이며, "
@@ -233,6 +248,19 @@ def _write_parameter_summary_markdown(
                 "",
             ]
         )
+        if execution_status.get("formal_release_policy") is not None:
+            lines.extend(
+                [
+                    f"- release policy: `{execution_status['policy_id']}` / "
+                    f"`{execution_status['policy_sha256']}` / tier "
+                    f"`{execution_status['evidence_tier']}`",
+                    f"- n={execution_status['paired_n']}, "
+                    f"df={execution_status['degrees_of_freedom']}, descriptive-only; "
+                    "inferential/production readiness 주장은 허용하지 않습니다.",
+                    "- 정책 원문: [formal release policy](formal_release_policy.yaml)",
+                    "",
+                ]
+            )
     lines.extend(
         [
             f"- protocol: `{document.get('protocol_id', '-')}`",

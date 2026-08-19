@@ -116,6 +116,22 @@ def main() -> int:
         "raw_images_included": bool(publication_plan["scan"]["raw_image_files"]),
         "weights_included": bool(publication_plan["scan"]["weight_files"]),
     }
+    formal_validation = publication_plan["formal_validation"]
+    if formal_validation.get("policy_id") is not None:
+        artifact["formal_release_policy"] = {
+            key: formal_validation[key]
+            for key in (
+                "policy_id",
+                "policy_sha256",
+                "base_protocol_id",
+                "base_protocol_sha256",
+                "evidence_tier",
+                "exact_pairs",
+                "paired_n",
+                "degrees_of_freedom",
+                "interpretation",
+            )
+        }
     write_json(destination_root / "artifact_manifest.json", artifact)
     validate_published_comparison_release(destination_root)
     print(json.dumps(artifact, indent=2, ensure_ascii=False))
