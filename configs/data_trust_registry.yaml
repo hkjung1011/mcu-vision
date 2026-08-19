@@ -1,0 +1,7 @@
+schema_version: mcu.data-trust-registry.v1
+registry_id: mcu_project_trusted_data_v1
+status: FAIL_CLOSED_NO_SMALLCHIP_DATA_APPROVED
+
+# Autolabeling is disabled until a reviewed, hash-locked split-evidence entry is
+# committed here. A caller-authored source manifest is never a trust anchor.
+datasets: {}

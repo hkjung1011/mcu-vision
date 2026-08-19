@@ -11,12 +11,19 @@ annotation 파일의 SHA-256만 비교하면 표현 형식과 JSON 순서가 달
   --yolo-data data\processed\micropcb_rpi_phash_v2\dataset.yaml `
   --coco-train data\processed\micropcb_rpi_phash_v2_coco\annotations\instances_train2017.json `
   --coco-val data\processed\micropcb_rpi_phash_v2_coco\annotations\instances_val2017.json `
+  --coco-test data\processed\micropcb_rpi_phash_v2_coco\annotations\instances_test2017.json `
+  --include-coco-attributes `
   --output-dir data\evidence\micropcb_rpi_phash_v2
 ```
 
 이동한 dataset.yaml에 과거 절대 경로가 남아 있으면 `--yolo-root <현재 데이터 루트>`를
 추가한다. COCO 이미지 폴더가 표준 `train2017`, `val2017` 배치가 아니면
 `--coco-train-images`, `--coco-val-images`로 지정한다.
+
+Locked test까지 고정할 때는 dataset.yaml의 `test`와 함께 `--coco-test`,
+`--coco-test-images`를 지정한다. CVAT의 primitive attributes와 `occluded`/`truncated`를
+별도 hash 증거로 남기려면 `--include-coco-attributes`를 추가한다. 이 attribute hash는
+YOLO가 속성을 표현한다는 뜻이 아니며 COCO 원본의 보조 증거다.
 
 종료 코드는 `0=PASS`, `1=동등성 FAIL`, `2=입력/구조 ERROR`다. FAIL/ERROR를 학습
 승인으로 바꾸지 않는다.
@@ -25,11 +32,13 @@ annotation 파일의 SHA-256만 비교하면 표현 형식과 JSON 순서가 달
 
 | 파일 | 의미 |
 |---|---|
-| `dataset_evidence.json` | run manifest에 주입할 6개 release-gate SHA-256 |
+| `dataset_evidence.json` | run manifest에 주입할 기본 6개 또는 locked-test protocol의 9개 release-gate SHA-256 |
 | `canonical_dataset_manifest.json` | canonical 규칙·split별 수량·하위 hash |
 | `class_map.json` | YOLO zero-based class index와 NFC-normalized 이름 |
 | `train_image_list.json`, `val_image_list.json` | basename, encoded-file SHA-256, 실제 decode 크기 |
 | `canonical_*_records.jsonl` | 정렬된 image/class/bbox record와 개별 `record_sha256` |
+| `test_image_list.json`, `canonical_test_records.jsonl` | optional locked test 증거 |
+| `canonical_annotation_attributes.jsonl` | optional COCO/CVAT attribute 증거 |
 | `dataset_equivalence_report.json` | YOLO-only/COCO-only 차이 수와 제한된 예시 |
 
 run manifest의 `dataset`에는 다음 값을 그대로 넣는다.
@@ -42,8 +51,10 @@ manifest["dataset"].update(
 )
 ```
 
-`load_dataset_evidence()`는 JSON에 적힌 문자열만 신뢰하지 않고 연결된 6개 artifact를
-다시 hash한다. 학습 wrapper는 더 강한 `verify_dataset_against_evidence()`를 호출해 현재
+`load_dataset_evidence()`는 JSON에 적힌 문자열만 신뢰하지 않고 연결된 artifact를
+다시 hash한다. 현 RPi baseline은 `locked_test_evidence_enabled: true`이므로 test/attributes까지 9개를
+formal gate로 강제합니다. 다른 protocol의 opt-in이 false이면 기존 train/val 6개 계약을 유지합니다.
+학습 wrapper는 더 강한 `verify_dataset_against_evidence()`를 호출해 현재
 YOLO/COCO 파일을 다시 canonicalize한다. 따라서 evidence 생성 뒤 이미지·label·class map이
 바뀐 경우에도 학습 시작 전에 실패한다.
 
@@ -52,6 +63,7 @@ YOLO/COCO 파일을 다시 canonicalize한다. 따라서 evidence 생성 뒤 이
 - 절대 경로와 source record 순서는 hash에 포함하지 않는다.
 - image key는 Unicode NFC basename이며 같은 split의 basename 중복은 오류다.
 - 이미지 파일 bytes의 SHA-256과 실제 decode 크기를 image identity에 포함한다.
+- 활성화된 train/val/test 사이에 encoded image SHA-256이 하나라도 같으면 다른 basename이어도 오류다.
 - COCO category id는 class name으로 YOLO zero-based index에 대응시킨다.
 - YOLO normalized `cxcywh`를 실제 pixel `xywh`로 변환하고 기본 0.001 pixel 단위,
   `ROUND_HALF_EVEN`으로 고정한다. 이는 YOLO 8-decimal 저장의 왕복 오차를 제거한다.

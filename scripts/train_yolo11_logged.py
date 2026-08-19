@@ -25,7 +25,10 @@ import yaml
 from ultralytics import YOLO
 
 from mcu_data.common import append_jsonl, portable_path, sha256_file, write_json
-from mcu_data.dataset_evidence import verify_dataset_against_evidence
+from mcu_data.dataset_evidence import (
+    resolve_protocol_test_evidence,
+    verify_dataset_against_evidence,
+)
 from mcu_data.methodology import write_protocol_artifacts
 from mcu_data.reporting import (
     EPOCH_COLUMNS,
@@ -95,6 +98,10 @@ def parse_args() -> argparse.Namespace:
         / "micropcb_rpi_phash_v2"
         / "dataset_evidence.json",
         help="PASS evidence whose hashes must be reproduced by the live YOLO/COCO inputs",
+    )
+    parser.add_argument("--coco-test", type=Path, help="Locked test COCO evidence input only")
+    parser.add_argument(
+        "--coco-test-images", type=Path, help="Locked test image root used only for evidence"
     )
     parser.add_argument("--output-root", type=Path, default=PROJECT_ROOT / "runs" / "benchmarks")
     parser.add_argument("--epochs", type=int, default=common["epochs"])
@@ -377,8 +384,15 @@ def main() -> int:
     initial_stats = state_dict_statistics(model.model.state_dict(), run_dir / "pretrained_weights_summary.csv")
     pretrained_record = checkpoint_file_record(pretrained_path) if pretrained_path else None
     coco_root = args.coco_root.resolve()
+    protocol_document = _load_protocol(args.protocol_config.resolve())
     train_annotation = coco_root / "annotations" / "instances_train2017.json"
     val_annotation = coco_root / "annotations" / "instances_val2017.json"
+    test_annotation, test_image_root, include_coco_attributes = resolve_protocol_test_evidence(
+        dataset_config=protocol_document["dataset"],
+        coco_root=coco_root,
+        coco_test_annotations=args.coco_test,
+        coco_test_image_root=args.coco_test_images,
+    )
     for required_path in (args.data.resolve(), train_annotation, val_annotation):
         if not required_path.exists():
             raise FileNotFoundError(required_path)
@@ -387,6 +401,9 @@ def main() -> int:
         yolo_dataset_yaml=args.data.resolve(),
         coco_train_annotations=train_annotation,
         coco_val_annotations=val_annotation,
+        coco_test_annotations=test_annotation,
+        coco_test_image_root=test_image_root,
+        include_coco_attributes=include_coco_attributes,
     )
     protocol = {
         "method": "pretrained checkpoint -> full detector fine-tuning",
@@ -453,7 +470,15 @@ def main() -> int:
             "equivalence_evidence_sha256": sha256_file(args.dataset_evidence.resolve()),
             "train_annotation_sha256": sha256_file(train_annotation),
             "val_annotation_sha256": sha256_file(val_annotation),
-            "independent_test_available": False,
+            "locked_test_evidence_enabled": test_annotation is not None,
+            "test_annotation_sha256": (
+                sha256_file(test_annotation) if test_annotation is not None else None
+            ),
+            "independent_test_available": bool(
+                protocol_document.get("common", {}).get(
+                    "independent_test_available", False
+                )
+            ),
             **dataset_evidence,
         },
         "protocol_config": {

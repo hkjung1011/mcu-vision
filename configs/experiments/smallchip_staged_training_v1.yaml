@@ -1,0 +1,51 @@
+schema_version: 1
+contract_id: smallchip_staged_training_v1
+status: PLANNED
+scope: stm32_and_smd_future_training
+
+historical_rpi_boundary:
+  completed_100_epoch_evidence_immutable: true
+  additional_rpi_100_epoch_training_planned: false
+
+stages:
+  smoke:
+    epochs: 1
+    purpose: pipeline_and_contract_validation
+    promotion_gate:
+      - finite_loss_and_metrics
+      - dataset_and_class_contract_pass
+      - checkpoint_and_log_complete
+  pilot:
+    max_epochs: 10
+    early_stopping: true
+    patience_epochs: 3
+    purpose: reject_unstable_or_low_value_recipes_before_candidate_training
+    promotion_gate:
+      - smoke_pass
+      - validation_metric_trend_recorded
+      - no_nan_or_oom
+      - error_analysis_recorded
+  candidate:
+    max_epochs: 50
+    early_stopping: true
+    patience_epochs: 10
+    purpose: descriptive_candidate_selection
+    promotion_gate:
+      - pilot_pass
+      - predefined_validation_metric_and_operating_point
+      - per_class_error_analysis
+      - onnx_val_test_runtime_validation
+
+extension_policy:
+  automatic_extension: false
+  requires_new_versioned_contract: true
+  required_evidence:
+    - validation_curve_has_not_converged
+    - overfitting_check_pass
+    - compute_and_time_budget_documented
+    - dataset_leakage_gates_pass
+    - user_approval_recorded
+
+claim_boundary:
+  internal_phash_split_is_not_independent_test: true
+  production_ready_claim_allowed: false

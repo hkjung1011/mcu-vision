@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+import yaml
 from PIL import Image
 
 from mcu_data.common import sha256_file
@@ -13,9 +14,16 @@ from mcu_data.dataset_evidence import (
     REQUIRED_EVIDENCE_FIELDS,
     DatasetEvidenceError,
     build_dataset_equivalence_evidence,
+    canonicalize_yolo_dataset,
     load_dataset_evidence,
+    load_test_evidence_supplement_contract,
+    resolve_protocol_test_evidence,
     verify_dataset_against_evidence,
 )
+from mcu_data.methodology import canonical_text_sha256
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _write_fixture(root: Path) -> tuple[Path, Path, Path, Path, Path]:
@@ -266,3 +274,233 @@ def test_load_dataset_evidence_detects_changed_artifact(tmp_path: Path) -> None:
 
     with pytest.raises(DatasetEvidenceError, match="artifact hash differs: class_map_sha256"):
         load_dataset_evidence(output / "dataset_evidence.json")
+
+
+def test_optional_locked_test_split_and_coco_attribute_hashes(tmp_path: Path) -> None:
+    fixture = _write_fixture(tmp_path / "source")
+    dataset_yaml, train_json, val_json, train_images, val_images = fixture
+    yolo_root = dataset_yaml.parent
+    (yolo_root / "images" / "test").mkdir(parents=True)
+    (yolo_root / "labels" / "test").mkdir(parents=True)
+    Image.new("RGB", (120, 90), color=(10, 20, 30)).save(
+        yolo_root / "images" / "test" / "test_chip.png"
+    )
+    (yolo_root / "labels" / "test" / "test_chip.txt").write_text(
+        "0 0.50000000 0.50000000 0.50000000 0.40000000\n",
+        encoding="utf-8",
+    )
+    dataset_yaml.write_text(
+        dataset_yaml.read_text(encoding="utf-8").replace(
+            "val: images/val\n", "val: images/val\ntest: images/test\n"
+        ),
+        encoding="utf-8",
+    )
+    coco_root = train_images.parent
+    test_images = coco_root / "test2017"
+    test_images.mkdir()
+    shutil.copy2(
+        yolo_root / "images" / "test" / "test_chip.png",
+        test_images / "test_chip.png",
+    )
+    test_json = coco_root / "annotations" / "instances_test2017.json"
+    test_json.write_text(
+        json.dumps(
+            {
+                "images": [
+                    {"id": 91, "file_name": "test_chip.png", "width": 120, "height": 90}
+                ],
+                "annotations": [
+                    {
+                        "id": 92,
+                        "image_id": 91,
+                        "category_id": 99,
+                        "bbox": [30, 27, 60, 36],
+                        "iscrowd": 0,
+                        "attributes": {"occluded": False, "truncated": False},
+                    }
+                ],
+                "categories": [
+                    {"id": 99, "name": "chip"},
+                    {"id": 4, "name": "board"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    train_document = json.loads(train_json.read_text(encoding="utf-8"))
+    train_document["annotations"][0]["attributes"] = {
+        "occluded": True,
+        "truncated": False,
+    }
+    train_json.write_text(json.dumps(train_document), encoding="utf-8")
+    output = tmp_path / "evidence"
+
+    report = build_dataset_equivalence_evidence(
+        yolo_dataset_yaml=dataset_yaml,
+        coco_train_annotations=train_json,
+        coco_val_annotations=val_json,
+        coco_train_image_root=train_images,
+        coco_val_image_root=val_images,
+        coco_test_annotations=test_json,
+        coco_test_image_root=test_images,
+        include_coco_attributes=True,
+        output_dir=output,
+    )
+
+    assert report["status"] == "PASS"
+    assert "test_image_list_sha256" in report["evidence"]
+    assert "canonical_test_records_sha256" in report["evidence"]
+    assert "canonical_annotation_attributes_sha256" in report["evidence"]
+    assert (output / "test_image_list.json").is_file()
+    assert (output / "canonical_test_records.jsonl").is_file()
+    assert (output / "canonical_annotation_attributes.jsonl").is_file()
+    loaded = load_dataset_evidence(output / "dataset_evidence.json")
+    assert loaded["canonical_annotation_attributes_sha256"] == sha256_file(
+        output / "canonical_annotation_attributes.jsonl"
+    )
+
+
+def test_cross_split_exact_sha_duplicate_is_rejected_before_evidence(
+    tmp_path: Path,
+) -> None:
+    fixture = _write_fixture(tmp_path / "source")
+    dataset_yaml, train_json, val_json, train_images, val_images = fixture
+    yolo_root = dataset_yaml.parent
+    shutil.copy2(
+        yolo_root / "images" / "train" / "train_chip.png",
+        yolo_root / "images" / "val" / "val_chip.png",
+    )
+    shutil.copy2(
+        train_images / "train_chip.png",
+        val_images / "val_chip.png",
+    )
+    val_document = json.loads(val_json.read_text(encoding="utf-8"))
+    val_document["images"][0].update({"width": 100, "height": 80})
+    val_document["annotations"][0]["bbox"] = [40, 24, 20, 32]
+    val_json.write_text(json.dumps(val_document), encoding="utf-8")
+    output = tmp_path / "evidence"
+
+    with pytest.raises(DatasetEvidenceError, match="cross-split exact image SHA-256"):
+        _build(fixture, output)
+    assert not (output / "dataset_evidence.json").exists()
+
+
+def test_optional_test_split_participates_in_exact_sha_leakage_gate(
+    tmp_path: Path,
+) -> None:
+    dataset_yaml, *_ = _write_fixture(tmp_path / "source")
+    yolo_root = dataset_yaml.parent
+    (yolo_root / "images" / "test").mkdir(parents=True)
+    (yolo_root / "labels" / "test").mkdir(parents=True)
+    shutil.copy2(
+        yolo_root / "images" / "train" / "train_chip.png",
+        yolo_root / "images" / "test" / "same_bytes_new_name.png",
+    )
+    (yolo_root / "labels" / "test" / "same_bytes_new_name.txt").write_text(
+        "", encoding="utf-8"
+    )
+    dataset_yaml.write_text(
+        dataset_yaml.read_text(encoding="utf-8").replace(
+            "val: images/val\n", "val: images/val\ntest: images/test\n"
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(DatasetEvidenceError, match="cross-split exact image SHA-256"):
+        canonicalize_yolo_dataset(dataset_yaml, include_test=True)
+
+
+def test_protocol_locked_test_resolution_is_explicit_and_fail_closed(
+    tmp_path: Path,
+) -> None:
+    coco_root = tmp_path / "coco"
+    (coco_root / "annotations").mkdir(parents=True)
+    (coco_root / "test2017").mkdir()
+    test_json = coco_root / "annotations" / "instances_test2017.json"
+    test_json.write_text("{}", encoding="utf-8")
+
+    assert resolve_protocol_test_evidence(
+        dataset_config={"locked_test_evidence_enabled": False},
+        coco_root=coco_root,
+        coco_test_annotations=None,
+        coco_test_image_root=None,
+    ) == (None, None, False)
+    with pytest.raises(DatasetEvidenceError, match="forbidden"):
+        resolve_protocol_test_evidence(
+            dataset_config={"locked_test_evidence_enabled": False},
+            coco_root=coco_root,
+            coco_test_annotations=test_json,
+            coco_test_image_root=coco_root / "test2017",
+        )
+    resolved = resolve_protocol_test_evidence(
+        dataset_config={
+            "locked_test_evidence_enabled": True,
+            "include_coco_attributes": True,
+        },
+        coco_root=coco_root,
+        coco_test_annotations=None,
+        coco_test_image_root=None,
+    )
+    assert resolved == (test_json.resolve(), (coco_root / "test2017").resolve(), True)
+    with pytest.raises(DatasetEvidenceError, match="must be boolean"):
+        resolve_protocol_test_evidence(
+            dataset_config={"locked_test_evidence_enabled": "true"},
+            coco_root=coco_root,
+            coco_test_annotations=None,
+            coco_test_image_root=None,
+        )
+
+
+def test_immutable_baseline_and_versioned_test_sidecar_are_both_bound() -> None:
+    protocol = yaml.safe_load(
+        (PROJECT_ROOT / "configs" / "experiments" / "baseline_v1.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    dataset = protocol["dataset"]
+    assert canonical_text_sha256(
+        PROJECT_ROOT / "configs" / "experiments" / "baseline_v1.yaml"
+    ) == "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+    assert "locked_test_evidence_enabled" not in dataset
+    assert "include_coco_attributes" not in dataset
+    assert protocol["comparison_rules"]["required_dataset_evidence"] == list(
+        REQUIRED_EVIDENCE_FIELDS
+    )
+    assert "formal_required_dataset_evidence" not in protocol["comparison_rules"]
+    evidence_path = PROJECT_ROOT / dataset["equivalence_evidence"]
+    evidence = load_dataset_evidence(evidence_path)
+    assert list(evidence) == list(REQUIRED_EVIDENCE_FIELDS)
+    assert dataset["evidence"] == evidence
+
+    sidecar = load_test_evidence_supplement_contract(
+        PROJECT_ROOT
+        / "configs"
+        / "experiments"
+        / "rpi_test_evidence_supplement_v1.yaml",
+        project_root=PROJECT_ROOT,
+    )
+    assert sidecar["base_protocol_sha256"] == (
+        "02facd21ef061fc6530c064d4397ab82e36af3e0601cb502d46f7a6ec34f46f5"
+    )
+    assert sidecar["test_images"] == 180
+    assert sidecar["test_records"] == 180
+    assert sidecar["attribute_records"] == 1875
+    assert sidecar["attribute_split_records"] == {"train": 1500, "val": 195, "test": 180}
+    assert sidecar["independent_test"] is False
+
+
+def test_test_evidence_sidecar_rejects_independent_test_claim(tmp_path: Path) -> None:
+    source = (
+        PROJECT_ROOT
+        / "configs"
+        / "experiments"
+        / "rpi_test_evidence_supplement_v1.yaml"
+    )
+    tampered = tmp_path / source.name
+    tampered.write_text(
+        source.read_text(encoding="utf-8").replace(
+            "  independent_test: false", "  independent_test: true", 1
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(DatasetEvidenceError, match="claim boundary"):
+        load_test_evidence_supplement_contract(tampered, project_root=PROJECT_ROOT)

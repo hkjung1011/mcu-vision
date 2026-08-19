@@ -4,8 +4,9 @@
 
 목표 workflow는 **CVAT Community + 수동 seed 라벨**, 이후 **학습된 domain YOLO teacher + tiled
 pseudo-label + 전량 사람 검수**입니다. 현재 구현된 CLI는 **Ultralytics YOLO11 `.pt` 기반 proposal
-생성기와 자체 tile/class-aware NMS**까지입니다. CVAT 자동 import/export, Grounding DINO, SAM2,
-실제 SAHI package와 native YOLOX `.pth` backend는 아직 구현·round-trip 검증되지 않았습니다.
+생성기와 자체 tile/class-aware NMS**까지입니다. CVAT 서버 자동 import/export는 없지만, 받은 COCO/YOLO
+export의 round-trip verifier와 reviewer/hash 기반 승격 gate는 구현되었습니다. 실제 CVAT export를 넣은
+통합 검증, Grounding DINO, SAM2, 실제 SAHI package와 native YOLOX `.pth` backend는 아직 미완료입니다.
 
 | 단계 | 입력 | 출력 상태 | 학습 사용 |
 |---|---|---|---|
@@ -58,11 +59,19 @@ Hugging Face implementation 또는 WSL2/Linux build를 검증합니다.
 ```powershell
 .\.venv-yolo11\Scripts\mcu-autolabel-yolo.exe `
   --source data\staging\unlabeled_smd `
+  --source-manifest data\manifests\unlabeled_smd.session-001.json `
   --model runs\benchmarks\<seed-run>\native\weights\best.pt `
+  --teacher-manifest runs\benchmarks\<seed-run>\teacher_manifest.json `
+  --ontology configs\classes.smd_v1.yaml `
   --calibration runs\benchmarks\<seed-run>\final_metrics.json `
   --tile-size 640 --tile-overlap 0.20 `
   --run-id smd_pending_v1
 ```
+
+이 명령은 `configs/data_trust_registry.yaml`의 `APPROVED` entry와 hash-locked
+`unlabeled_train`/`gold_validation_locked`/`test_locked` evidence가 모두 일치할 때만 실행됩니다.
+현재 project registry는 승인 데이터 0장을 정확히 나타내도록 비어 있으므로 실제 split 승인 전에는
+의도적으로 실패합니다. Caller가 만든 source manifest만으로 승인 상태를 주장할 수 없습니다.
 
 산출물은 `runs/autolabel/smd_pending_v1/`에 저장됩니다.
 
@@ -71,17 +80,22 @@ Hugging Face implementation 또는 WSL2/Linux build를 검증합니다.
 - `review_queue.csv`: 빈 예측과 저신뢰 이미지를 앞에 둔 검수 순서
 - `labels_pending/`: YOLO 형식의 미승인 라벨
 - `previews/`: box, class, score가 그려진 검수 이미지
-- `run_manifest.json`: teacher hash, threshold, tile/NMS 값, 환경
+- `pending_reference.coco.json`: stable image ID/path/dimensions/SHA와 full class map을 묶은 exact reference
+- `run_manifest.json`: trusted registry/split, teacher, calibration, pending reference, tile/NMS hash 근거
 
-`labels_pending`은 canonical dataset 경로가 아니며 현재 코드에는 이를 train에 자동 합치는 명령이
-없습니다. 다만 수동 복사를 막는 강제 approval gate도 아직 없으므로 reviewer, 승인 시각, 수정 label
-SHA-256과 전체 검수 완료를 확인하는 promotion 기능을 구현하기 전까지 사람이 직접 train 폴더로
-복사하면 안 됩니다. 현재 출력은 CVAT import ZIP이 아니며 CVAT round-trip도 NOT VERIFIED입니다.
+`labels_pending`은 canonical dataset 경로가 아니며 이를 train에 자동 합치지 않습니다. 현재 출력은
+CVAT import ZIP이 아닙니다. `mcu-verify-cvat-roundtrip`과 `mcu-promote-reviewed`를 사용해 실제 CVAT
+COCO export의 왕복 검증, reviewer·승인 시각·export/ontology hash, 전 이미지 disposition이 모두
+PASS한 승격 manifest와 **reviewed-only filtered canonical COCO**를 만든 뒤에만 `reviewed_train`으로
+다룹니다. 승격기는 pending image binding과 실제 reference COCO, full class map, round-trip report를
+exact bind합니다. `rejected` image/annotation은 filtered artifact에서 물리적으로 제거되고 그 SHA-256이
+downstream 학습 입력의 필수값이 됩니다. 파일을 수동 복사한 것만으로는 승인 데이터가 되지 않습니다.
 
 ## 수동 라벨 가이드
 
 - `raspberry_pi_*`/개발보드는 보드의 보이는 외곽을 box로 잡고 케이블·그림자·지그는 제외합니다.
-- bare IC/소형 부품은 보이는 package와 부착된 lead까지 포함하고 cast shadow는 제외합니다.
+- `stm32_bare_ic` 등 단품 IC package와 SMD 부품은 영상에서 확인되는 package·lead를 포함하고 cast
+  shadow는 제외합니다. 여기서 `bare`는 bare die가 아니라 보드에 실장되지 않은 개별 package를 뜻합니다.
 - 가림 객체는 하나의 실물로 식별 가능한 경우 각각 visible extent box를 만들고, 판단 불가는
   `ambiguous` 검수 목록으로 격리합니다.
 - 화면 경계에서 잘린 객체는 canonical COCO에 truncation 상태를 기록합니다. YOLO export에서 해당

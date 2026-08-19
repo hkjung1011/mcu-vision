@@ -47,7 +47,9 @@ classes:
       resistor: 4478
       diode: 3404
       transistor: 696
-    candidate_license: Public Domain
+    candidate_rights_statement: >-
+      PDM-1.0 asserted by the Roboflow Universe project maintained by Dainius;
+      this records the source assertion and Public Domain Mark is not a license grant.
     limitation: Download requires Roboflow sign-in, and these four generic classes are not yet verified as the parts in the user's conveyor photo.
 
 unreviewed_candidates:

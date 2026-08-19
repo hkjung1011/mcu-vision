@@ -44,13 +44,18 @@ $ImplementationInputs = @(
     $Yolo11Pretrained,
     $YoloXPretrained
 )
-$RequiredEvidenceFields = @(
+$BaseEvidenceFields = @(
     "canonical_dataset_manifest_sha256",
     "class_map_sha256",
     "train_image_list_sha256",
     "val_image_list_sha256",
     "canonical_train_records_sha256",
     "canonical_val_records_sha256"
+)
+$LockedTestEvidenceFields = @(
+    "test_image_list_sha256",
+    "canonical_test_records_sha256",
+    "canonical_annotation_attributes_sha256"
 )
 
 function Resolve-ProjectPath {
@@ -348,12 +353,26 @@ function Get-ProtocolSummary {
         }
         if ($TopSection -eq "dataset" -and $Line -match "^  ([A-Za-z0-9_]+):\s*(.*?)\s*$") {
             $Name = $Matches[1]
-            $Value = $Matches[2].Trim("'", '"')
+            $RawValue = $Matches[2].Trim()
+            $Value = $RawValue.Trim("'", '"')
             if ([string]::IsNullOrWhiteSpace($Value)) {
                 $DatasetSubsection = $Name
             }
             else {
-                $Dataset[$Name] = $Value
+                if ($Name -eq "locked_test_evidence_enabled") {
+                    if ($RawValue -ceq "true") {
+                        $Dataset[$Name] = $true
+                    }
+                    elseif ($RawValue -ceq "false") {
+                        $Dataset[$Name] = $false
+                    }
+                    else {
+                        $Dataset[$Name] = $RawValue
+                    }
+                }
+                else {
+                    $Dataset[$Name] = $Value
+                }
                 $DatasetSubsection = ""
             }
             continue
@@ -589,16 +608,36 @@ $Evidence = Read-JsonFile $DatasetEvidencePath "Dataset evidence"
 if ($Evidence.status -ne "PASS") {
     throw "Dataset evidence status is '$($Evidence.status)', expected 'PASS': $DatasetEvidencePath"
 }
+$Protocol = Get-ProtocolSummary $ProtocolPath
+if ([string]::IsNullOrWhiteSpace([string]$Protocol.protocol_id)) {
+    throw "protocol_id is missing from protocol config: $ProtocolPath"
+}
+$LockedTestValue = ([string]$Protocol.dataset.locked_test_evidence_enabled).Trim().ToLowerInvariant()
+if ([string]::IsNullOrWhiteSpace($LockedTestValue)) {
+    # Historical immutable protocols predate the optional test-evidence sidecar.
+    $LockedTestValue = "false"
+}
+if ($LockedTestValue -notin @("true", "false")) {
+    throw "dataset.locked_test_evidence_enabled must be exactly true or false."
+}
+$LockedTestEvidenceEnabled = $LockedTestValue -eq "true"
+$RequiredEvidenceFields = @($BaseEvidenceFields)
+$CocoTestPath = $null
+$CocoTestImagesPath = $null
+$CocoTestSha256 = "not-enabled"
+if ($LockedTestEvidenceEnabled) {
+    $RequiredEvidenceFields += $LockedTestEvidenceFields
+    $CocoTestPath = Join-Path $CocoRootPath "annotations\instances_test2017.json"
+    $CocoTestImagesPath = Join-Path $CocoRootPath "test2017"
+    Assert-LeafPath $CocoTestPath "Locked COCO test annotation"
+    Assert-ContainerPath $CocoTestImagesPath "Locked COCO test images"
+    $CocoTestSha256 = Get-Sha256 $CocoTestPath
+}
 foreach ($Field in $RequiredEvidenceFields) {
     $Value = [string]$Evidence.$Field
     if ($Value -notmatch "^[0-9a-fA-F]{64}$") {
         throw "Dataset evidence field '$Field' is missing or is not a SHA-256 value."
     }
-}
-
-$Protocol = Get-ProtocolSummary $ProtocolPath
-if ([string]::IsNullOrWhiteSpace([string]$Protocol.protocol_id)) {
-    throw "protocol_id is missing from protocol config: $ProtocolPath"
 }
 $ProtocolSeeds = @($Protocol.common.seeds | ForEach-Object { [int]$_ } | Sort-Object)
 if (-not $Smoke) {
@@ -681,6 +720,7 @@ $CampaignSignature = @(
     $DatasetEvidenceSha256,
     $TrainAnnotationSha256,
     $ValAnnotationSha256,
+    $CocoTestSha256,
     $ImplementationSha256,
     $RepositoryState.head,
     $YoloXSourceState.head,
@@ -725,6 +765,10 @@ foreach ($Seed in $NormalizedSeeds) {
         "--workers", $Workers,
         "--seed", $Seed
     )
+    if ($LockedTestEvidenceEnabled) {
+        $Yolo11Args += @("--coco-test", $CocoTestPath, "--coco-test-images", $CocoTestImagesPath)
+        $YoloXArgs += @("--coco-test", $CocoTestPath, "--coco-test-images", $CocoTestImagesPath)
+    }
     if ($Smoke) {
         $Yolo11Args += "--smoke"
         $YoloXArgs += "--smoke"
@@ -852,6 +896,9 @@ if (-not (Test-Path -LiteralPath $CampaignPlanPath -PathType Leaf)) {
             path = $CocoRootPath
             train_annotation_sha256 = $TrainAnnotationSha256
             val_annotation_sha256 = $ValAnnotationSha256
+            locked_test_evidence_enabled = $LockedTestEvidenceEnabled
+            test_annotation_path = $CocoTestPath
+            test_annotation_sha256 = $CocoTestSha256
         }
         dataset_evidence = [ordered]@{ path = $DatasetEvidencePath; sha256 = $DatasetEvidenceSha256 }
         implementation = [ordered]@{
