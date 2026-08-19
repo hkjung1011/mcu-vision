@@ -11,6 +11,7 @@ import pytest
 
 from mcu_data.common import sha256_file
 from mcu_data.checkpoint_publishing import (
+    _assert_yolo11_checkpoint_privacy,
     assert_binary_has_no_local_paths,
     publish_yolox_checkpoint,
     validate_yolox_checkpoint_proof,
@@ -35,7 +36,7 @@ def test_binary_privacy_gate_rejects_project_path(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="machine-local path"):
         assert_binary_has_no_local_paths(unsafe, project)
 
-    arbitrary_user = tmp_path / "arbitrary.pt"
+    arbitrary_user = tmp_path / "arbitrary.bin"
     arbitrary_user.write_bytes(b"D:\\Users\\AnotherPerson\\private\\weights.pt")
     with pytest.raises(ValueError, match="machine-local path"):
         assert_binary_has_no_local_paths(arbitrary_user, project)
@@ -112,6 +113,80 @@ class _FakeTensor:
 
     def element_size(self) -> int:
         return 4
+
+
+class _FakeModule:
+    def __init__(self, metadata: str = "portable") -> None:
+        weight = _FakeTensor()
+        weight.payload = b"tensor:/opt/private/random-payload"
+        buffer = _FakeTensor((3.0,))
+        buffer.payload = b"buffer:C:\\x"
+        self.metadata = metadata
+        self._parameters = {"weight": weight}
+        self._buffers = {"running": buffer}
+        self._modules: dict[str, _FakeModule] = {}
+
+    def state_dict(self) -> dict[str, tuple[float, ...]]:
+        return {"weight": self._parameters["weight"].values}
+
+    def forward(self) -> tuple[float, ...]:
+        return self._parameters["weight"].values
+
+
+def _privacy_torch() -> object:
+    return SimpleNamespace(
+        nn=SimpleNamespace(Module=_FakeModule),
+        is_tensor=lambda value: isinstance(value, _FakeTensor),
+    )
+
+
+def test_yolo11_structured_privacy_ignores_tensor_bytes_without_mutating_model(
+    tmp_path: Path,
+) -> None:
+    model = _FakeModule()
+    model._modules["cycle"] = model
+    checkpoint = {"model": model, "history": ["portable"], "epoch": 100}
+    before_state = model.state_dict()
+    before_forward = model.forward()
+
+    _assert_yolo11_checkpoint_privacy(
+        checkpoint,
+        label="best.pt",
+        torch=_privacy_torch(),
+    )
+    opaque = tmp_path / "best.pt"
+    opaque.write_bytes(b"PK\x03\x04/D1x2K4\x00/75o0random\x00t:\\;X:\x00tensor")
+    assert_binary_has_no_local_paths(opaque, tmp_path / "project")
+
+    assert model.state_dict() == before_state
+    assert model.forward() == before_forward
+
+
+@pytest.mark.parametrize(
+    ("placement", "private_value"),
+    [
+        ("module", r"C:\x"),
+        ("module", r"D:\private"),
+        ("top_level", b"/a"),
+    ],
+)
+def test_yolo11_structured_privacy_rejects_module_and_top_level_paths(
+    placement: str,
+    private_value: str | bytes,
+) -> None:
+    model = _FakeModule()
+    checkpoint: dict[str, object] = {"model": model}
+    if placement == "module":
+        model.metadata = private_value  # type: ignore[assignment]
+    else:
+        checkpoint["metadata"] = [{"value": private_value}]
+
+    with pytest.raises(ValueError, match="absolute local path"):
+        _assert_yolo11_checkpoint_privacy(
+            checkpoint,
+            label="best.pt",
+            torch=_privacy_torch(),
+        )
 
 
 def _fake_torch(load_calls: list[tuple[Path, str, bool]], checkpoint: object) -> object:

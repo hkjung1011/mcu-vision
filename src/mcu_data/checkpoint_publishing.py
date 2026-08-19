@@ -95,10 +95,11 @@ def forbidden_local_path_bytes(project_root: Path) -> set[bytes]:
 
 def assert_binary_has_no_local_paths(path: Path, project_root: Path) -> None:
     raw_content = path.read_bytes()
+    suffix = path.suffix.lower()
     try:
-        if path.suffix.lower() == ".onnx":
+        if suffix == ".onnx":
             assert_public_onnx_privacy(raw_content, label=path.name)
-        else:
+        elif suffix not in {".pt", ".pth"}:
             assert_public_binary_privacy(
                 raw_content,
                 label=path.name,
@@ -108,13 +109,12 @@ def assert_binary_has_no_local_paths(path: Path, project_root: Path) -> None:
         raise ValueError(
             f"Published binary still contains a machine-local path: {path.name}"
         ) from exc
-    if path.suffix.lower() == ".onnx":
+    if suffix == ".onnx":
         return
     content = raw_content.lower()
-    if (
-        any(value in content for value in forbidden_local_path_bytes(project_root))
-        or WINDOWS_USER_HOME_BYTES.search(content)
-    ):
+    if any(value in content for value in forbidden_local_path_bytes(project_root)):
+        raise ValueError(f"Published binary still contains a machine-local path: {path.name}")
+    if suffix not in {".pt", ".pth"} and WINDOWS_USER_HOME_BYTES.search(content):
         raise ValueError(f"Published binary still contains a machine-local path: {path.name}")
 
 
@@ -142,6 +142,56 @@ def _assert_checkpoint_object_privacy(value: Any, *, label: str) -> None:
                 visit(key)
                 visit(child)
         elif isinstance(item, (list, tuple, set)):
+            identity = id(item)
+            if identity in seen:
+                return
+            seen.add(identity)
+            for child in item:
+                visit(child)
+
+    visit(value)
+    assert_public_text_privacy(strings, label=label)
+
+
+def _assert_yolo11_checkpoint_privacy(value: Any, *, label: str, torch: Any) -> None:
+    """Inspect YOLO11 metadata without interpreting module tensor/parameter/buffer payloads."""
+    strings: list[str] = []
+    seen: set[int] = set()
+    module_type = getattr(getattr(torch, "nn", None), "Module", ())
+
+    def visit(item: Any) -> None:
+        if torch.is_tensor(item):
+            return
+        if isinstance(item, (str, Path)):
+            strings.append(str(item))
+            return
+        if isinstance(item, (bytes, bytearray)):
+            assert_public_binary_privacy(
+                bytes(item),
+                label=label,
+                minimum_text_run=MIN_BINARY_TEXT_RUN,
+            )
+            return
+        if module_type and isinstance(item, module_type):
+            identity = id(item)
+            if identity in seen:
+                return
+            seen.add(identity)
+            for name, child in vars(item).items():
+                strings.append(str(name))
+                if name not in {"_parameters", "_buffers"}:
+                    visit(child)
+            return
+        if isinstance(item, Mapping):
+            identity = id(item)
+            if identity in seen:
+                return
+            seen.add(identity)
+            for key, child in item.items():
+                visit(key)
+                visit(child)
+            return
+        if isinstance(item, (list, tuple, set)):
             identity = id(item)
             if identity in seen:
                 return
@@ -404,6 +454,7 @@ def sanitize_yolo11_checkpoint(
     torch.save(checkpoint, destination)
 
     published = torch.load(destination, map_location="cpu", weights_only=False)
+    _assert_yolo11_checkpoint_privacy(published, label=destination.name, torch=torch)
     source_state = checkpoint["model"].state_dict()
     published_state = published["model"].state_dict()
     if source_state.keys() != published_state.keys():

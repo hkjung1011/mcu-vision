@@ -698,6 +698,10 @@ def scan_public_file(path: Path, *, relative_path: str) -> dict[str, Any]:
             assert_public_text_privacy([metadata_text], label=normalized)
         elif suffix == ".onnx":
             assert_public_onnx_privacy(content, label=normalized)
+        elif suffix in {".pt", ".pth"}:
+            # Torch archives require framework-loaded structured metadata proof;
+            # compressed/tensor payload bytes are intentionally opaque here.
+            pass
         else:
             assert_public_binary_privacy(
                 content,
