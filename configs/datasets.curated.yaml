@@ -6,7 +6,7 @@ datasets:
     source_url: https://www.kaggle.com/datasets/frettapper/micropcb-images
     license: CC BY 4.0
     license_url: https://creativecommons.org/licenses/by/4.0/
-    purpose: Raspberry Pi SBC classification bootstrap
+    purpose: Raspberry Pi SBC object-detection bootstrap
     notes:
       - Contains 8,125 images across 13 micro-PCB models, 625 images per model.
       - Raspberry Pi 1 B+, Raspberry Pi 3 B+, and Raspberry Pi A+ provide 1,875 images in total.

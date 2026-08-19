@@ -1,0 +1,59 @@
+schema_version: 1
+ontology_id: mcu_smd_detection_v1
+locale: ko-KR
+presentation_only: true
+canonical_source: classes.smd_v1.yaml
+
+# 이 sidecar는 presentation layer만 정의합니다. Canonical ID, status, source alias는
+# classes.smd_v1.yaml을 따르며 이 파일로 추론·재정렬·덮어쓰기하지 않습니다.
+classes:
+  smd_capacitor:
+    display_name: SMD 커패시터
+    source_labels:
+      dainius_smdcomponents_v2: Condensator
+    description: >-
+      Dainius SMDComponents v2의 source label `Condensator`에 대응하는 시각적 객체 클래스입니다.
+      패키지와 영상에서 확인되는 단자를 하나의 bounding box로 다루며, 외형만으로 소자의 전기적
+      정체성이나 정격을 다시 검증하지 않습니다.
+
+  smd_resistor:
+    display_name: SMD 저항기
+    source_labels:
+      dainius_smdcomponents_v2: Resistor
+    description: >-
+      Dainius SMDComponents v2의 source label `Resistor`에 대응하는 시각적 객체 클래스입니다.
+      패키지와 영상에서 확인되는 단자를 하나의 bounding box로 다루며, 외형만으로 저항값이나
+      전기적 정체성을 다시 검증하지 않습니다.
+
+  smd_diode:
+    display_name: SMD 다이오드
+    source_labels:
+      dainius_smdcomponents_v2: Diode
+    description: >-
+      Dainius SMDComponents v2의 source label `Diode`에 대응하는 시각적 객체 클래스입니다.
+      패키지와 영상에서 확인되는 단자를 하나의 bounding box로 다루며, 외형만으로 극성·세부 형식
+      또는 전기적 정체성을 다시 검증하지 않습니다.
+
+  smd_transistor:
+    display_name: SMD 트랜지스터
+    source_labels:
+      dainius_smdcomponents_v2: Transistor
+    description: >-
+      Dainius SMDComponents v2의 source label `Transistor`에 대응하는 시각적 객체 클래스입니다.
+      패키지와 영상에서 확인되는 단자를 하나의 bounding box로 다루며, 외형만으로 세부 소자 형식
+      또는 전기적 정체성을 다시 검증하지 않습니다.
+
+  stm32_dev_board:
+    display_name: STM32 개발 보드
+    description: >-
+      판독 가능한 marking 또는 신뢰할 수 있는 specimen metadata를 통해 STM32 MCU 탑재가 확인된
+      개발 보드입니다. 보드 외형만으로 MCU 계열을 추정한 표본은 이 클래스에 승인하지 않습니다.
+
+  stm32_bare_ic:
+    display_name: STM32 단품 IC 패키지
+    terminology_note: >-
+      canonical key의 `bare`는 bare die가 아니라 개발 보드에 실장되지 않은 개별 IC package를
+      의미합니다.
+    description: >-
+      판독 가능한 top marking 또는 신뢰할 수 있는 specimen metadata를 통해 STM32임이 확인된
+      개별 IC 패키지입니다. 패키지 형상만으로 STM32 여부나 정확한 part number를 추정하지 않습니다.

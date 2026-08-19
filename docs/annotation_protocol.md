@@ -94,7 +94,8 @@ downstream 학습 입력의 필수값이 됩니다. 파일을 수동 복사한 �
 ## 수동 라벨 가이드
 
 - `raspberry_pi_*`/개발보드는 보드의 보이는 외곽을 box로 잡고 케이블·그림자·지그는 제외합니다.
-- bare IC/소형 부품은 보이는 package와 부착된 lead까지 포함하고 cast shadow는 제외합니다.
+- `stm32_bare_ic` 등 단품 IC package와 SMD 부품은 영상에서 확인되는 package·lead를 포함하고 cast
+  shadow는 제외합니다. 여기서 `bare`는 bare die가 아니라 보드에 실장되지 않은 개별 package를 뜻합니다.
 - 가림 객체는 하나의 실물로 식별 가능한 경우 각각 visible extent box를 만들고, 판단 불가는
   `ambiguous` 검수 목록으로 격리합니다.
 - 화면 경계에서 잘린 객체는 canonical COCO에 truncation 상태를 기록합니다. YOLO export에서 해당
