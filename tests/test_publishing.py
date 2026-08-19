@@ -1,12 +1,14 @@
 import json
 import subprocess
 import sys
+import zlib
 from pathlib import Path
 
 import pytest
 
 from mcu_data.common import sha256_file
 from mcu_data.publishing import (
+    PNG_MAGIC,
     assert_public_binary_privacy,
     load_json_strict,
     load_jsonl_strict,
@@ -164,10 +166,129 @@ def test_public_file_scan_accepts_matching_png_and_torch_magic(tmp_path: Path) -
     assert scan_public_file(checkpoint, relative_path="weights/best.pth")["detected_magic"] == "zip"
 
 
-@pytest.mark.parametrize("payload", [b"C:\\x", b"\\\\s\\x", b"/a"])
-def test_binary_privacy_scan_rejects_short_absolute_paths(payload: bytes) -> None:
+@pytest.mark.parametrize(
+    "payload",
+    [b"C:\\x", b"\\\\s\\x", b"/a", b'/8!"}8', b"prefix\x00/a\x00suffix"],
+)
+def test_opaque_binary_privacy_scan_ignores_short_random_runs(payload: bytes) -> None:
+    assert_public_binary_privacy(payload, label="short-random-run.bin")
+
+
+def test_public_file_scan_rejects_long_absolute_path_in_binary_payload(tmp_path: Path) -> None:
+    image = tmp_path / "metadata.bin"
+    image.write_bytes(b"opaque\x00metadata=/opt/build/private/image.png")
     with pytest.raises(ValueError, match="absolute local path"):
-        assert_public_binary_privacy(payload, label="short-path.bin")
+        scan_public_file(image, relative_path="metadata.bin")
+
+
+def _png_chunk(chunk_type: bytes, payload: bytes) -> bytes:
+    return len(payload).to_bytes(4, "big") + chunk_type + payload + (b"\x00" * 4)
+
+
+@pytest.mark.parametrize(
+    ("chunk_type", "payload"),
+    [
+        (b"tEXt", b"Comment\x00/opt/build/private/image.png"),
+        (b"zTXt", b"Comment\x00\x00" + zlib.compress(b"/opt/build/private/image.png")),
+        (b"iTXt", b"Comment\x00\x00\x00\x00\x00/opt/build/private/image.png"),
+    ],
+)
+def test_public_png_scan_rejects_path_in_text_metadata(
+    tmp_path: Path,
+    chunk_type: bytes,
+    payload: bytes,
+) -> None:
+    image = tmp_path / "metadata.png"
+    image.write_bytes(
+        PNG_MAGIC
+        + _png_chunk(chunk_type, payload)
+        + _png_chunk(b"IDAT", b'/8!"}8\x00/a\x00pixel-payload')
+        + _png_chunk(b"IEND", b"")
+    )
+    with pytest.raises(ValueError, match="absolute local path"):
+        scan_public_file(image, relative_path="metadata.png")
+
+
+def _protobuf_varint(value: int) -> bytes:
+    encoded = bytearray()
+    while value > 0x7F:
+        encoded.append((value & 0x7F) | 0x80)
+        value >>= 7
+    encoded.append(value)
+    return bytes(encoded)
+
+
+def _protobuf_bytes_field(field_number: int, payload: bytes) -> bytes:
+    return _protobuf_varint((field_number << 3) | 2) + _protobuf_varint(len(payload)) + payload
+
+
+def _onnx_with_tensor(
+    *,
+    raw_data: bytes = b"",
+    external_location: bytes | None = None,
+    metadata_value: bytes | None = None,
+) -> bytes:
+    tensor = _protobuf_bytes_field(9, raw_data) if raw_data else b""
+    if external_location is not None:
+        external_entry = _protobuf_bytes_field(1, b"location") + _protobuf_bytes_field(
+            2, external_location
+        )
+        tensor += _protobuf_bytes_field(13, external_entry)
+    if metadata_value is not None:
+        metadata = _protobuf_bytes_field(1, b"source") + _protobuf_bytes_field(2, metadata_value)
+        tensor += _protobuf_bytes_field(16, metadata)
+    graph = _protobuf_bytes_field(5, tensor)
+    return _protobuf_bytes_field(7, graph)
+
+
+def _onnx_with_function_metadata(value: bytes) -> bytes:
+    metadata = _protobuf_bytes_field(1, b"source") + _protobuf_bytes_field(2, value)
+    function_node = _protobuf_bytes_field(6, b"normal function documentation")
+    function = _protobuf_bytes_field(7, function_node) + _protobuf_bytes_field(14, metadata)
+    return _protobuf_bytes_field(7, b"") + _protobuf_bytes_field(25, function)
+
+
+def test_public_onnx_scan_ignores_tensor_bytes_but_rejects_external_data_path(
+    tmp_path: Path,
+) -> None:
+    safe = tmp_path / "tensor.onnx"
+    safe.write_bytes(_onnx_with_tensor(raw_data=b"random:/opt/not-metadata/tensor-bytes"))
+    assert scan_public_file(safe, relative_path="tensor.onnx")["privacy"] == "PASS"
+
+    unsafe = tmp_path / "external.onnx"
+    unsafe.write_bytes(_onnx_with_tensor(external_location=b"/opt/private/tensor.bin"))
+    with pytest.raises(ValueError, match="absolute local path"):
+        scan_public_file(unsafe, relative_path="external.onnx")
+
+    unsafe_tensor_metadata = tmp_path / "tensor-metadata.onnx"
+    unsafe_tensor_metadata.write_bytes(
+        _onnx_with_tensor(metadata_value=b"/opt/private/tensor-metadata.json")
+    )
+    with pytest.raises(ValueError, match="absolute local path"):
+        scan_public_file(unsafe_tensor_metadata, relative_path="tensor-metadata.onnx")
+
+    unsafe_function = tmp_path / "function.onnx"
+    safe_function = tmp_path / "safe-function.onnx"
+    safe_function.write_bytes(_onnx_with_function_metadata(b"portable metadata"))
+    assert scan_public_file(safe_function, relative_path="safe-function.onnx")["privacy"] == "PASS"
+
+    unsafe_function.write_bytes(_onnx_with_function_metadata(b"/opt/private/function.md"))
+    with pytest.raises(ValueError, match="absolute local path"):
+        scan_public_file(unsafe_function, relative_path="function.onnx")
+
+
+def test_public_file_scan_accepts_all_tracked_repository_pngs() -> None:
+    project = Path(__file__).resolve().parents[1]
+    relative_paths = subprocess.run(
+        ["git", "ls-files", "--", "*.png"],
+        cwd=project,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    assert relative_paths
+    for relative in relative_paths:
+        scan_public_file(project / relative, relative_path=Path(relative).as_posix())
 
 
 @pytest.mark.parametrize(

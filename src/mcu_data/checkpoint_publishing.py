@@ -12,6 +12,7 @@ from .publishing import (
     CHECKPOINT_BINARY_TEXT_RUN,
     MIN_BINARY_TEXT_RUN,
     assert_public_binary_privacy,
+    assert_public_onnx_privacy,
     assert_public_text_privacy,
     load_json_strict,
 )
@@ -95,25 +96,24 @@ def forbidden_local_path_bytes(project_root: Path) -> set[bytes]:
 def assert_binary_has_no_local_paths(path: Path, project_root: Path) -> None:
     raw_content = path.read_bytes()
     try:
-        assert_public_binary_privacy(
-            raw_content,
-            label=path.name,
-            minimum_text_run=(
-                CHECKPOINT_BINARY_TEXT_RUN
-                if path.suffix.lower() in {".pt", ".pth", ".torchscript"}
-                else MIN_BINARY_TEXT_RUN
-            ),
-        )
+        if path.suffix.lower() == ".onnx":
+            assert_public_onnx_privacy(raw_content, label=path.name)
+        else:
+            assert_public_binary_privacy(
+                raw_content,
+                label=path.name,
+                minimum_text_run=CHECKPOINT_BINARY_TEXT_RUN,
+            )
     except ValueError as exc:
         raise ValueError(
             f"Published binary still contains a machine-local path: {path.name}"
         ) from exc
+    if path.suffix.lower() == ".onnx":
+        return
     content = raw_content.lower()
-    compact_utf16 = content.replace(b"\x00", b"")
     if (
-        any(value in content or value in compact_utf16 for value in forbidden_local_path_bytes(project_root))
+        any(value in content for value in forbidden_local_path_bytes(project_root))
         or WINDOWS_USER_HOME_BYTES.search(content)
-        or WINDOWS_USER_HOME_BYTES.search(compact_utf16)
     ):
         raise ValueError(f"Published binary still contains a machine-local path: {path.name}")
 

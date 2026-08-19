@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import statistics
+import zlib
 from pathlib import Path
 from typing import Any
 
@@ -325,27 +326,214 @@ def assert_public_binary_privacy(
     content: bytes,
     *,
     label: str,
-    minimum_text_run: int = MIN_BINARY_TEXT_RUN,
+    minimum_text_run: int = CHECKPOINT_BINARY_TEXT_RUN,
 ) -> None:
-    """Reject absolute paths in decoded binary text without interpreting tensor payload bytes."""
+    """Reject paths in conservative printable runs from an opaque binary payload."""
     if type(minimum_text_run) is not int or minimum_text_run < MIN_BINARY_TEXT_RUN:
         raise ValueError("minimum_text_run must be an integer >= 2")
     printable = re.compile(rb"[\x20-\x7e]{" + str(minimum_text_run).encode("ascii") + rb",}")
     candidates = printable.findall(content)
-    compact_utf16 = content.replace(b"\x00", b"")
-    candidates.extend(printable.findall(compact_utf16))
+    utf16_le = re.compile(
+        rb"(?:[\x20-\x7e]\x00){" + str(minimum_text_run).encode("ascii") + rb",}"
+    )
+    utf16_be = re.compile(
+        rb"(?:\x00[\x20-\x7e]){" + str(minimum_text_run).encode("ascii") + rb",}"
+    )
+    candidates.extend(candidate[::2] for candidate in utf16_le.findall(content))
+    candidates.extend(candidate[1::2] for candidate in utf16_be.findall(content))
     inspected_candidates = []
     for candidate in candidates:
         for placeholder in (b"<PROJECT_ROOT>", b"<USER_HOME>"):
             candidate = candidate.replace(placeholder + b"/", b"")
             candidate = candidate.replace(placeholder + b"\\", b"")
         inspected_candidates.append(candidate)
-    if any(
-        GENERIC_WINDOWS_ABSOLUTE_BYTES.search(candidate)
-        or GENERIC_POSIX_ABSOLUTE_BYTES.search(candidate)
-        for candidate in inspected_candidates
-    ):
-        raise ValueError(f"Public binary artifact contains an absolute local path: {label}")
+    for candidate in inspected_candidates:
+        for pattern in (GENERIC_WINDOWS_ABSOLUTE_BYTES, GENERIC_POSIX_ABSOLUTE_BYTES):
+            if any(len(match.group(0)) >= minimum_text_run for match in pattern.finditer(candidate)):
+                raise ValueError(
+                    f"Public binary artifact contains an absolute local path: {label}"
+                )
+
+
+def _png_text_metadata(content: bytes, *, label: str) -> bytes:
+    """Return decoded PNG text chunks while deliberately excluding compressed IDAT bytes."""
+    metadata: list[bytes] = []
+    offset = len(PNG_MAGIC)
+    while offset + 12 <= len(content):
+        length = int.from_bytes(content[offset : offset + 4], "big")
+        chunk_type = content[offset + 4 : offset + 8]
+        data_start = offset + 8
+        data_end = data_start + length
+        next_offset = data_end + 4
+        if next_offset > len(content):
+            break
+        payload = content[data_start:data_end]
+        try:
+            if chunk_type == b"tEXt":
+                metadata.append(payload)
+            elif chunk_type == b"zTXt":
+                keyword, compressed = payload.split(b"\x00", 1)
+                if not compressed or compressed[0] != 0:
+                    raise ValueError("unsupported PNG zTXt compression method")
+                metadata.extend((keyword, zlib.decompress(compressed[1:])))
+            elif chunk_type == b"iTXt":
+                keyword, remainder = payload.split(b"\x00", 1)
+                if len(remainder) < 2:
+                    raise ValueError("truncated PNG iTXt header")
+                compression_flag, compression_method = remainder[:2]
+                language, translated, text = remainder[2:].split(b"\x00", 2)
+                if compression_flag not in {0, 1} or compression_method != 0:
+                    raise ValueError("unsupported PNG iTXt compression settings")
+                if compression_flag == 1:
+                    text = zlib.decompress(text)
+                metadata.extend((keyword, language, translated, text))
+        except (ValueError, zlib.error) as exc:
+            raise ValueError(f"Invalid PNG text metadata: {label}") from exc
+        offset = next_offset
+        if chunk_type == b"IEND":
+            break
+    return b"\n".join(metadata)
+
+
+class _ProtobufDecodeError(ValueError):
+    pass
+
+
+def _protobuf_varint(content: memoryview, offset: int) -> tuple[int, int]:
+    result = 0
+    for shift in range(0, 70, 7):
+        if offset >= len(content):
+            raise _ProtobufDecodeError("truncated protobuf varint")
+        byte = content[offset]
+        offset += 1
+        result |= (byte & 0x7F) << shift
+        if not byte & 0x80:
+            return result, offset
+    raise _ProtobufDecodeError("oversized protobuf varint")
+
+
+def _protobuf_fields(content: memoryview) -> list[tuple[int, int, memoryview | None]]:
+    fields: list[tuple[int, int, memoryview | None]] = []
+    offset = 0
+    while offset < len(content):
+        key, offset = _protobuf_varint(content, offset)
+        field_number, wire_type = key >> 3, key & 7
+        if field_number == 0:
+            raise _ProtobufDecodeError("protobuf field number zero")
+        if wire_type == 0:
+            _, offset = _protobuf_varint(content, offset)
+            fields.append((field_number, wire_type, None))
+        elif wire_type == 1:
+            offset += 8
+            if offset > len(content):
+                raise _ProtobufDecodeError("truncated protobuf fixed64")
+            fields.append((field_number, wire_type, None))
+        elif wire_type == 2:
+            length, offset = _protobuf_varint(content, offset)
+            end = offset + length
+            if end > len(content):
+                raise _ProtobufDecodeError("truncated protobuf bytes field")
+            fields.append((field_number, wire_type, content[offset:end]))
+            offset = end
+        elif wire_type == 5:
+            offset += 4
+            if offset > len(content):
+                raise _ProtobufDecodeError("truncated protobuf fixed32")
+            fields.append((field_number, wire_type, None))
+        else:
+            raise _ProtobufDecodeError(f"unsupported protobuf wire type {wire_type}")
+    return fields
+
+
+# ONNX v1.22 onnx.proto3 field numbers. Tensor payload fields are deliberately absent.
+_ONNX_PRIVACY_TEXT_FIELDS = {
+    "model": {2, 3, 4, 6},
+    "graph": {10},
+    "node": {6},
+    "attribute": {13},
+    "tensor": {12},
+    "value_info": {3},
+    "function": {8},
+    "entry": {1, 2},
+}
+_ONNX_PRIVACY_BYTES_FIELDS = {"attribute": {4, 9}}
+_ONNX_MESSAGE_FIELDS = {
+    "model": {7: "graph", 14: "entry", 20: "training", 25: "function"},
+    "graph": {
+        1: "node",
+        5: "tensor",
+        11: "value_info",
+        12: "value_info",
+        13: "value_info",
+        14: "tensor_annotation",
+        15: "sparse_tensor",
+        16: "entry",
+    },
+    "node": {5: "attribute", 9: "entry"},
+    "attribute": {
+        5: "tensor",
+        6: "graph",
+        10: "tensor",
+        11: "graph",
+        22: "sparse_tensor",
+        23: "sparse_tensor",
+    },
+    "tensor": {13: "entry", 16: "entry"},
+    "sparse_tensor": {1: "tensor", 2: "tensor"},
+    "value_info": {4: "entry"},
+    "tensor_annotation": {2: "entry"},
+    "training": {1: "graph", 2: "graph", 3: "entry", 4: "entry"},
+    "function": {7: "node", 11: "attribute", 12: "value_info", 14: "entry"},
+}
+
+
+def _onnx_metadata_strings(content: bytes) -> list[str]:
+    """Decode path-bearing ONNX protobuf metadata without reading tensor payload fields."""
+    strings: list[str] = []
+    saw_graph = False
+
+    def append_text(payload: memoryview) -> None:
+        try:
+            strings.append(bytes(payload).decode("utf-8"))
+        except UnicodeDecodeError as exc:
+            raise ValueError("ONNX metadata contains invalid UTF-8") from exc
+
+    def visit(payload: memoryview, message_type: str, depth: int) -> None:
+        nonlocal saw_graph
+        if depth > 64:
+            raise _ProtobufDecodeError("ONNX protobuf nesting is too deep")
+        for field_number, wire_type, value in _protobuf_fields(payload):
+            if wire_type != 2 or value is None:
+                continue
+            if message_type == "model" and field_number == 7:
+                saw_graph = True
+            child_type = _ONNX_MESSAGE_FIELDS.get(message_type, {}).get(field_number)
+            if child_type is not None:
+                visit(value, child_type, depth + 1)
+            elif field_number in _ONNX_PRIVACY_TEXT_FIELDS.get(message_type, set()):
+                append_text(value)
+            elif field_number in _ONNX_PRIVACY_BYTES_FIELDS.get(message_type, set()):
+                append_text(value)
+
+    visit(memoryview(content), "model", 0)
+    if not saw_graph:
+        raise _ProtobufDecodeError("ONNX ModelProto graph field is missing")
+    return strings
+
+
+def assert_public_onnx_privacy(content: bytes, *, label: str) -> None:
+    """Scan ONNX metadata/external-data paths, excluding raw tensor payload bytes."""
+    try:
+        strings = _onnx_metadata_strings(content)
+    except _ProtobufDecodeError:
+        # Legacy/fake fixtures are not parseable ModelProto files; retain the conservative gate.
+        assert_public_binary_privacy(
+            content,
+            label=label,
+            minimum_text_run=CHECKPOINT_BINARY_TEXT_RUN,
+        )
+        return
+    assert_public_text_privacy(strings, label=label)
 
 
 def _validate_yaml_schema(text: str, *, label: str) -> None:
@@ -495,16 +683,21 @@ def scan_public_file(path: Path, *, relative_path: str) -> dict[str, Any]:
             schema = "UTF8_TEXT_PASS"
         assert_public_text_privacy(strings, label=normalized)
     else:
-        minimum_text_run = (
-            CHECKPOINT_BINARY_TEXT_RUN
-            if suffix in {".pt", ".pth", ".torchscript"}
-            else MIN_BINARY_TEXT_RUN
-        )
-        assert_public_binary_privacy(
-            content,
-            label=normalized,
-            minimum_text_run=minimum_text_run,
-        )
+        if magic == "png":
+            metadata = _png_text_metadata(content, label=normalized)
+            assert_public_binary_privacy(
+                metadata,
+                label=normalized,
+                minimum_text_run=CHECKPOINT_BINARY_TEXT_RUN,
+            )
+        elif suffix == ".onnx":
+            assert_public_onnx_privacy(content, label=normalized)
+        else:
+            assert_public_binary_privacy(
+                content,
+                label=normalized,
+                minimum_text_run=CHECKPOINT_BINARY_TEXT_RUN,
+            )
     return {
         "path": normalized,
         "bytes": len(content),
