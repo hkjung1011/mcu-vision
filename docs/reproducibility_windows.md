@@ -88,7 +88,12 @@ smoke는 dataset 준비가 끝난 다음 단계에서 실행합니다.
 
 이 1-epoch smoke도 wiring 확인 전용이며 성능 비교나 weight 승격에 사용하지 않습니다.
 
-## 6. 3-seed full 비교
+## 6. 역사적 3-seed full 비교 절차
+
+> 이 절은 기존 `baseline_v1`의 역사적 재현 기록입니다. 현재 목표는 추가 RPi 100-epoch 학습을
+> 허용하지 않습니다. 완료된 seed 42/43 네 run의 재검증에는
+> [paired two-seed formal release](paired_2seed_formal_release.md)를 사용하십시오. 아래 학습 명령을
+> 새 campaign 계획으로 실행하지 마십시오.
 
 먼저 `-DryRun`으로 protocol·dataset evidence·COCO/YOLO 경로, 6개 실제 wrapper 명령과 기존 run의
 재사용 가능 여부를 확인합니다. 기본 `CampaignId`는 protocol ID, full/smoke, epochs/batch/imgsz/workers/seeds,
@@ -135,7 +140,7 @@ dataset-evidence hash와 실제 checkpoint SHA-256까지 모두 확인된 run만
 서로 다른 Git commit의 run을 섞는 경우 `mcu-compare-runs --provenance-attestation
 configs/experiments/mixed_commit_rpi_v2_attestation.json`을 지정해야 하며, exact commit/blob와
 model별 framework/pretrained/protocol hash가 맞지 않으면 `release_ready=false`입니다.
-현재 63bc679/b3e4176 혼합 6-run은 인자 순서를 명시한
+역사적 63bc679/b3e4176 혼합 6-run 경로는 인자 순서를 명시한
 `scripts/compare_formal_mixed_runs.ps1`로 실행합니다. 이 wrapper는 YOLO11 seed 42/43,
 YOLOX-S seed 42/43, 두 모델 seed 44의 정확한 6개 경로와 고정 attestation을 comparator에
 전달합니다. Comparator 자신의 current HEAD/clean 상태와 `reporting.py`/
@@ -145,7 +150,7 @@ YOLOX-S seed 42/43, 두 모델 seed 44의 정확한 6개 경로와 고정 attest
 checkout의 HEAD/clean 상태를 읽어 run manifest의 `framework_commit` 및 experiment config SHA와
 일치해야 합니다.
 
-현재 campaign 경로를 사용한 명령은 다음과 같습니다.
+당시 legacy campaign 경로를 기록한 명령은 다음과 같습니다. 현재 목표에서는 실행하지 않습니다.
 
 ```powershell
 $Old = "runs\benchmarks\micropcb_rpi_phash_component_bootstrap_v2_full_e100_b8_i640_w0_s42-43-44_p02facd21ef_dbea2fbaddc_cb773706267"
@@ -203,15 +208,17 @@ YOLO11 promotion은 Ultralytics/PyTorch 검증 때문에 `.venv-yolo11`에서 �
 
 ## 알려진 제한
 
-- 2026-08-18 progress에는 완료 run 3개와 중단 run 1개가 있지만, 정식 3-seed comparison과
-  `weights/trained` release는 아직 없습니다.
-- SMD canonical dataset과 CVAT round-trip은 아직 없습니다.
+- RPi matched seed 42/43 paired formal 및 두 모델 ONNX val/internal-test gate는 PASS했지만 `n=2`,
+  `df=1`의 기술통계입니다. Internal pHash split은 independent test가 아닙니다.
+- SMD/STM32 canonical class contract와 ingest/CVAT 검증 코드는 있으나 승인 실제 dataset과 실제 CVAT
+  round-trip은 아직 없습니다.
 - 현재 autolabel CLI는 Ultralytics YOLO11 `.pt`만 지원합니다.
-- ONNX export·전체 val/test 동등성·deployment 승격 도구는 구현됐지만 정식 full-run artifact로는 아직 실행되지 않았습니다.
+- RPi 두 모델의 ONNX export·val/test 동등성·deployment gate는 PASS했습니다. 이는 Ubuntu 카메라
+  production readiness를 의미하지 않습니다.
 - Ubuntu CPU dependency lock은 준비됐지만 실제 목표 Ubuntu 장치 실행은 NOT VERIFIED입니다.
 - Canonical manifest/class/image-list와 YOLO↔COCO box/class 동등성은 RPi v2에서 PASS했습니다.
-- full run 실측은 YOLO11m 약 168분/run, YOLOX-S seed42 약 336분/run이지만 laptop 열·전력 상태에
-  따라 달라지므로 재개 전 여유 공간과 전원/열 조건을 직접 확인합니다.
+- 역사적 full run 실측은 YOLO11m 약 168분/run, YOLOX-S seed42 약 336분/run입니다. 추가 RPi
+  100-epoch 학습에는 사용하지 않으며 향후 STM32/SMD는 1e→10e→50e staged contract를 따릅니다.
 
 ```powershell
 Get-PSDrive -Name C

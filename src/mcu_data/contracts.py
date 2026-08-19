@@ -140,6 +140,75 @@ def load_ontology(path: Path) -> Ontology:
     )
 
 
+def load_ontology_display_sidecar(
+    canonical_path: Path,
+    sidecar_path: Path,
+) -> dict[str, dict[str, str]]:
+    """Bind presentation-only localized text to a frozen canonical ontology."""
+    ontology = load_ontology(canonical_path)
+    document = load_yaml(sidecar_path.resolve())
+    expected_top_level = {
+        "schema_version",
+        "ontology_id",
+        "locale",
+        "presentation_only",
+        "canonical_source",
+        "classes",
+    }
+    if set(document) != expected_top_level:
+        raise ContractError(
+            "Display sidecar top-level fields differ: "
+            f"missing={sorted(expected_top_level - set(document))}, "
+            f"extra={sorted(set(document) - expected_top_level)}"
+        )
+    if (
+        type(document.get("schema_version")) is not int
+        or document["schema_version"] != 1
+        or document.get("ontology_id") != ontology.ontology_id
+        or document.get("presentation_only") is not True
+        or document.get("canonical_source") != canonical_path.name
+    ):
+        raise ContractError("Display sidecar identity/canonical binding differs")
+    locale = document.get("locale")
+    if not isinstance(locale, str) or not locale:
+        raise ContractError("Display sidecar locale must be a non-empty string")
+    raw_classes = document.get("classes")
+    if not isinstance(raw_classes, Mapping):
+        raise ContractError("Display sidecar classes must be a mapping")
+    sidecar_names = list(raw_classes)
+    if sidecar_names != ontology.names:
+        raise ContractError(
+            "Display sidecar class keys/order differ from canonical ontology: "
+            f"sidecar={sidecar_names}, canonical={ontology.names}"
+        )
+    allowed_fields = {"display_name", "description", "terminology_note"}
+    result: dict[str, dict[str, str]] = {}
+    display_names: set[str] = set()
+    for class_name, raw_entry in raw_classes.items():
+        if not isinstance(raw_entry, Mapping):
+            raise ContractError(f"Display sidecar class {class_name!r} must be a mapping")
+        fields = set(raw_entry)
+        if not {"display_name", "description"}.issubset(fields) or not fields.issubset(
+            allowed_fields
+        ):
+            raise ContractError(
+                f"Display sidecar class {class_name!r} may contain only "
+                "display_name, description, and optional terminology_note"
+            )
+        entry: dict[str, str] = {}
+        for field, value in raw_entry.items():
+            if not isinstance(value, str) or not value.strip():
+                raise ContractError(
+                    f"Display sidecar {class_name}.{field} must be a non-empty string"
+                )
+            entry[field] = value.strip()
+        if entry["display_name"] in display_names:
+            raise ContractError("Display sidecar display_name values must be unique")
+        display_names.add(entry["display_name"])
+        result[class_name] = entry
+    return result
+
+
 def load_json_object(path: Path, *, label: str) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8-sig"))

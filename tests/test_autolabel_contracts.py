@@ -15,11 +15,39 @@ from mcu_data.autolabel import (
     validate_teacher_binding,
 )
 from mcu_data.common import load_yaml, sha256_file
-from mcu_data.contracts import ContractError, canonical_sha256, load_ontology
+from mcu_data.contracts import (
+    ContractError,
+    canonical_sha256,
+    load_ontology,
+    load_ontology_display_sidecar,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ONTOLOGY_PATH = PROJECT_ROOT / "configs" / "classes.smd_v1.yaml"
+ONTOLOGY_DISPLAY_KO_PATH = PROJECT_ROOT / "configs" / "classes.smd_v1.display.ko.yaml"
+
+
+def test_korean_display_sidecar_is_presentation_only_and_exactly_bound() -> None:
+    ontology = load_ontology(ONTOLOGY_PATH)
+    display = load_ontology_display_sidecar(ONTOLOGY_PATH, ONTOLOGY_DISPLAY_KO_PATH)
+    assert list(display) == ontology.names
+    assert all(
+        set(entry).issubset({"display_name", "description", "terminology_note"})
+        for entry in display.values()
+    )
+    assert display["stm32_bare_ic"]["display_name"] == "STM32 단품 IC 패키지"
+
+
+def test_korean_display_sidecar_rejects_canonical_fields(tmp_path: Path) -> None:
+    document = yaml.safe_load(ONTOLOGY_DISPLAY_KO_PATH.read_text(encoding="utf-8"))
+    document["classes"]["smd_capacitor"]["id"] = 0
+    tampered = tmp_path / "display.ko.yaml"
+    tampered.write_text(
+        yaml.safe_dump(document, allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
+    with pytest.raises(ContractError, match="may contain only"):
+        load_ontology_display_sidecar(ONTOLOGY_PATH, tampered)
 
 
 def _image_row(
