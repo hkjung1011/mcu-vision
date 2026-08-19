@@ -9,6 +9,8 @@ from typing import Any
 
 from .common import sha256_file
 from .publishing import (
+    CHECKPOINT_BINARY_TEXT_RUN,
+    MIN_BINARY_TEXT_RUN,
     assert_public_binary_privacy,
     assert_public_text_privacy,
     load_json_strict,
@@ -93,7 +95,15 @@ def forbidden_local_path_bytes(project_root: Path) -> set[bytes]:
 def assert_binary_has_no_local_paths(path: Path, project_root: Path) -> None:
     raw_content = path.read_bytes()
     try:
-        assert_public_binary_privacy(raw_content, label=path.name)
+        assert_public_binary_privacy(
+            raw_content,
+            label=path.name,
+            minimum_text_run=(
+                CHECKPOINT_BINARY_TEXT_RUN
+                if path.suffix.lower() in {".pt", ".pth", ".torchscript"}
+                else MIN_BINARY_TEXT_RUN
+            ),
+        )
     except ValueError as exc:
         raise ValueError(
             f"Published binary still contains a machine-local path: {path.name}"
@@ -115,6 +125,13 @@ def _assert_checkpoint_object_privacy(value: Any, *, label: str) -> None:
     def visit(item: Any) -> None:
         if isinstance(item, (str, Path)):
             strings.append(str(item))
+            return
+        if isinstance(item, (bytes, bytearray)):
+            assert_public_binary_privacy(
+                bytes(item),
+                label=label,
+                minimum_text_run=MIN_BINARY_TEXT_RUN,
+            )
             return
         if isinstance(item, Mapping):
             identity = id(item)

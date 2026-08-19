@@ -174,7 +174,11 @@ GENERIC_POSIX_ABSOLUTE_BYTES = re.compile(
     rb"(?m)(?<![A-Za-z0-9:/])/(?![/\s])[A-Za-z0-9._~+@=-]+"
     rb"(?:/[A-Za-z0-9._~+@=-]+)*"
 )
-PRINTABLE_BINARY_STRING = re.compile(rb"[\x20-\x7e]{6,}")
+MIN_BINARY_TEXT_RUN = 2
+CHECKPOINT_BINARY_TEXT_RUN = 6
+JSON_NUMBER_TEXT = re.compile(
+    r"-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\Z"
+)
 
 
 def _reject_duplicate_json_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -190,6 +194,13 @@ def _reject_nonstandard_json_constant(value: str) -> None:
     raise ValueError(f"Non-standard JSON numeric constant: {value}")
 
 
+def _parse_finite_json_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError(f"Non-finite JSON number: {value}")
+    return parsed
+
+
 def loads_json_strict(text: str, *, label: str = "JSON") -> Any:
     """Decode RFC-style JSON while rejecting duplicate keys and NaN/Infinity."""
     try:
@@ -197,6 +208,7 @@ def loads_json_strict(text: str, *, label: str = "JSON") -> Any:
             text,
             object_pairs_hook=_reject_duplicate_json_pairs,
             parse_constant=_reject_nonstandard_json_constant,
+            parse_float=_parse_finite_json_float,
         )
     except (json.JSONDecodeError, UnicodeError, ValueError) as exc:
         raise ValueError(f"Invalid {label}: {exc}") from exc
@@ -309,11 +321,19 @@ def assert_public_text_privacy(strings: list[str], *, label: str) -> None:
             raise ValueError(f"Public artifact contains an absolute local path: {label}")
 
 
-def assert_public_binary_privacy(content: bytes, *, label: str) -> None:
-    """Reject generic absolute paths embedded as printable UTF-8/ASCII or UTF-16 text."""
-    candidates = PRINTABLE_BINARY_STRING.findall(content)
+def assert_public_binary_privacy(
+    content: bytes,
+    *,
+    label: str,
+    minimum_text_run: int = MIN_BINARY_TEXT_RUN,
+) -> None:
+    """Reject absolute paths in decoded binary text without interpreting tensor payload bytes."""
+    if type(minimum_text_run) is not int or minimum_text_run < MIN_BINARY_TEXT_RUN:
+        raise ValueError("minimum_text_run must be an integer >= 2")
+    printable = re.compile(rb"[\x20-\x7e]{" + str(minimum_text_run).encode("ascii") + rb",}")
+    candidates = printable.findall(content)
     compact_utf16 = content.replace(b"\x00", b"")
-    candidates.extend(PRINTABLE_BINARY_STRING.findall(compact_utf16))
+    candidates.extend(printable.findall(compact_utf16))
     inspected_candidates = []
     for candidate in candidates:
         for placeholder in (b"<PROJECT_ROOT>", b"<USER_HOME>"):
@@ -331,9 +351,22 @@ def assert_public_binary_privacy(content: bytes, *, label: str) -> None:
 def _validate_yaml_schema(text: str, *, label: str) -> None:
     try:
         node = yaml.compose(text)
-        yaml.safe_load(text)
+        document = yaml.safe_load(text)
     except yaml.YAMLError as exc:
         raise ValueError(f"Invalid YAML schema: {label}") from exc
+
+    def finite_values(value: Any) -> None:
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError(f"Non-finite YAML number in {label}")
+        if isinstance(value, dict):
+            for key, child in value.items():
+                finite_values(key)
+                finite_values(child)
+        elif isinstance(value, list):
+            for child in value:
+                finite_values(child)
+
+    finite_values(document)
 
     def visit(value: yaml.Node | None) -> None:
         if value is None:
@@ -349,6 +382,15 @@ def _validate_yaml_schema(text: str, *, label: str) -> None:
         elif isinstance(value, yaml.SequenceNode):
             for child in value.value:
                 visit(child)
+        elif isinstance(value, yaml.ScalarNode):
+            scalar = str(value.value)
+            if (
+                value.style is None
+                and JSON_NUMBER_TEXT.fullmatch(scalar)
+                and ("e" in scalar.lower())
+                and not math.isfinite(float(scalar))
+            ):
+                raise ValueError(f"Non-finite YAML exponent in {label}: {scalar}")
 
     visit(node)
 
@@ -453,7 +495,16 @@ def scan_public_file(path: Path, *, relative_path: str) -> dict[str, Any]:
             schema = "UTF8_TEXT_PASS"
         assert_public_text_privacy(strings, label=normalized)
     else:
-        assert_public_binary_privacy(content, label=normalized)
+        minimum_text_run = (
+            CHECKPOINT_BINARY_TEXT_RUN
+            if suffix in {".pt", ".pth", ".torchscript"}
+            else MIN_BINARY_TEXT_RUN
+        )
+        assert_public_binary_privacy(
+            content,
+            label=normalized,
+            minimum_text_run=minimum_text_run,
+        )
     return {
         "path": normalized,
         "bytes": len(content),
@@ -569,6 +620,8 @@ def publish_evidence_file(
             raise ValueError(f"Published text contains NUL bytes: {source}")
         text = text.replace("\r\n", "\n").replace("\r", "\n")
         cleaned_text, changed = _scrub_text(text, replacements)
+        if source.suffix.lower() in {".yaml", ".yml"}:
+            _validate_yaml_schema(cleaned_text, label=source.name)
         destination.write_text(cleaned_text, encoding="utf-8", newline="\n")
     else:
         shutil.copy2(source, destination)

@@ -15,3 +15,9 @@ reports/methodology/*.md -text
 reports/methodology/*.json -text
 reports/methodology/*.csv -text
 reports/methodology/*.yaml -text
+
+# Hash-bound public release trees must retain exact bytes across autocrlf checkouts.
+reports/comparisons/** -text
+reports/runs/** -text
+reports/deployments/** -text
+weights/trained/** -text

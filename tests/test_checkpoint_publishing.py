@@ -211,6 +211,63 @@ def test_yolox_publisher_runs_generic_binary_privacy_scan(
     assert not (tmp_path / "public" / "best.pth").exists()
 
 
+@pytest.mark.parametrize("short_path", [r"C:\x", r"\\s\x", "/a"])
+def test_yolox_publisher_rejects_short_decoded_metadata_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    short_path: str,
+) -> None:
+    checkpoint = {
+        "model": {"x": _FakeTensor()},
+        "optimizer": {"state": {"resume_path": short_path}},
+    }
+    monkeypatch.setitem(sys.modules, "torch", _fake_torch([], checkpoint))
+    source = tmp_path / "best.pth"
+    source.write_bytes(b"PK\x03\x04safe-archive-bytes")
+    with pytest.raises(ValueError, match="absolute local path"):
+        publish_yolox_checkpoint(
+            source,
+            tmp_path / "public" / "best.pth",
+            project_root=tmp_path,
+        )
+
+
+@pytest.mark.parametrize("short_path", [b"C:\\x", b"\\\\s\\x", b"/a", bytearray(b"/a")])
+def test_yolox_publisher_rejects_short_bytes_metadata_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    short_path: bytes | bytearray,
+) -> None:
+    checkpoint = {
+        "model": {"x": _FakeTensor()},
+        "optimizer": {"metadata": short_path},
+    }
+    monkeypatch.setitem(sys.modules, "torch", _fake_torch([], checkpoint))
+    source = tmp_path / "best.pth"
+    source.write_bytes(b"PK\x03\x04safe-archive-bytes")
+    with pytest.raises(ValueError, match="absolute local path"):
+        publish_yolox_checkpoint(
+            source,
+            tmp_path / "public" / "best.pth",
+            project_root=tmp_path,
+        )
+
+
+def test_yolox_metadata_scan_ignores_short_path_pattern_in_tensor_payload_bytes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkpoint = {"model": {"x": _FakeTensor()}}
+    monkeypatch.setitem(sys.modules, "torch", _fake_torch([], checkpoint))
+    source = tmp_path / "best.pth"
+    source.write_bytes(b"PK\x03\x04tensor\x00/a\x00payload")
+    destination = tmp_path / "public" / "best.pth"
+
+    record = publish_yolox_checkpoint(source, destination, project_root=tmp_path)
+
+    assert record["proof"]["privacy_scan"] == "PASS"
+
+
 def test_actual_yolo11_sanitizer_in_framework_environment(tmp_path: Path) -> None:
     python = os.environ.get("MCU_YOLO11_PYTHON")
     if not python:

@@ -7,6 +7,7 @@ import pytest
 
 from mcu_data.common import sha256_file
 from mcu_data.publishing import (
+    assert_public_binary_privacy,
     load_json_strict,
     load_jsonl_strict,
     publish_evidence_file,
@@ -161,6 +162,82 @@ def test_public_file_scan_accepts_matching_png_and_torch_magic(tmp_path: Path) -
     checkpoint.write_bytes(b"PK\x03\x04fixture")
     assert scan_public_file(image, relative_path="image.png")["detected_magic"] == "png"
     assert scan_public_file(checkpoint, relative_path="weights/best.pth")["detected_magic"] == "zip"
+
+
+@pytest.mark.parametrize("payload", [b"C:\\x", b"\\\\s\\x", b"/a"])
+def test_binary_privacy_scan_rejects_short_absolute_paths(payload: bytes) -> None:
+    with pytest.raises(ValueError, match="absolute local path"):
+        assert_public_binary_privacy(payload, label="short-path.bin")
+
+
+@pytest.mark.parametrize(
+    ("filename", "payload"),
+    [
+        ("evidence.json", '{"metric": 1e999}\n'),
+        ("evidence.jsonl", '{"metric": 1e999}\n'),
+        ("evidence.yaml", "metric: 1e999\n"),
+        ("evidence.yml", "metric: .inf\n"),
+    ],
+)
+def test_publication_rejects_non_finite_exponents_in_structured_text(
+    tmp_path: Path,
+    filename: str,
+    payload: str,
+) -> None:
+    source = tmp_path / filename
+    source.write_text(payload, encoding="utf-8")
+    destination = tmp_path / "public" / filename
+    with pytest.raises(ValueError, match="Non-finite"):
+        publish_evidence_file(source, destination, project_root=tmp_path)
+    with pytest.raises(ValueError, match="Non-finite"):
+        scan_public_file(source, relative_path=filename)
+
+
+def test_strict_json_accepts_largest_finite_exponent(tmp_path: Path) -> None:
+    source = tmp_path / "finite.json"
+    source.write_text('{"metric": 1e308}\n', encoding="utf-8")
+    assert load_json_strict(source)["metric"] == 1e308
+
+
+def test_hash_bound_public_trees_preserve_lf_in_autocrlf_clone(tmp_path: Path) -> None:
+    project = Path(__file__).resolve().parents[1]
+    source_repo = tmp_path / "source"
+    clone_repo = tmp_path / "clone"
+    source_repo.mkdir()
+    (source_repo / ".gitattributes").write_bytes((project / ".gitattributes").read_bytes())
+    relative_paths = (
+        "reports/comparisons/release/evidence.json",
+        "reports/runs/release/artifact_manifest.json",
+        "reports/deployments/release/deployment_release_manifest.json",
+        "weights/trained/release/deployment.json",
+    )
+    payload = b'{\n  "status": "PASS"\n}\n'
+    for relative in relative_paths:
+        path = source_repo / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+
+    subprocess.run(["git", "init", "-q"], cwd=source_repo, check=True)
+    subprocess.run(["git", "config", "user.email", "fixture@example.invalid"], cwd=source_repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Fixture"], cwd=source_repo, check=True)
+    subprocess.run(["git", "config", "core.autocrlf", "true"], cwd=source_repo, check=True)
+    subprocess.run(["git", "add", "."], cwd=source_repo, check=True)
+    subprocess.run(["git", "commit", "-qm", "fixture"], cwd=source_repo, check=True)
+    subprocess.run(
+        ["git", "-c", "core.autocrlf=true", "clone", "-q", str(source_repo), str(clone_repo)],
+        check=True,
+    )
+
+    for relative in relative_paths:
+        assert (clone_repo / relative).read_bytes() == payload
+        attribute = subprocess.run(
+            ["git", "check-attr", "text", "--", relative],
+            cwd=clone_repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        assert attribute.endswith("text: unset")
 
 
 @pytest.mark.parametrize(
